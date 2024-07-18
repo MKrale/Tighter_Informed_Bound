@@ -13,7 +13,7 @@ solvers, solverargs = [], []
 
 ### BIB
 push!(solvers, BIBSolver)
-push!(solverargs, (name="BIBSolver", sargs=(max_iterations=10, precision=1e-2), pargs=()))
+push!(solverargs, (name="BIBSolver", sargs=(max_iterations=25, precision=1e-2), pargs=()))
 
 ### FIB
 using FIB
@@ -62,20 +62,58 @@ envs, envargs = [], []
 # push!(envargs, (name="Tiger",))
 
 ### RockSample
-import RockSample
-map_size, rock_pos = (5,5), [(1,1), (3,3), (4,4)] # Default
-# map_size, rock_pos = (10,10), [(2,3), (4,6), (7,4), (8,9) ] # Big Boy!
-rocksample = RockSample.RockSamplePOMDP(map_size, rock_pos)
-push!(envs, rocksample)
-push!(envargs, (name="RockSample",))
+# import RockSample
+# map_size, rock_pos = (5,5), [(1,1), (3,3), (4,4)] # Default
+# # map_size, rock_pos = (10,10), [(2,3), (4,6), (7,4), (8,9) ] # Big Boy!
+# rocksample = RockSample.RockSamplePOMDP(map_size, rock_pos)
+# push!(envs, rocksample)
+# push!(envargs, (name="RockSample",))
+
+# push!(envargs, (name="LaserTag",))
+
+# ### DroneSurveilance
+# import DroneSurveillance
+# dronesurv = DroneSurveillance.DroneSurveillancePOMDP()
+# push!(envs, dronesurv)
+# push!(envargs, (name="DroneSurveilance",))
+
+# ### Tag
+# import TagPOMDPProblem
+# tag = TagPOMDPProblem.TagPOMDP()
+# push!(envs, tag)
+# push!(envargs, (name="Tag",))
+
+### Mini Hallway
+minihall = POMDPModels.MiniHallway()
+push!(envs, minihall)
+push!(envargs, (name="MiniHallway",))
 
 
+# ### TMaze (Does not work with FIB)
+# tmaze = POMDPModels.TMaze()
+# reward(tmaze::Any, s::POMDPTools.ModelTools.TerminalState,a ) = 0
+# push!(envs, tmaze)
+# push!(envargs, (name="TMaze",))
+
+
+# For some reason, the envs below do not work:
+
+### SubHunt (No 'observations' defined)
+# import SubHunt
+# subhunt = SubHunt.SubHuntPOMDP()
+# push!(envs, subhunt)
+# push!(envargs, (name="SubHunt",))
+
+# ### LaserTag (No 'observations' defined)
+# import LaserTag
+# lasertag = LaserTag.gen_lasertag()
+# push!(envs, lasertag)
 
 ##################################################################
 #                           Run Solvers 
 ##################################################################
 
-sims, steps = 10, 50
+sims, steps = 100, 50
 
 for (model, modelargs) in zip(envs, envargs)
     println("Testing in $(modelargs.name) environment")

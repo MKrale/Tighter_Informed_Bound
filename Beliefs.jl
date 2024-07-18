@@ -55,6 +55,10 @@ Base.length(d::DiscreteHashedBelief) = length(d.state_list)
 mean(d::DiscreteHashedBelief) = throw("Function not implemented")
 mode(d::DiscreteHashedBelief) = throw("Function not implemented")
 
+#########################################
+#          Hashing & stuff
+#########################################
+
 Base.:(==)(x::DiscreteHashedBelief, y::DiscreteHashedBelief) = (x.hash == y.hash) && all( map( s -> isapprox( pdf(x,s), pdf(y,s); atol=10^-3 ),  collect(support(x))))
 
 function Base.:(<)(x::DiscreteHashedBelief, y::DiscreteHashedBelief)
@@ -96,7 +100,7 @@ function POMDPs.update(bu::DiscreteHashedBeliefUpdater, b::DiscreteHashedBelief,
     for (s, ps) in weighted_iterator(b)
         ss_next = transition(model, s, a)
         for (snext, psnext) in weighted_iterator(ss_next)
-            po = obs_weight(model,s,a,snext,o)
+s            po = obs_weight(model,s,a,snext,o)
             add_to_dict!(bnext, snext, ps*psnext*po)
         end
     end

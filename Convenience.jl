@@ -1,7 +1,7 @@
 function POMDPs.reward(model::POMDP, b::DiscreteHashedBelief,a)
     r = 0.0
     for (s,p) in zip(b.state_list, b.probs)
-        r += p * POMDPs.reward(model,s,a)
+        s == POMDPTools.ModelTools.TerminalState() || ( r += p * POMDPs.reward(model,s,a) )
     end
     return r
 end

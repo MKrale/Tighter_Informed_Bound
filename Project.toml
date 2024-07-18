@@ -1,9 +1,13 @@
 [deps]
 Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
+DroneSurveillance = "63556450-714a-11e9-08e1-e368b701e279"
 FIB = "13b007ba-0ca8-5af2-9adf-bc6a6301e25a"
+LaserTag = "041f53e1-e4f8-54ec-814d-e9e995aa38d4"
 NativeSARSOP = "a07c76ea-660d-4c9a-8028-2e6dbd212cb8"
 POMDPModels = "355abbd5-f08e-5560-ac9e-8b5f2592a0ca"
 POMDPTools = "7588e00f-9cae-40de-98dc-e0c70c48cdd7"
 POMDPs = "a93abf59-7444-517b-a68a-c42f96afdd7d"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 RockSample = "de008ff0-c357-11e8-3329-7fe746fe836e"
+SubHunt = "a88f5ffd-3e7a-53ba-860a-e6b731d22c85"
+TagPOMDPProblem = "8a653263-a1cc-4cf9-849f-f530f6ffc800"
