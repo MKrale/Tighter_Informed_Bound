@@ -37,7 +37,6 @@ function solve(sol::QMDPSolver_alt, m::POMDP)
             end
         end
     end
-    printdb(i, largest_change)
     return QMDPPlanner_alt(m,Q,Qmax)
 end
 

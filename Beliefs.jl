@@ -100,7 +100,7 @@ function POMDPs.update(bu::DiscreteHashedBeliefUpdater, b::DiscreteHashedBelief,
     for (s, ps) in weighted_iterator(b)
         ss_next = transition(model, s, a)
         for (snext, psnext) in weighted_iterator(ss_next)
-s            po = obs_weight(model,s,a,snext,o)
+            po = obs_weight(model,s,a,snext,o)
             add_to_dict!(bnext, snext, ps*psnext*po)
         end
     end

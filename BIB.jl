@@ -22,6 +22,6 @@ module BIB
 
     #Solver:
     BIBSolver, solve,
-    BIBPolicy, action
+    BIBPolicy, action, bvalue
     
 end

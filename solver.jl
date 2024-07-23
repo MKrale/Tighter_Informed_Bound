@@ -1,6 +1,3 @@
-# tolerance is ||alpha^k - alpha^k+1||_infty
-
-
 #########################################
 #               Solver:
 #########################################
@@ -17,44 +14,110 @@ end
 struct BIB_Data
     Q::Array{Float64,2}
     B_idx::Array{Int,3}
-    P_obs::Array{Float64,3}
-    Obs::Array{Vector{Int},2}
+    SAO_probs::Array{Float64,3}
+    SAOs::Array{Vector{Int},2}
+end
+
+struct C
+    S
+    A 
+    O 
+    ns 
+    na
+    no
 end
 
 function POMDPs.solve(solver::BIBSolver, model::POMDP)
 
     S, A, O = states(model), actions(model), observations(model) #TODO: figure out if I need to use ordered_... here
-    S_dict, A_dict, O_dict = Dict(zip(S, 1:length(S))), Dict(zip(A, 1:length(A))), Dict(zip(O, 1:length(O)))
     ns, na, no = length(states(model)), length(actions(model)), length(observations(model))
-    # Bs = Array{DiscreteBelief,3}(undef, ns,na,no)
-    
-    B_idx = zeros(Int,ns,na,no)
-    B = Array{DiscreteHashedBelief,1}()
-    U = DiscreteHashedBeliefUpdater(model)
+    constants = C(S,A,O,ns,na,no)
 
     # 1: Precompute observation probabilities
-    P_obs = zeros(no,ns,na)
-    Obs = Array{Vector{Int}}(undef,ns,na)
+    SAO_probs = []                                  # ∀s,a,o, gives probability of o given (s,a)
+    SAOs = []                                       # ∀s,a, gives os with p>0
+    SAO_probs, SAOs = get_all_obs_probs(model; constants)
+
+    # 2 : Pre-compute all beliefs
+    B = []                                          # Our set of beliefs
+    B_idx = []                                      # ∀s,a,o, gives index of b_sao in B
+    B, B_idx = get_belief_set(model, SAOs; constants)
+
+    # 3 : Compute Q-values bsoa beliefs
+    Qs = get_QMDP_Beliefset(model, B; constants)    # ∀b∈B, contains QBIB value (initialized using QMDP)
+    for i=1:solver.max_iterations
+        Qs, max_dif = get_QBIB_Beliefset(model,Qs,B,B_idx,SAOs, SAO_probs; constants)
+        max_dif < solver.precision && (printdb("breaking after $i iterations:"); break)
+    end
+    return BIBPolicy(model, BIB_Data(Qs,B_idx,SAO_probs,SAOs) )
+end
+
+#########################################
+#            Precomputation:
+#########################################
+
+# Observation Probabilities:
+
+"""
+Computes the probabilities of each observation for each state-action pair. \n 
+Returns: SAO_probs ((s,a,o)->p), SAOs ((s,a) -> os with p>0)
+"""
+function get_all_obs_probs(model::POMDP; constants::Union{C,Nothing}=nothing)
+    isnothing(constants) && throw("Not implemented error! (get_obs_probs)")
+    S,A,O = constants.S , constants.A, constants.O
+    ns, na, no = constants.ns, constants.na, constants.no
+
+    SAO_probs = zeros(no,ns,na)
+    SAOs = Array{Vector{Int}}(undef,ns,na)
+    # TODO: this can be done cleaner I imagine...
     for si in 1:ns
         for sa in 1:na
-            Obs[si,sa] = []
+            SAOs[si,sa] = []
         end
     end
 
     for (oi,o) in enumerate(O)
         for (si,s) in enumerate(S)
             for (ai,a) in enumerate(A)
-                P_obs[oi,si,ai] = Pr_obs(model,o,s,a)
-                P_obs[oi,si,ai] > 0 && push!(Obs[si,ai], oi)
+                SAO_probs[oi,si,ai] = get_obs_prob(model,o,s,a)
+                SAO_probs[oi,si,ai] > 0 && push!(SAOs[si,ai], oi)
             end
         end
     end
+    return SAO_probs, SAOs
+end
 
-    # 2 : Pre-compute all beliefs
+"""Computes the probability of an observation given a state-action pair."""
+function get_obs_prob(model::POMDP, o,s,a)
+    p = 0
+    for (sp, psp) in weighted_iterator(transition(model,s,a))
+        dist = observation(model,a,sp)
+        p += psp*pdf(dist,o)
+    end
+    return p
+end
+"""Computes the probability of an observation given a belief-action pair."""
+get_obs_prob(model::POMDP, o, b::DiscreteHashedBelief, a) = sum( (s,p) -> p*get_obs_prob(model,o,s,a), zip(b.state_list, b.probs) )
+
+# Belief Sets:
+
+"""
+Computes all beliefs reachable in one step from a state. \n
+Returns: B (vector of beliefs), B_idx (s,a,o -> index of B) 
+"""
+function get_belief_set(model, SAOs; constants::Union{C,Nothing}=nothing)
+    isnothing(constants) && throw("Not implemented error! (get_obs_probs)")
+    S, A, O = constants.S, constants.A, constants.O
+    ns,na,no = constants.ns, constants.na, constants.no
+    U = DiscreteHashedBeliefUpdater(model)
+
+    B = Array{DiscreteHashedBelief,1}()       
+    B_idx = zeros(Int,ns,na,no)
+    push!(B, DiscreteHashedBelief(initialstate(model)))
     for (si,s) in enumerate(S)
         b_s = DiscreteHashedBelief([s],[1.0])
         for (ai,a) in enumerate(A)
-            for oi in Obs[si,ai]
+            for oi in SAOs[si,ai]
                 o = O[oi]
                 b = update(U, b_s, a, o)
                 k = findfirst( x -> x==b , B)
@@ -63,53 +126,59 @@ function POMDPs.solve(solver::BIBSolver, model::POMDP)
             end
         end
     end
-
-    # 3 : Compute Q-values bsoa beliefs
-    Qs = zeros(Float64, length(B), na)
-    
-    # π_QMDP = solve(QMDPSolver_alt(), model)
-    # for (b_idx, b) in enumerate(B)
-    #     for (ai, a) in enumerate(A)
-    #         for (si, s) in enumerate(S)
-    #             if pdf(b,s) > 0
-    #                 Qs[b_idx, ai] += pdf(b,s) * π_QMDP.Q_MDP[si,ai]
-    #             end
-    #         end
-    #     end
-    # end
-    # println(Qs)
-
-    Qs_prev = deepcopy(Qs)
-    for i=1:solver.max_iterations
-        for (b_idx,b) in enumerate(B)
-            for (ai, a) in enumerate(A)
-                Qs[b_idx,ai] = _get_Q_BIB(model,b,a, Qs_prev, B_idx, P_obs, Obs ; ai=ai)
-            end
-        end
-        max_dif = maximum(map(abs, (Qs .- Qs_prev)) ./ (Qs_prev.+1e-10))
-        Qs_prev = deepcopy(Qs)
-        Qs = zeros(Float64, length(B), na)
-        printdb(i, max_dif)
-        max_dif < solver.precision && (printdb("breaking after $i iterations:"); break)
-    end
-    return BIBPolicy(model, BIB_Data(Qs,B_idx,P_obs,Obs) )
+    return B, B_idx
 end
 
+#########################################
+#            Value Computations:
+#########################################
 
+function get_QMDP_Beliefset(model::POMDP, B::Vector; constants::Union{C,Nothing}=nothing)
+    isnothing(constants) && throw("Not implemented error! (get_obs_probs)")
+    S, A, O = constants.S, constants.A, constants.O
+    ns,na,no = constants.ns, constants.na, constants.no
 
-function _get_Q_BIB(model,b,a,Qs,B_idx,P_obs, Obs; ai=nothing)
+    π_QMDP = solve(QMDPSolver_alt(), model)
+    Qs = zeros(Float64, length(B), na)
+    for (b_idx, b) in enumerate(B)
+        for (ai, a) in enumerate(A)
+            for (si, s) in enumerate(S)
+                if pdf(b,s) > 0
+                    Qs[b_idx, ai] += pdf(b,s) * π_QMDP.Q_MDP[si,ai]
+                end
+            end
+        end
+    end
+    return Qs
+end
+
+function get_QBIB_Beliefset(model::POMDP,Qs,B::Vector,B_idx, SAOs, SAO_probs; constants::Union{C,Nothing}=nothing)
+    isnothing(constants) && throw("Not implemented error! (get_obs_probs)")
+    S, A, O = constants.S, constants.A, constants.O
+    ns,na,no = constants.ns, constants.na, constants.no
+
+    Qs_new = zero(Qs) # TODO: this may be inefficient?
+    for (b_idx,b) in enumerate(B)
+        for (ai, a) in enumerate(A)
+            Qs_new[b_idx,ai] = get_QBIB_ba(model,b,a, Qs, B_idx, SAO_probs, SAOs ; ai=ai)
+        end
+    end
+    max_dif = maximum(map(abs, (Qs_new .- Qs)) ./ (Qs.+1e-10))
+    return Qs_new, max_dif
+end
+
+function get_QBIB_ba(model::POMDP,b,a,Qs,B_idx,SAO_probs, SAOs; ai=nothing)
     isnothing(ai) && ( ai=findfirst(==(a), actions(model)) )
-    S = states(model)
-    S_dict = Dict( zip(S, 1:length(S)) )
-    Q = reward(model,b,a)
+    S_dict = Dict( zip(states(model), 1:length(states(model))) )
+    Q = breward(model,b,a)
     for (oi, o) in enumerate(observations(model))
         Qo = -Inf
         for (api, ap) in enumerate(actions(model))
             Qoa = 0
             for s in support(b)
                 si = S_dict[s]
-                if o in Obs[si,ai]
-                    p_obs = P_obs[oi,si,ai]
+                if oi in SAOs[si,ai]
+                    p_obs = SAO_probs[oi,si,ai]
                     p = pdf(b,s) * p_obs
                     bp_idx = B_idx[si,ai,oi]
                     Qoa += p * Qs[bp_idx,api]
@@ -122,7 +191,7 @@ function _get_Q_BIB(model,b,a,Qs,B_idx,P_obs, Obs; ai=nothing)
     end
     return Q
 end
-_get_Q_BIB(model,b,a,D; ai=nothing) = _get_Q_BIB(model,b,a,D.Q, D.B_idx, D.P_obs, D.Obs; ai)
+get_QBIB_ba(model::POMDP,b,a,D::BIB_Data; ai=nothing) = get_QBIB_ba(model,b,a,D.Q, D.B_idx, D.SAO_probs, D.SAOs; ai)
 
 #########################################
 #               Policy:
@@ -134,13 +203,16 @@ struct BIBPolicy <:Policy
 end
 POMDPs.updater(π::BIBPolicy) = DiscreteHashedBeliefUpdater(π.model)
 
-function POMDPs.action(π::BIBPolicy, b)
+function action_value(π::BIBPolicy, b)
     b = DiscreteHashedBelief(b)
     model = π.model
     bestQ, bestA = -Inf, nothing
     for (ai,a) in enumerate(actions(model))
-        Qa = _get_Q_BIB(model, b, a, π.Data; ai=ai)
+        Qa = get_QBIB_ba(model, b, a, π.Data; ai=ai)
         Qa > bestQ && ((bestQ, bestA) = (Qa, a))
     end
-    return bestA
+    return (bestA, bestQ)
 end
+
+POMDPs.action(π::BIBPolicy, b) = first(action_value(π, b))
+bvalue(π::BIBPolicy, b) = last(action_value(π,b))

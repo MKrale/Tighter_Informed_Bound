@@ -13,17 +13,17 @@ solvers, solverargs = [], []
 
 ### BIB
 push!(solvers, BIBSolver)
-push!(solverargs, (name="BIBSolver", sargs=(max_iterations=25, precision=1e-2), pargs=()))
+push!(solverargs, (name="BIBSolver", sargs=(max_iterations=25, precision=1e-2), pargs=(), get_Q0=true))
 
 ### FIB
 using FIB
 push!(solvers, FIB.FIBSolver)
-push!(solverargs, (name="FIB", sargs=(), pargs=()))
+push!(solverargs, (name="FIB", sargs=(), pargs=(), get_Q0=false))
 
 # SARSOP (Native)
 using NativeSARSOP
 push!(solvers, NativeSARSOP.SARSOPSolver)
-push!(solverargs, (name="Native SARSOP", sargs=(epsilon=0.5, precision=-10.0, kappa=0.5, delta=1e-1, max_time=5.0, verbose=true), pargs=()))
+push!(solverargs, (name="Native SARSOP", sargs=(epsilon=0.5, precision=-10.0, kappa=0.5, delta=1e-1, max_time=5.0, verbose=true), pargs=(), get_Q0=false))
 
 ### SARSOP (Wrapped)
 # using SARSOP
@@ -55,6 +55,12 @@ push!(solverargs, (name="Native SARSOP", sargs=(epsilon=0.5, precision=-10.0, ka
 
 envs, envargs = [], []
 
+# ### ABC
+# include("Environments/ABCModel.jl"); using .ABCModel
+# abcmodel = ABC()
+# push!(envs, abcmodel)
+# push!(envargs, (name="ABCModel",))
+
 # ### Tiger
 # tiger = POMDPModels.TigerPOMDP()
 # tiger.discount_factor = 0.9
@@ -62,12 +68,12 @@ envs, envargs = [], []
 # push!(envargs, (name="Tiger",))
 
 ### RockSample
-# import RockSample
+import RockSample
 # map_size, rock_pos = (5,5), [(1,1), (3,3), (4,4)] # Default
-# # map_size, rock_pos = (10,10), [(2,3), (4,6), (7,4), (8,9) ] # Big Boy!
-# rocksample = RockSample.RockSamplePOMDP(map_size, rock_pos)
-# push!(envs, rocksample)
-# push!(envargs, (name="RockSample",))
+map_size, rock_pos = (10,10), [(2,3), (4,6), (7,4), (8,9) ] # Big Boy!
+rocksample = RockSample.RockSamplePOMDP(map_size, rock_pos)
+push!(envs, rocksample)
+push!(envargs, (name="RockSample",))
 
 # push!(envargs, (name="LaserTag",))
 
@@ -83,10 +89,10 @@ envs, envargs = [], []
 # push!(envs, tag)
 # push!(envargs, (name="Tag",))
 
-### Mini Hallway
-minihall = POMDPModels.MiniHallway()
-push!(envs, minihall)
-push!(envargs, (name="MiniHallway",))
+# ### Mini Hallway
+# minihall = POMDPModels.MiniHallway()
+# push!(envs, minihall)
+# push!(envargs, (name="MiniHallway",))
 
 
 # ### TMaze (Does not work with FIB)
@@ -113,7 +119,7 @@ push!(envargs, (name="MiniHallway",))
 #                           Run Solvers 
 ##################################################################
 
-sims, steps = 100, 50
+sims, steps = 1_000, 50
 
 for (model, modelargs) in zip(envs, envargs)
     println("Testing in $(modelargs.name) environment")
@@ -125,14 +131,15 @@ for (model, modelargs) in zip(envs, envargs)
 
         @time policy, info = POMDPTools.solve_info(solver, model; solverarg.pargs...)
         println("Done!")
+        solverarg.get_Q0 && println("Value for b: ", bvalue(policy, POMDPs.initialstate(model)))
 
         print("Simulating policy...")
         rs = []
         @time begin
             for i=1:sims
                 rtot = 0
-                for (b,s,a,o,r) in stepthrough(model,policy,"b,s,a,o,r";max_steps=steps)
-                    rtot += r
+                for (t,(b,s,a,o,r)) in enumerate(stepthrough(model,policy,"b,s,a,o,r";max_steps=steps))
+                    rtot += POMDPs.discount(model)^(t-1) * r
                 end
                 push!(rs,rtot)
             end
