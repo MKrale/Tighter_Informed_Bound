@@ -11,7 +11,7 @@ function T_int(s,a)
     s==4 && (return SparseCat([4], [1]))
     (a==2 || a==3) && (return SparseCat([4], [1]))
     s==2 ? sn = 3 : sn = 2
-    return SparseCat([s,sn], [0.8, 0.2])
+    return SparseCat([s,sn], [1.0, 0.2])
 end
 
 R_int(s::Int,a) = (s!=1 && s==a) ? 1 : 0
@@ -34,17 +34,19 @@ ABC_ints() = QuickPOMDP(
 
 function T(s,a)
     s=="init" && (return SparseCat(["A", "B"], [0.5, 0.5]))
+    s=="Ap" && (return SparseCat(["A"], [1]))
+    s=="Bp" && (return SparseCat(["B"], [1]))
     s=="terminal" && (return SparseCat(["terminal"], [1]))
     (a=="a" || a=="b") && (return SparseCat(["terminal"], [1]))
     s=="A" ? not_s = "B" : not_s = "A"
-    return SparseCat([s,not_s], [0.9, 0.1])
+    return SparseCat([s,not_s], [0.8, 0.2])
 end
 
 R(s,a) = ( (s=="A" && a=="a") || (s=="B" && a=="b")) ? 1 : 0
 O(a,sp) = SparseCat(["nothing"],[1])
 
 ABC() = QuickPOMDP(
-    states = ["init","A","B","terminal"],
+    states = ["init","A","B","Ap","Bp","terminal"],
     actions=["a","b","c"],
     observations=["nothing"],
     discount=0.90,

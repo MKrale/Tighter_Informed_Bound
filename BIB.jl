@@ -1,5 +1,6 @@
 module BIB
-    using POMDPs, POMDPTools, Random, Distributions
+    using POMDPs, POMDPTools, Random, Distributions, JuMP
+    import HiGHS
     
 
     printdb(x) = print(x,"\n")
@@ -21,7 +22,7 @@ module BIB
     DiscreteHashedBelief, DiscreteHashedBeliefUpdater, update,
 
     #Solver:
-    BIBSolver, solve,
-    BIBPolicy, action, bvalue
+    SBIBSolver, WBIBSolver, solve,
+    SBIBPolicy, WBIBPolicy, action, bvalue
     
 end
