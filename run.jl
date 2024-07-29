@@ -1,5 +1,5 @@
 import POMDPs, POMDPTools
-using POMDPs: simulate
+using POMDPs
 using POMDPTools: stepthrough
 include("BIB.jl")
 using .BIB
@@ -13,16 +13,20 @@ solvers, solverargs = [], []
 
 ### BIB
 push!(solvers, SBIBSolver)
-push!(solverargs, (name="BIBSolver (standard)", sargs=(max_iterations=25, precision=1e-2), pargs=(), get_Q0=true))
+push!(solverargs, (name="BIBSolver (standard)", sargs=(max_iterations=20, precision=1e-3), pargs=(), get_Q0=true))
+
+### EBIB
+push!(solvers, EBIBSolver)
+push!(solverargs, (name="BIBSolver (entropy)", sargs=(max_iterations=20, precision=1e-3), pargs=(), get_Q0=true))
 
 ### WBIB
 push!(solvers, WBIBSolver)
-push!(solverargs, (name="BIBSolver (worst-case)", sargs=(max_iterations=5, precision=1e-2), pargs=(), get_Q0=true))
+push!(solverargs, (name="BIBSolver (worst-case)", sargs=(max_iterations=10, precision=1e-3), pargs=(), get_Q0=true))
 
 ### FIB
 using FIB
 push!(solvers, FIB.FIBSolver)
-push!(solverargs, (name="FIB", sargs=(), pargs=(), get_Q0=false))
+push!(solverargs, (name="FIB", sargs=(), pargs=(), get_Q0=true))
 
 # ### SARSOP (Native)
 # using NativeSARSOP
@@ -59,11 +63,11 @@ push!(solverargs, (name="FIB", sargs=(), pargs=(), get_Q0=false))
 
 envs, envargs = [], []
 
-# ### ABC
-# include("Environments/ABCModel.jl"); using .ABCModel
-# abcmodel = ABC()
-# push!(envs, abcmodel)
-# push!(envargs, (name="ABCModel",))
+### ABC
+include("Environments/ABCModel.jl"); using .ABCModel
+abcmodel = ABC()
+push!(envs, abcmodel)
+push!(envargs, (name="ABCModel",))
 
 # ### Tiger
 # tiger = POMDPModels.TigerPOMDP()
@@ -71,15 +75,14 @@ envs, envargs = [], []
 # push!(envs, tiger)
 # push!(envargs, (name="Tiger",))
 
-### RockSample
-import RockSample
-map_size, rock_pos = (5,5), [(1,1), (3,3), (4,4)] # Default
+# ### RockSample
+# import RockSample
+# # map_size, rock_pos = (5,5), [(1,1), (3,3), (4,4)] # Default
+# # push!(envargs, (name="RockSample (default)",))
 # map_size, rock_pos = (10,10), [(2,3), (4,6), (7,4), (8,9) ] # Big Boy!
-rocksample = RockSample.RockSamplePOMDP(map_size, rock_pos)
-push!(envs, rocksample)
-push!(envargs, (name="RockSample",))
-
-# push!(envargs, (name="LaserTag",))
+# push!(envargs, (name="RockSample (10x10)",))
+# rocksample = RockSample.RockSamplePOMDP(map_size, rock_pos)
+# push!(envs, rocksample)
 
 # ### DroneSurveilance
 # import DroneSurveillance
@@ -101,7 +104,7 @@ push!(envargs, (name="RockSample",))
 
 # ### TMaze (Does not work with FIB)
 # tmaze = POMDPModels.TMaze()
-# reward(tmaze::Any, s::POMDPTools.ModelTools.TerminalState,a ) = 0
+# POMDPs.reward(tmaze::TMaze, s::POMDPTools.ModelTools.TerminalState,a ) = 0
 # push!(envs, tmaze)
 # push!(envargs, (name="TMaze",))
 
@@ -118,15 +121,24 @@ push!(envargs, (name="RockSample",))
 # import LaserTag
 # lasertag = LaserTag.gen_lasertag()
 # push!(envs, lasertag)
+# push!(envargs, (name="LaserTag",))
 
 ##################################################################
 #                           Run Solvers 
 ##################################################################
 
-sims, steps = 250, 50
+sims, steps = 50, 50
+
 
 for (model, modelargs) in zip(envs, envargs)
     println("Testing in $(modelargs.name) environment")
+    
+    constants = BIB.get_constants(model)
+    SAO_probs, SAOs = BIB.get_all_obs_probs(model; constants)
+    B, B_idx = BIB.get_belief_set(model, SAOs; constants)
+    ns, na, no, nb = constants.ns, constants.na, constants.no, length(B)
+    nsao = ns * na * no
+    println("|S| = $ns, |A| = $na, |O| = $no, |SAO| = $nsao, |B| = $nb")
     for (solver, solverarg) in zip(solvers, solverargs)
         println("\nRunning $(solverarg.name):")
         solver = solver(;solverarg.sargs...)
@@ -134,22 +146,22 @@ for (model, modelargs) in zip(envs, envargs)
         # simulator = StepSimulator(max_steps=steps)
 
         @time policy, info = POMDPTools.solve_info(solver, model; solverarg.pargs...)
-        solverarg.get_Q0 && println("Value for b: ", bvalue(policy, POMDPs.initialstate(model)))
+        solverarg.get_Q0 && println("Value for b: ", POMDPs.value(policy, POMDPs.initialstate(model)))
 
-        print("Simulating policy...")
-        rs = []
-        @time begin
-            for i=1:sims
-                rtot = 0
-                for (t,(b,s,a,o,r)) in enumerate(stepthrough(model,policy,"b,s,a,o,r";max_steps=steps))
-                    rtot += POMDPs.discount(model)^(t-1) * r
-                end
-                push!(rs,rtot)
-            end
-        end
-        rs_avg, rs_min, rs_max = mean(rs), minimum(rs), maximum(rs)
-        println("Returns: mean = $rs_avg, min = $rs_min, max = $rs_max")
-        #TODO: export 
+        # print("Simulating policy...")
+        # rs = []
+        # @time begin
+        #     for i=1:sims
+        #         rtot = 0
+        #         for (t,(b,s,a,o,r)) in enumerate(stepthrough(model,policy,"b,s,a,o,r";max_steps=steps))
+        #             rtot += POMDPs.discount(model)^(t-1) * r
+        #         end
+        #         push!(rs,rtot)
+        #     end
+        # end
+        # rs_avg, rs_min, rs_max = mean(rs), minimum(rs), maximum(rs)
+        # println("Returns: mean = $rs_avg, min = $rs_min, max = $rs_max")
+        # #TODO: export 
     end
     println("########################")
 end

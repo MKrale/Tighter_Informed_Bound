@@ -1,5 +1,6 @@
 module BIB
-    using POMDPs, POMDPTools, Random, Distributions, JuMP
+    using POMDPs, POMDPTools, Random, Distributions, JuMP, Gurobi
+    const GRB_ENV=Gurobi.Env()
     import HiGHS
     
 
@@ -22,7 +23,7 @@ module BIB
     DiscreteHashedBelief, DiscreteHashedBeliefUpdater, update,
 
     #Solver:
-    SBIBSolver, WBIBSolver, solve,
-    SBIBPolicy, WBIBPolicy, action, bvalue
+    SBIBSolver, WBIBSolver, EBIBSolver, solve,
+    SBIBPolicy, WBIBPolicy, EBIBPolicy, action, value
     
 end

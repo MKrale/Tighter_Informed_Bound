@@ -55,6 +55,14 @@ Base.length(d::DiscreteHashedBelief) = length(d.state_list)
 mean(d::DiscreteHashedBelief) = throw("Function not implemented")
 mode(d::DiscreteHashedBelief) = throw("Function not implemented")
 
+function POMDPTools.beliefvec(model::POMDP,b::DiscreteHashedBelief)
+    bv = zeros(length(states(model)))
+    for (s, ps) in weighted_iterator(b)
+        bv[s] = ps
+    end
+    return bv
+end
+
 #########################################
 #          Hashing & stuff
 #########################################
