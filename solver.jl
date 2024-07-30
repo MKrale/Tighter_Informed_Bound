@@ -8,19 +8,19 @@ struct SBIBSolver <: BIBSolver
     max_iterations::Int64       # maximum iterations taken by solver
     precision::Float64          # precision at which iterations is stopped
 end
-SBIBSolver(;max_iterations::Int64=100, precision::Float64=1e-3) = SBIBSolver(max_iterations, precision)
+SBIBSolver(;max_iterations::Int64=25, precision::Float64=1e-3) = SBIBSolver(max_iterations, precision)
 
 struct WBIBSolver <: BIBSolver
     max_iterations::Int64
     precision::Float64
  end
-WBIBSolver(;max_iterations::Int64=100, precision::Float64=1e-3) = WBIBSolver(max_iterations, precision)
+WBIBSolver(;max_iterations::Int64=10, precision::Float64=1e-3) = WBIBSolver(max_iterations, precision)
 
 struct EBIBSolver <: BIBSolver
     max_iterations::Int64
     precision::Float64
  end
-EBIBSolver(;max_iterations::Int64=100, precision::Float64=1e-3) = EBIBSolver(max_iterations, precision)
+EBIBSolver(;max_iterations::Int64=25, precision::Float64=1e-3) = EBIBSolver(max_iterations, precision)
 
 struct BIB_Data
     Q::Array{Float64,2}
@@ -63,8 +63,9 @@ struct C
     na
     no
 end
+
 get_constants(model) = C( states(model), actions(model), observations(model),
-                          length(states(model)), length(actions(model)), length(observations(model)))
+                         length(states(model)), length(actions(model)), length(observations(model)))
 
 function POMDPs.solve(solver::X, model::POMDP) where X<:BIBSolver
     constants = get_constants(model)
@@ -109,7 +110,7 @@ function POMDPs.solve(solver::X, model::POMDP) where X<:BIBSolver
     for i=1:solver.max_iterations
         # printdb(i)
         Qs, max_dif = get_Q(model, Qs, args...)
-        # max_dif < solver.precision && (printdb("breaking after $i iterations:"); break)
+        max_dif < solver.precision && (printdb("breaking after $i iterations:"); break)
     end
     return pol(model, BIB_Data(Qs,B,B_idx,SAO_probs,SAOs) )
 end
@@ -313,7 +314,6 @@ function get_entropy_weights(model_pomdp::POMDP, b, B; overlap=nothing)
     return(weights)
 end
 
-
 #########################################
 #            Value Computations:
 #########################################
@@ -342,19 +342,20 @@ end
 function get_QBIB_Beliefset(model::POMDP,Qs,B::Vector,B_idx, SAOs, SAO_probs, constants::Union{C,Nothing}=nothing)
     isnothing(constants) && throw("Not implemented error! (get_obs_probs)")
 
+    S_dict = Dict( zip(states(model), 1:length(states(model))) )
     Qs_new = zero(Qs) # TODO: this may be inefficient?
     for (b_idx,b) in enumerate(B)
         for (ai, a) in enumerate(constants.A)
-            Qs_new[b_idx,ai] = get_QBIB_ba(model,b,a, Qs, B_idx, SAO_probs, SAOs ; ai=ai)
+            Qs_new[b_idx,ai] = get_QBIB_ba(model,b,a, Qs, B_idx, SAO_probs, SAOs ; ai=ai, S_dict=S_dict)
         end
     end
     max_dif = maximum(map(abs, (Qs_new .- Qs)) ./ (Qs.+1e-10))
     return Qs_new, max_dif
 end
 
-function get_QBIB_ba(model::POMDP,b,a,Qs,B_idx,SAO_probs, SAOs; ai=nothing)
+function get_QBIB_ba(model::POMDP,b,a,Qs,B_idx,SAO_probs, SAOs; ai=nothing, S_dict=nothing)
     isnothing(ai) && ( ai=findfirst(==(a), actions(model)) )
-    S_dict = Dict( zip(states(model), 1:length(states(model))) )
+    (S_dict isa Nothing) && (S_dict = Dict( zip(states(model), 1:length(states(model))) ))
     Q = breward(model,b,a)
     for (oi, o) in enumerate(observations(model))
         Qo = -Inf
@@ -382,10 +383,11 @@ get_QBIB_ba(model::POMDP,b,a,D::BIB_Data; ai=nothing) = get_QBIB_ba(model,b,a,D.
 ############ WBIB ###################
 
 function get_QWBIB_Beliefset(model::POMDP,Qs,B::Vector, Bbao_data::BBAO_Data, SAO_probs, constants::Union{C,Nothing}=nothing)
+    S_dict = Dict( zip(states(model), 1:length(states(model))) )
     Qs_new = zero(Qs) # TODO: this may be inefficient?
     for (bi,b) in enumerate(B)
         for (ai, a) in enumerate(constants.A)
-            Qs_new[bi,ai] = get_QWBIB_ba(model,b,a, Qs, B, SAO_probs; ai=ai, Bbao_data=Bbao_data, bi=bi )
+            Qs_new[bi,ai] = get_QWBIB_ba(model,b,a, Qs, B, SAO_probs; ai=ai, Bbao_data=Bbao_data, bi=bi, S_dict=S_dict )
         end
     end
     max_dif = maximum(map(abs, (Qs_new .- Qs)) ./ (Qs.+1e-10))
@@ -393,8 +395,8 @@ function get_QWBIB_Beliefset(model::POMDP,Qs,B::Vector, Bbao_data::BBAO_Data, SA
 end
 
 get_QWBIB_ba(model::POMDP, b,a,D::BIB_Data; ai=nothing) = get_QWBIB_ba(model, b, a, D.Q, D.B, D.SAO_probs; ai)
-function get_QWBIB_ba(model::POMDP,b,a,Qs,B, SAO_probs; ai=nothing, Bbao_data=nothing, bi=nothing)
-    S_dict = Dict( zip(states(model), 1:length(states(model))) )
+function get_QWBIB_ba(model::POMDP,b,a,Qs,B, SAO_probs; ai=nothing, Bbao_data=nothing, bi=nothing, S_dict=nothing)
+    (S_dict isa Nothing) && (S_dict = Dict( zip(states(model), 1:length(states(model))) ))
     Q = breward(model,b,a)
     for (oi, o) in enumerate(observations(model))
         Qo = -Inf
@@ -448,17 +450,18 @@ function get_QEBIB_Beliefset(model::POMDP,Qs,B::Vector, Bbao_data, SAO_probs,  W
     isnothing(constants) && throw("Not implemented error! (get_obs_probs)")
 
     Qs_new = zero(Qs) # TODO: this may be inefficient?
+    S_dict = Dict( zip(states(model), 1:length(states(model))) )
     for (b_idx,b) in enumerate(B)
         for (ai, a) in enumerate(constants.A)
-            Qs_new[b_idx,ai] = get_QEBIB_ba(model,b,a, Qs, B, SAO_probs; ai=ai, bi=b_idx, Bbao_data=Bbao_data, Weights_data=Weights)
+            Qs_new[b_idx,ai] = get_QEBIB_ba(model,b,a, Qs, B, SAO_probs; ai=ai, bi=b_idx, Bbao_data=Bbao_data, Weights_data=Weights, S_dict=S_dict)
         end
     end
     max_dif = maximum(map(abs, (Qs_new .- Qs)) ./ (Qs.+1e-10))
     return Qs_new, max_dif
 end
 
-function get_QEBIB_ba(model::POMDP, b, a, Qs, B, SAO_probs; ai=nothing, bi=nothing, Bbao_data=nothing, Weights_data=nothing)
-    S_dict = Dict( zip(states(model), 1:length(states(model))) )
+function get_QEBIB_ba(model::POMDP, b, a, Qs, B, SAO_probs; ai=nothing, bi=nothing, Bbao_data=nothing, Weights_data=nothing, S_dict=nothing)
+    S_dict isa Nothing && (S_dict = Dict( zip(states(model), 1:length(states(model)))))
     Q = breward(model,b,a)
     for (oi, o) in enumerate(observations(model))
         Qo = -Inf
@@ -540,8 +543,8 @@ function action_value(π::EBIBPolicy, b)
     model = π.model
     bestQ, bestA = -Inf, nothing
     for (ai,a) in enumerate(actions(model))
-        Qa = get_QEBIB_ba(model, b, a, π.Data; ai=ai)
-        # Qa = get_QBIB_ba(model, b, a, π.Data; ai=ai)
+        # Qa = get_QEBIB_ba(model, b, a, π.Data; ai=ai)
+        Qa = get_QBIB_ba(model, b, a, π.Data; ai=ai)
         # Qa = get_QWBIB_ba(model, b, a, π.Data; ai=ai)
         Qa > bestQ && ((bestQ, bestA) = (Qa, a))
     end

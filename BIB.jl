@@ -1,5 +1,5 @@
 module BIB
-    using POMDPs, POMDPTools, Random, Distributions, JuMP, Gurobi
+    using POMDPs, POMDPTools, Random, Distributions, SparseArrays, JuMP, Gurobi
     const GRB_ENV=Gurobi.Env()
     import HiGHS
     
@@ -18,12 +18,13 @@ module BIB
     export
     
     # Convenience:
+    get_pointset_Sarsop,
 
     # Beliefs:
-    DiscreteHashedBelief, DiscreteHashedBeliefUpdater, update,
+    DiscreteHashedBelief, DiscreteHashedBeliefUpdater, 
 
     #Solver:
-    SBIBSolver, WBIBSolver, EBIBSolver, solve,
-    SBIBPolicy, WBIBPolicy, EBIBPolicy, action, value
+    SBIBSolver, WBIBSolver, EBIBSolver, 
+    SBIBPolicy, WBIBPolicy, EBIBPolicy, action_value
     
 end

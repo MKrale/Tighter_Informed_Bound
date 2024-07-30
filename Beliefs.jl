@@ -63,6 +63,14 @@ function POMDPTools.beliefvec(model::POMDP,b::DiscreteHashedBelief)
     return bv
 end
 
+function to_sparse_vector(model::POMDP, b::DiscreteHashedBelief)
+    spv = spzeros(length(states(model)))
+    for (si, s) in enumerate(b.state_list)
+        spv[POMDPs.stateindex(model, s)] = b.probs[si]
+    end
+    return spv
+end
+
 #########################################
 #          Hashing & stuff
 #########################################

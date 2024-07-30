@@ -61,3 +61,46 @@ column(model, x) = Cint(Gurobi.column(backend(model), index(x)) - 1)
 
 # problem = maximize(sum(entropy(x)))
 # solve!(problem, Gurobi.Optimizer)
+
+
+
+
+#################################
+
+
+
+
+# S_dict = Dict( zip(states(model), 1:length(states(model))) )
+# Qs_Bbao = zeros(length(Bbao_data.Bbao))
+# for (bbaoi, bbao) in enumerate(Bbao_data.Bbao)
+#     Qs = zeros(constants.na)
+#     bi, ai, oi = Bbao_data.Bbao_representatives
+#     for (api, ap) in enumerate(constants.A)
+#         thisQa = 0
+#         for (s, ps) in weighted_iterator(b)
+#             p = pdf(b,s)
+#             thisQa += p * Qs[bp_idx,api]
+#         end
+#         thisQ = max(thisQ, thisQa)
+#     end
+#     Qs_Bbao[bbaoi] = thisQ
+# end
+
+# Qs_new = zero(Qs) # TODO: this may be inefficient?
+# for (bi, b) in enumerate(B)
+#     for (ai, a) in enumerate(constants.A)
+#         Qba = breward(model,b,a)
+#         for (oi, o) in enumerate(constants.O)
+#             Qbao = 0
+#             (in_B, boai) = Bbao_data.Bbao_idx[bi, ai, oi]
+#             if in_B
+#                 Qbao = maximum(Qs[boai, :])
+#             else
+#                 Qbao = Qs_Bbao[boai]
+#             end
+#             po = sum(s -> pdf(b,s) * SAO_probs[oi,S_dict[s],ai], support(b))
+#             Qba += po * discount(model) * Qbao
+#         end
+#         Qs_new[bi,ai] = Qba
+#     end
+# end

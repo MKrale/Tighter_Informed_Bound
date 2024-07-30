@@ -14,3 +14,14 @@ function add_to_dict!(dict, key, value; func=+, minvalue=0)
         dict[key] = value
     end
 end
+
+
+
+function get_pointset_Sarsop(model::POMDP,π::X) where X<:BIBPolicy
+    Bs, Vs = [], []
+    for (bi, b) in enumerate(π.Data.B)
+        push!(Bs, to_sparse_vector(model,b))
+        push!(Vs, maximum(π.Data.Q[bi]))
+    end
+    return Bs, Vs
+end
