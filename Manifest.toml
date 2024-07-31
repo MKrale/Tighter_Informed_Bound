@@ -2,7 +2,7 @@
 
 julia_version = "1.10.4"
 manifest_format = "2.0"
-project_hash = "e903d2d185e9859b8e9ac592f2f267f190cb8205"
+project_hash = "da6cf1b5a699caef85b492c18bcc7003b5fd13b8"
 
 [[deps.AMD]]
 deps = ["LinearAlgebra", "SparseArrays", "SuiteSparse_jll"]
@@ -329,6 +329,12 @@ weakdeps = ["PDMats", "SparseArrays", "Statistics"]
     FillArraysPDMatsExt = "PDMats"
     FillArraysSparseArraysExt = "SparseArrays"
     FillArraysStatisticsExt = "Statistics"
+
+[[deps.FiniteHorizonPOMDPs]]
+deps = ["POMDPTools", "POMDPs", "Random"]
+git-tree-sha1 = "bc448a46c009a58e301e198fb7642842f2010974"
+uuid = "8a13bbfe-798e-11e9-2f1c-eba9ee5ef093"
+version = "0.4.1"
 
 [[deps.FixedPointNumbers]]
 deps = ["Statistics"]
@@ -1013,6 +1019,12 @@ version = "1.40.5"
     IJulia = "7073ff75-c697-5162-941a-fcdaad2a7d2a"
     ImageInTerminal = "d8c32880-2388-543b-8c61-d9f865259254"
     Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
+
+[[deps.PointBasedValueIteration]]
+deps = ["Distributions", "FiniteHorizonPOMDPs", "LinearAlgebra", "POMDPLinter", "POMDPTools", "POMDPs"]
+git-tree-sha1 = "1d9321a3ab42c1532db4985c0e983208d4c7a990"
+uuid = "835c131e-675f-4498-8e2c-c054c75556e1"
+version = "0.2.4"
 
 [[deps.PooledArrays]]
 deps = ["DataAPI", "Future"]

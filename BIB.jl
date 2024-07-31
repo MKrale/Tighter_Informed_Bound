@@ -1,5 +1,5 @@
 module BIB
-    using POMDPs, POMDPTools, Random, Distributions, SparseArrays, JuMP, Gurobi
+    using POMDPs, POMDPTools, Random, Distributions, SparseArrays, JuMP, Gurobi, HiGHS
     const GRB_ENV=Gurobi.Env()
     import HiGHS
     

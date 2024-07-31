@@ -11,33 +11,33 @@ using Statistics, POMDPModels
 
 solvers, solverargs = [], []
 
-# ### BIB
-# push!(solvers, SBIBSolver)
-# push!(solverargs, (name="BIBSolver (standard)", sargs=(max_iterations=20, precision=1e-3), pargs=(), get_Q0=true))
+### BIB
+push!(solvers, SBIBSolver)
+push!(solverargs, (name="BIBSolver (standard)", sargs=(max_iterations=20, precision=1e-3), pargs=(), get_Q0=true))
 
-# ### EBIB
-# push!(solvers, EBIBSolver)
-# push!(solverargs, (name="BIBSolver (entropy)", sargs=(max_iterations=20, precision=1e-3), pargs=(), get_Q0=true))
+### EBIB
+push!(solvers, EBIBSolver)
+push!(solverargs, (name="BIBSolver (entropy)", sargs=(max_iterations=20, precision=1e-3), pargs=(), get_Q0=true))
 
 # ### WBIB
 # push!(solvers, WBIBSolver)
 # push!(solverargs, (name="BIBSolver (worst-case)", sargs=(max_iterations=10, precision=1e-3), pargs=(), get_Q0=true))
 
-# ### FIB
-# using FIB
-# push!(solvers, FIB.FIBSolver)
-# push!(solverargs, (name="FIB", sargs=(), pargs=(), get_Q0=true))
+### FIB
+using FIB
+push!(solvers, FIB.FIBSolver)
+push!(solverargs, (name="FIB", sargs=(), pargs=(), get_Q0=true))
 
-### SARSOP + BIB
-include("Sarsop_altered/NativeSARSOP.jl")
-import .NativeSARSOP_alt
-push!(solvers, NativeSARSOP_alt.SARSOPSolver)
-push!(solverargs, (name="SARSOP+BIB", sargs=(epsilon=0.5, precision=-10.0, kappa=0.5, delta=1e-1, max_time=5.0, verbose=true), pargs=(), get_Q0=true))
+# ### SARSOP + BIB
+# include("Sarsop_altered/NativeSARSOP.jl")
+# import .NativeSARSOP_alt
+# push!(solvers, NativeSARSOP_alt.SARSOPSolver)
+# push!(solverargs, (name="SARSOP+BIB", sargs=(epsilon=0.5, precision=0.001, kappa=0.5, delta=1e-1, max_time=10.0, max_steps=1, verbose=true), pargs=(), get_Q0=true))
 
 ### SARSOP
 using NativeSARSOP
 push!(solvers, NativeSARSOP.SARSOPSolver)
-push!(solverargs, (name="SARSOP", sargs=(epsilon=0.5, precision=-10.0, kappa=0.5, delta=1e-1, max_time=5.0, verbose=true), pargs=(), get_Q0=true))
+push!(solverargs, (name="SARSOP", sargs=(epsilon=0.5, precision=0.001, kappa=0.5, delta=1e-1, max_time=10.0, max_steps=1, verbose=true), pargs=(), get_Q0=true))
 
 ### SARSOP (Wrapped)
 # using SARSOP
@@ -69,17 +69,17 @@ push!(solverargs, (name="SARSOP", sargs=(epsilon=0.5, precision=-10.0, kappa=0.5
 
 envs, envargs = [], []
 
-# ### ABC
-# include("Environments/ABCModel.jl"); using .ABCModel
-# abcmodel = ABC()
-# push!(envs, abcmodel)
-# push!(envargs, (name="ABCModel",))
+### ABC
+include("Environments/ABCModel.jl"); using .ABCModel
+abcmodel = ABC()
+push!(envs, abcmodel)
+push!(envargs, (name="ABCModel",))
 
-# ### Tiger
-# tiger = POMDPModels.TigerPOMDP()
-# tiger.discount_factor = 0.9
-# push!(envs, tiger)
-# push!(envargs, (name="Tiger",))
+### Tiger
+tiger = POMDPModels.TigerPOMDP()
+tiger.discount_factor = 0.9
+push!(envs, tiger)
+push!(envargs, (name="Tiger",))
 
 # ### RockSample
 # import RockSample
@@ -91,12 +91,12 @@ envs, envargs = [], []
 # rocksample = RockSample.RockSamplePOMDP(map_size, rock_pos)
 # push!(envs, rocksample)
 
-### K-out-of-N
-include("Environments/K-out-of-N.jl"); using .K_out_of_Ns
-N, K = 3, 3
-k_model = K_out_of_N(N, K)
-push!(envs, k_model)
-push!(envargs, (name="$K-out-of-$N",))
+# ### K-out-of-N
+# include("Environments/K-out-of-N.jl"); using .K_out_of_Ns
+# N, K = 3, 3
+# k_model = K_out_of_N(N, K)
+# push!(envs, k_model)
+# push!(envargs, (name="$K-out-of-$N",))
 
 # ### DroneSurveilance
 # import DroneSurveillance
@@ -114,7 +114,6 @@ push!(envargs, (name="$K-out-of-$N",))
 # minihall = POMDPModels.MiniHallway()
 # push!(envs, minihall)
 # push!(envargs, (name="MiniHallway",))
-
 
 # ### TMaze (Does not work with FIB)
 # tmaze = POMDPModels.TMaze()
@@ -141,7 +140,7 @@ push!(envargs, (name="$K-out-of-$N",))
 #                           Run Solvers 
 ##################################################################
 
-sims, steps = 50, 50
+sims, steps = 20, 10
 
 
 for (model, modelargs) in zip(envs, envargs)

@@ -28,6 +28,7 @@ struct BIB_Data
     B_idx::Array{Int,3}
     SAO_probs::Array{Float64,3}
     SAOs::Array{Vector{Int},2}
+    S_dict::Dict{Any, Int}
 end
 
 struct BBAO_Data
@@ -83,7 +84,7 @@ function POMDPs.solve(solver::X, model::POMDP) where X<:BIBSolver
     # 3 : If WBIB or EBIB, precompute all beliefs after 2 steps
     Bbao_data = []
     if solver isa WBIBSolver || solver isa EBIBSolver
-        Bbao_data = get_Bbao(model, B, constants)
+        Bbao_data = get_Bbao(model, B, SAOs, SAO_probs, constants)
     end
 
     Weights = []
@@ -101,7 +102,7 @@ function POMDPs.solve(solver::X, model::POMDP) where X<:BIBSolver
     elseif solver isa WBIBSolver
         pol, get_Q, args = WBIBPolicy, get_QWBIB_Beliefset, (B, Bbao_data, SAO_probs, constants)
     elseif solver isa EBIBSolver
-        pol, get_Q, args = EBIBPolicy, get_QEBIB_Beliefset, (B, Bbao_data, SAO_probs, Weights, constants)
+        pol, get_Q, args = EBIBPolicy, get_QEBIB_Beliefset, (B, Bbao_data, SAOs, SAO_probs, Weights, constants)
     else
         throw("Solver type not recognized!")
     end
@@ -112,7 +113,8 @@ function POMDPs.solve(solver::X, model::POMDP) where X<:BIBSolver
         Qs, max_dif = get_Q(model, Qs, args...)
         max_dif < solver.precision && (printdb("breaking after $i iterations:"); break)
     end
-    return pol(model, BIB_Data(Qs,B,B_idx,SAO_probs,SAOs) )
+    S_dict = Dict( zip(states(model), 1:length(states(model))))
+    return pol(model, BIB_Data(Qs,B,B_idx,SAO_probs,SAOs, S_dict) )
 end
 
 #########################################
@@ -134,8 +136,8 @@ function get_all_obs_probs(model::POMDP; constants::Union{C,Nothing}=nothing)
     SAOs = Array{Vector{Int}}(undef,ns,na)
     # TODO: this can be done cleaner I imagine...
     for si in 1:ns
-        for sa in 1:na
-            SAOs[si,sa] = []
+        for ai in 1:na
+            SAOs[si,ai] = []
         end
     end
 
@@ -161,6 +163,16 @@ function get_obs_prob(model::POMDP, o,s,a)
 end
 """Computes the probability of an observation given a belief-action pair."""
 get_obs_prob(model::POMDP, o, b::DiscreteHashedBelief, a) = sum( (s,p) -> p*get_obs_prob(model,o,s,a), zip(b.state_list, b.probs) )
+
+
+function get_possible_obs(b::DiscreteHashedBelief, ai, SAOs, S_dict)
+    possible_os = Set{Int}()
+    for s in support(b)
+        si = S_dict[s]
+        union!(possible_os, SAOs[si,ai])
+    end
+    return collect(possible_os)
+end
 
 # Belief Sets:
 
@@ -195,7 +207,7 @@ end
 """
 For each belief-action-observation pair, compute which beliefs from our set have non-zero overlap.
 """
-function get_Bbao(model, B, constants)
+function get_Bbao(model, B, SAOs, SAO_probs, constants)
     U = DiscreteHashedBeliefUpdater(model)
     nb = length(B)
 
@@ -206,7 +218,7 @@ function get_Bbao(model, B, constants)
     for (bi,b) in enumerate(B)
         for (ai, a) in enumerate(constants.A)
             for (oi,o) in enumerate(constants.O)
-                bao = update(U,b,a,o)
+                bao = POMDPs.update(U,b,a,o)
                 in_B = true
                 k = findfirst( x-> x==bao, B)
                 if isnothing(k)
@@ -226,24 +238,14 @@ function get_Bbao(model, B, constants)
     for (bi,b) in enumerate(B)
         B_overlap[bi] = []
         for (bpi,bp) in enumerate(B)
-            for s in support(b)
-                if pdf(bp,s) > 0
-                    push!(B_overlap[bi], bpi)
-                    break
-                end
-            end
+            have_overlap(b,bp) && push!(B_overlap[bi], bpi)
         end
     end
     # Record overlap for bao
     for (bi,b) in enumerate(Bbao)
         Bbao_overlap[bi] = []
         for (bpi,bp) in enumerate(B)
-            for s in support(b)
-                if pdf(bp,s) > 0
-                    push!(Bbao_overlap[bi], bpi)
-                    break
-                end
-            end
+            have_overlap(b,bp) && push!(Bbao_overlap[bi], bpi)
         end
     end
 
@@ -251,16 +253,45 @@ function get_Bbao(model, B, constants)
     return BBAO_Data(Bbao, Bbao_idx, B_overlap, Bbao_overlap)
 end
 
+function have_overlap(b,bp)
+    # 1) beliefs overlap for at least one state
+    for s in support(b)
+        if pdf(bp,s) > 0
+            # 2) bp does not contain any states not in support of b
+            for sp in support(bp)
+                pdf(b,sp) == 0 && (return false)
+            end
+            return true
+        end
+    end
+    return false
+end
+
+function get_overlapping_beliefs(b, B::Vector)
+    Bs, B_idxs = [], []
+    for (bpi, bp) in enumerate(B)
+        if have_overlap(b,bp)
+            push!(Bs, bp)
+            push!(B_idxs, bpi)
+        end
+    end
+    return Bs, B_idxs
+end
+
+
+# Entropy stuff
 
 function get_entropy_weights_all(model, B, Bbao_data::BBAO_Data)
     #TODO: only use those Bs that we need!
     B_weights = Array{Vector{Tuple{Int,Float64}}}(undef, length(B))
     Bbao_weights = Array{Vector{Tuple{Int,Float64}}}(undef, length(Bbao_data.Bbao))
     for (bi, b) in enumerate(B)
-        B_weights[bi] = get_entropy_weights(model,b, B; overlap=Bbao_data.B_overlap[bi])
+        # B_weights[bi] = get_entropy_weights(model,b, B; overlap=Bbao_data.B_overlap[bi])
+        B_weights[bi] = get_entropy_weights_approx(model,b, B; overlap=Bbao_data.B_overlap[bi])
     end
     for (bi, b) in enumerate(Bbao_data.Bbao)
-        Bbao_weights[bi] = get_entropy_weights(model,b, B; overlap=Bbao_data.Bbao_overlap[bi])
+        # Bbao_weights[bi] = get_entropy_weights(model,b, B; overlap=Bbao_data.Bbao_overlap[bi])
+        Bbao_weights[bi] = get_entropy_weights_approx(model,b, B; overlap=Bbao_data.Bbao_overlap[bi])
     end
     return Weights_Data(B_weights, Bbao_weights)
 end
@@ -282,7 +313,7 @@ function get_entropy_weights(model_pomdp::POMDP, b, B; overlap=nothing)
     column(model, x) = Cint(Gurobi.column(backend(model), index(x)) - 1)
     model = direct_model(Gurobi.Optimizer(GRB_ENV))
     set_silent(model)
-    set_attribute(model, "TimeLimit", 1.0)
+    set_attribute(model, "TimeLimit", 0.5)
     @variable(model, 0.0 <= b_ps[1:length(B_relevant)] <= 1.0)
     @variable(model, logs[1:length(B_relevant)])
     for s in states(model_pomdp)
@@ -300,6 +331,63 @@ function get_entropy_weights(model_pomdp::POMDP, b, B; overlap=nothing)
         GRBaddgenconstrLogA(backend(model), "logCost", column(model, b_ps[i]), column(model, logs[i]), 2, "")
     end
     @objective(model, Min, sum(-logs.*b_ps))
+    optimize!(model)
+
+    weights=[]
+    cumprob = 0.0
+    for (bpi,bp) in enumerate(B_relevant)
+        prob = JuMP.value(b_ps[bpi])
+        cumprob += prob
+        real_bpi = B_idxs[bpi]
+        push!(weights, (real_bpi, prob))
+    end
+    weights = map(x -> (first(x), last(x)/cumprob), weights)
+    return(weights)
+end
+
+"""Get the weights for a linear representation of b through B, such that entropy of the weights is maximized."""
+# get_entropy_weights_approx(model_pomdp::POMDP, b, B; overlap=nothing) = get_entropy_weights(model_pomdp::POMDP, b, B; overlap=overlap)
+function get_entropy_weights_approx(model_pomdp::POMDP, b, B; overlap=nothing)
+    B_relevant = []
+    B_idxs = []
+    nb = 0
+    if !(overlap isa Nothing)
+        for bi in overlap
+            push!(B_relevant, B[bi])
+            push!(B_idxs, bi)
+        end
+        nb = length(B_relevant)
+    else
+        nb = length(B)
+        B_relevant = B
+        B_idxs = 1:nb
+    end
+
+    model = direct_model(Gurobi.Optimizer(GRB_ENV))
+    set_silent(model)
+    set_attribute(model, "TimeLimit", 1.0)
+    # model = Model(HiGHS.Optimizer)
+    # set_silent(model)
+    @variable(model, 0.0 <= b_ps[1:nb] <= 1.0)
+    # # For maximizing entropy:
+    # @variable(model, -1.0 <= abs[1:nb] <= 1.0)
+    # for i=1:nb
+    #     @constraint(model, (b_ps[i] - 1/nb) >= abs[i])
+    #     @constraint(model, (b_ps[i] - 1/nb) <= -abs[i])
+    # end
+    for s in states(model_pomdp)
+        Idx, Ps = [], []
+        for (bpi, bp) in enumerate(B_relevant)
+            p = pdf(bp,s)
+            if p > 0
+                push!(Idx, bpi)
+                push!(Ps,p)
+            end
+        end
+        length(Idx) > 0 && @constraint(model, sum(b_ps[Idx[i]] * Ps[i] for i in 1:length(Idx)) == pdf(b,s) )
+    end
+    # @objective(model, Min, sum(abs)) # ~ maximizes entropy (#TODO: if ever used, check if it's correct!)
+    @objective(model, Max, sum(b_ps .* (b_ps .- 1))) # ~ minimizes entropy
     optimize!(model)
 
     weights=[]
@@ -357,27 +445,22 @@ function get_QBIB_ba(model::POMDP,b,a,Qs,B_idx,SAO_probs, SAOs; ai=nothing, S_di
     isnothing(ai) && ( ai=findfirst(==(a), actions(model)) )
     (S_dict isa Nothing) && (S_dict = Dict( zip(states(model), 1:length(states(model))) ))
     Q = breward(model,b,a)
+    na = length(actions(model))
     for (oi, o) in enumerate(observations(model))
-        Qo = -Inf
-        for (api, ap) in enumerate(actions(model))
-            Qoa = 0
-            for s in support(b)
-                si = S_dict[s]
-                if oi in SAOs[si,ai]
-                    p_obs = SAO_probs[oi,si,ai]
-                    p = pdf(b,s) * p_obs
-                    bp_idx = B_idx[si,ai,oi]
-                    Qoa += p * Qs[bp_idx,api]
-                end
+        Qo = zeros(na)
+        for s in support(b)
+            si = S_dict[s]
+            if oi in SAOs[si,ai]
+                p = pdf(b,s) * SAO_probs[oi,si,ai]
+                bp_idx = B_idx[si,ai,oi]
+                Qo = Qo .+ (p .* Qs[bp_idx,:])
             end
-            Qo = max(Qo, Qoa)
-            
         end
-        Q += discount(model) * Qo
+        Q += discount(model) * maximum(Qo)
     end
     return Q
 end
-get_QBIB_ba(model::POMDP,b,a,D::BIB_Data; ai=nothing) = get_QBIB_ba(model,b,a,D.Q, D.B_idx, D.SAO_probs, D.SAOs; ai)
+get_QBIB_ba(model::POMDP,b,a,D::BIB_Data; ai=nothing) = get_QBIB_ba(model,b,a,D.Q, D.B_idx, D.SAO_probs, D.SAOs; ai=ai, S_dict=D.S_dict)
 
 
 ############ WBIB ###################
@@ -394,7 +477,7 @@ function get_QWBIB_Beliefset(model::POMDP,Qs,B::Vector, Bbao_data::BBAO_Data, SA
     return Qs_new, max_dif
 end
 
-get_QWBIB_ba(model::POMDP, b,a,D::BIB_Data; ai=nothing) = get_QWBIB_ba(model, b, a, D.Q, D.B, D.SAO_probs; ai)
+get_QWBIB_ba(model::POMDP, b,a,D::BIB_Data; ai=nothing) = get_QWBIB_ba(model, b, a, D.Q, D.B, D.SAO_probs; ai=ai, S_dict=D.S_dict)
 function get_QWBIB_ba(model::POMDP,b,a,Qs,B, SAO_probs; ai=nothing, Bbao_data=nothing, bi=nothing, S_dict=nothing)
     (S_dict isa Nothing) && (S_dict = Dict( zip(states(model), 1:length(states(model))) ))
     Q = breward(model,b,a)
@@ -439,55 +522,59 @@ function get_QLP(b,Qs,B)
         end
         @constraint(model, sum(b_ps[Idx[i]] * Ps[i] for i in 1:length(Idx)) == pdf(b,s) )
     end
-    @objective(model, Min, sum(Qs .* b_ps))
+    @objective(model, Max, sum(Qs .* b_ps))
     optimize!(model)
     return(objective_value(model))
 end
 
 ############ EBIB ###################
 
-function get_QEBIB_Beliefset(model::POMDP,Qs,B::Vector, Bbao_data, SAO_probs,  Weights, constants::Union{C,Nothing}=nothing)
+function get_QEBIB_Beliefset(model::POMDP,Qs,B::Vector, Bbao_data, SAOs, SAO_probs, Weights, constants::Union{C,Nothing}=nothing)
     isnothing(constants) && throw("Not implemented error! (get_obs_probs)")
-
     Qs_new = zero(Qs) # TODO: this may be inefficient?
     S_dict = Dict( zip(states(model), 1:length(states(model))) )
     for (b_idx,b) in enumerate(B)
         for (ai, a) in enumerate(constants.A)
-            Qs_new[b_idx,ai] = get_QEBIB_ba(model,b,a, Qs, B, SAO_probs; ai=ai, bi=b_idx, Bbao_data=Bbao_data, Weights_data=Weights, S_dict=S_dict)
+            Qs_new[b_idx,ai] = get_QEBIB_ba(model,b,a, Qs, B, SAOs, SAO_probs; ai=ai, bi=b_idx, Bbao_data=Bbao_data, Weights_data=Weights, S_dict=S_dict)
         end
     end
     max_dif = maximum(map(abs, (Qs_new .- Qs)) ./ (Qs.+1e-10))
+    # printdb(Qs_new)
     return Qs_new, max_dif
 end
 
-function get_QEBIB_ba(model::POMDP, b, a, Qs, B, SAO_probs; ai=nothing, bi=nothing, Bbao_data=nothing, Weights_data=nothing, S_dict=nothing)
+function get_QEBIB_ba(model::POMDP, b, a, Qs, B, SAOs, SAO_probs; ai=nothing, bi=nothing, Bbao_data=nothing, Weights_data=nothing, S_dict=nothing)
     S_dict isa Nothing && (S_dict = Dict( zip(states(model), 1:length(states(model)))))
     Q = breward(model,b,a)
-    for (oi, o) in enumerate(observations(model))
-        Qo = -Inf
-        for (api, ap) in enumerate(actions(model))
-            thisQo = 0
-            if !(Bbao_data isa Nothing) && !(Weights_data isa Nothing) && !(bi isa Nothing)
-                bao = get_bao(Bbao_data, bi, ai, oi, B)
-                weights = get_weights_indexfree(Bbao_data, Weights_data,bi,ai,oi)
-                this_Qs = Qs[get_overlap(Bbao_data, bi, ai, oi), api]
-                thisQo = sum(weights .* this_Qs) # Note: this is O(S), can we do better?
-            else
-                bao = update(DiscreteHashedBeliefUpdater(model),b,a,o)
-                weights = map(x -> last(x), get_entropy_weights(model,bao,B))
-                thisQo = sum(weights .* Qs[:,api]) 
-            end
-            Qo = max(Qo, thisQo)
+    na = length(actions(model))
+    # if (Bbao_data isa Nothing) && (Weights_data isa Nothing) && (bi isa Nothing)
+    #     relevant_Bs, relevant_Bis = get_overlapping_beliefs(b, B)
+    # end
+    O = observations(model)
+    for oi in get_possible_obs(b,ai,SAOs, S_dict)
+        o = O[oi]
+        Qo = []
+        if !(Bbao_data isa Nothing) && !(Weights_data isa Nothing) && !(bi isa Nothing)
+            bao = get_bao(Bbao_data, bi, ai, oi, B)
+            weights = get_weights_indexfree(Bbao_data, Weights_data,bi,ai,oi)
+            this_Qs = Qs[get_overlap(Bbao_data, bi, ai, oi), :]
+            Qo = sum(weights .* this_Qs, dims=1)
+        else
+            bao = update(DiscreteHashedBeliefUpdater(model),b,a,o)
+            relevant_Bs, relevant_Bis = get_overlapping_beliefs(bao, B)
+            weights = map(x -> last(x), get_entropy_weights_approx(model,bao,relevant_Bs))
+            this_Qs = Qs[relevant_Bis,:]
+            Qo = sum(weights .* this_Qs, dims=1)
         end
         p = 0
         for s in support(b)
             p += pdf(b,s) * SAO_probs[oi,S_dict[s],ai]
         end
-        Q += p * discount(model) * Qo
+        Q += p * discount(model) * maximum(Qo)
     end
     return Q
 end
-get_QEBIB_ba(model::POMDP, b,a, D::BIB_Data; ai=nothing, bi=nothing, Bbao_data=nothing, Weights_data=nothing) = get_QEBIB_ba(model,b,a,D.Q,D.B,D.SAO_probs; ai=ai,bi=bi,Bbao_data=Bbao_data,Weights_data=Weights_data)
+get_QEBIB_ba(model::POMDP, b,a, D::BIB_Data; ai=nothing, bi=nothing, Bbao_data=nothing, Weights_data=nothing) = get_QEBIB_ba(model,b,a,D.Q,D.B, D.SAOs,D.SAO_probs; ai=ai,bi=bi,Bbao_data=Bbao_data,Weights_data=Weights_data, S_dict=D.S_dict)
 
 
 
@@ -543,8 +630,8 @@ function action_value(π::EBIBPolicy, b)
     model = π.model
     bestQ, bestA = -Inf, nothing
     for (ai,a) in enumerate(actions(model))
-        # Qa = get_QEBIB_ba(model, b, a, π.Data; ai=ai)
-        Qa = get_QBIB_ba(model, b, a, π.Data; ai=ai)
+        Qa = get_QEBIB_ba(model, b, a, π.Data; ai=ai)
+        # Qa = get_QBIB_ba(model, b, a, π.Data; ai=ai)
         # Qa = get_QWBIB_ba(model, b, a, π.Data; ai=ai)
         Qa > bestQ && ((bestQ, bestA) = (Qa, a))
     end

@@ -42,18 +42,18 @@ end
 end
 
 function upper_value(tree::SARSOPTree, b::AbstractVector)
-    α_corner = tree.Vs_upper
-    V_corner = dot(b, α_corner)
-    V_upper = tree.V_upper
+    # α_corner = tree.Vs_upper
+    # V_corner = dot(b, α_corner)
+    # V_upper = tree.V_upper
     v̂_min = Inf
-    for b_idx ∈ tree.real
-        (tree.b_pruned[b_idx] || tree.is_terminal[b_idx]) && continue
-        vint = V_upper[b_idx]
-        bint = tree.b[b_idx]
-        ϕ = min_ratio(b, bint)
-        v̂ = V_corner + ϕ * (vint - dot(bint, α_corner))
-        v̂ < v̂_min && (v̂_min = v̂)
-    end
+    # for b_idx ∈ tree.real
+    #     (tree.b_pruned[b_idx] || tree.is_terminal[b_idx]) && continue
+    #     vint = V_upper[b_idx]
+    #     bint = tree.b[b_idx]
+    #     ϕ = min_ratio(b, bint)
+    #     v̂ = V_corner + ϕ * (vint - dot(bint, α_corner))
+    #     v̂ < v̂_min && (v̂_min = v̂)
+    # end
 
     ####
     # for (bpsi, bps) in enumerate(tree.B_pointset)

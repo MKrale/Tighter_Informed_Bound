@@ -36,7 +36,7 @@ struct SARSOPTree
     S
     # B_pointset::Vector{SparseVector{Float64, Int}}
     # Vs_pointset::Vector{Float64}
-    BIB_Policy::SBIBPolicy
+    BIB_Policy::EBIBPolicy
     #######
 end
 
@@ -47,7 +47,7 @@ function SARSOPTree(solver, pomdp::POMDP)
 
     upper_policy = solve(solver.init_upper, sparse_pomdp)
     ######
-    BIB_policy = POMDPs.solve(SBIBSolver(), pomdp)
+    BIB_policy = POMDPs.solve(EBIBSolver(), pomdp)
     Bs_pointset, Vs_pointset = get_pointset_Sarsop(pomdp, BIB_policy)
     ######
     corner_values = map(maximum, zip(upper_policy.alphas...))

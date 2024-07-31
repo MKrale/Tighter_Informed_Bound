@@ -126,7 +126,7 @@ O = function(M::K_out_of_N,s,a)
             obs[i] = s[i]
         end
     end
-    return Deterministic(obs)
+    return Deterministic(Tuple(obs))
 end
 
 R = function(M::K_out_of_N,s,a)
