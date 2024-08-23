@@ -11,22 +11,22 @@ using Statistics, POMDPModels
 
 solvers, solverargs = [], []
 
-# ### FIB
-# using FIB
-# push!(solvers, FIB.FIBSolver)
-# push!(solverargs, (name="FIB", sargs=(), pargs=(), get_Q0=true))
+### FIB
+using FIB
+push!(solvers, FIB.FIBSolver)
+push!(solverargs, (name="FIB", sargs=(), pargs=(), get_Q0=true))
 
-# ### BIB
-# push!(solvers, SBIBSolver)
-# push!(solverargs, (name="BIBSolver (standard)", sargs=(max_iterations=100, precision=1e-5), pargs=(), get_Q0=true))
+### BIB
+push!(solvers, SBIBSolver)
+push!(solverargs, (name="BIBSolver (standard)", sargs=(max_iterations=100, precision=1e-5), pargs=(), get_Q0=true))
 
-# ### EBIB
-# push!(solvers, EBIBSolver)
-# push!(solverargs, (name="BIBSolver (entropy)", sargs=(max_iterations=100, precision=1e-5), pargs=(), get_Q0=true))
+### EBIB
+push!(solvers, EBIBSolver)
+push!(solverargs, (name="BIBSolver (entropy)", sargs=(max_iterations=100, precision=1e-5), pargs=(), get_Q0=true))
 
-### WBIB
-push!(solvers, WBIBSolver)
-push!(solverargs, (name="BIBSolver (worst-case)", sargs=(max_iterations=25, precision=1e-5), pargs=(), get_Q0=true))
+# ### WBIB
+# push!(solvers, WBIBSolver)
+# push!(solverargs, (name="BIBSolver (worst-case)", sargs=(max_iterations=100, precision=1e-5), pargs=(), get_Q0=true))
 
 # ### SARSOP + BIB
 # include("Sarsop_altered/NativeSARSOP.jl")

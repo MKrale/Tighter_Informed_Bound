@@ -96,7 +96,7 @@ function POMDPs.solve(solver::X, model::POMDP) where X<:BIBSolver
     # 5 : If using EBIB, pre-compute entropy weights
     Weights = []
     if solver isa EBIBSolver
-        Weights = get_entropy_weights_all(model,Data.B, Bbao_data)
+        Weights = get_entropy_weights_all(Data.B, Bbao_data)
     end
 
     # Lets be overly fancy! Define a function for computing Q, depending on the specific solver
@@ -117,7 +117,6 @@ function POMDPs.solve(solver::X, model::POMDP) where X<:BIBSolver
         Qs, max_dif = get_Q(model, Qs, args...)
         max_dif < solver.precision && (printdb("breaking after $i iterations:"); break)
     end
-    printdb(Qs)
     return pol(model, BIB_Data(Qs,Data))
 end
 
@@ -168,8 +167,8 @@ end
 """Computes the probability of an observation given a belief-action pair."""
 get_obs_prob(model::POMDP, o, b::DiscreteHashedBelief, a) = sum( (s,p) -> p*get_obs_prob(model,o,s,a), zip(b.state_list, b.probs) )
 
-
-function get_possible_obs(b::DiscreteHashedBelief, ai, SAOs, S_dict)
+#TODO: add this to Bdata or something...
+@memoize LRU(maxsize=100) function get_possible_obs(b::DiscreteHashedBelief, ai, SAOs, S_dict)
     possible_os = Set{Int}()
     for s in support(b)
         si = S_dict[s]
@@ -292,22 +291,22 @@ end
 
 # Entropy stuff
 
-function get_entropy_weights_all(model, B, Bbao_data::BBAO_Data)
+function get_entropy_weights_all(B, Bbao_data::BBAO_Data)
     #TODO: only use those Bs that we need!
     B_weights = Array{Vector{Tuple{Int,Float64}}}(undef, length(B))
     Bbao_weights = Array{Vector{Tuple{Int,Float64}}}(undef, length(Bbao_data.Bbao))
     for (bi, b) in enumerate(B)
         # B_weights[bi] = get_entropy_weights(model,b, B; overlap=Bbao_data.B_overlap[bi])
-        B_weights[bi] = get_entropy_weights(model,b, B; bi=(true,bi), Bbao_data=Bbao_data)
+        B_weights[bi] = get_entropy_weights(b, B; bi=(true,bi), Bbao_data=Bbao_data) 
     end
     for (bi, b) in enumerate(Bbao_data.Bbao)
         # Bbao_weights[bi] = get_entropy_weights(model,b, B; overlap=Bbao_data.Bbao_overlap[bi])
-        Bbao_weights[bi] = get_entropy_weights(model,b, B; bi=(false,bi), Bbao_data=Bbao_data)
+        Bbao_weights[bi] = get_entropy_weights(b, B; bi=(false,bi), Bbao_data=Bbao_data)
     end
     return Weights_Data(B_weights, Bbao_weights)
 end
 
-function get_entropy_weights(model_pomdp::POMDP, b, B; bi=nothing, Bbao_data=nothing )
+function get_entropy_weights(b, B; bi=nothing, Bbao_data=nothing )
     B_relevant = []
     B_entropies = []
     B_idxs = []
@@ -320,7 +319,6 @@ function get_entropy_weights(model_pomdp::POMDP, b, B; bi=nothing, Bbao_data=not
             push!(B_entropies, Bbao_data.B_entropies[bpi])
         end
     else
-        #TODO: still compute B_relevant.
         B_relevant = B
         B_idxs = 1:length(B)
         B_entropies = map( b -> get_entropy(b), B)
@@ -332,7 +330,7 @@ function get_entropy_weights(model_pomdp::POMDP, b, B; bi=nothing, Bbao_data=not
     model = Model(HiGHS.Optimizer)
     set_silent(model)
     @variable(model, 0.0 <= b_ps[1:length(B_relevant)] <= 1.0)
-    for s in states(model_pomdp)
+    for s in support(b)
         Idx, Ps = [], []
         for (bpi, bp) in enumerate(B_relevant)
             p = pdf(bp,s)
@@ -427,11 +425,12 @@ function get_QWBIB_Beliefset(model::POMDP, Q, Data::BIB_Data, Bbao_data::BBAO_Da
     return Qs_new, max_dif
 end
 
-get_QWBIB_ba(model::POMDP, b,a,Q, D::BIB_Data; ai=nothing, Bbao_data=nothing, bi=nothing) = get_QWBIB_ba(model, b, a, Q, D.B, D.SAO_probs, D.constants; ai=ai, S_dict=D.S_dict, Bbao_data=Bbao_data, bi=bi)
-get_QWBIB_ba(model::POMDP, b,a,D::BIB_Data; ai=nothing, Bbao_data=nothing, bi=nothing) = get_QWBIB_ba(model, b, a, D.Q, D.B, D.SAO_probs, D.constants; ai=ai, S_dict=D.S_dict, Bbao_data=Bbao_data, bi=bi)
-function get_QWBIB_ba(model::POMDP,b,a,Qs,B, SAO_probs, constants::C; ai=nothing, Bbao_data=nothing, bi=nothing, S_dict=nothing)
+get_QWBIB_ba(model::POMDP, b,a,Q, D::BIB_Data; ai=nothing, Bbao_data=nothing, bi=nothing) = get_QWBIB_ba(model, b, a, Q, D.B, D.SAOs, D.SAO_probs, D.constants; ai=ai, S_dict=D.S_dict, Bbao_data=Bbao_data, bi=bi)
+get_QWBIB_ba(model::POMDP, b,a,D::BIB_Data; ai=nothing, Bbao_data=nothing, bi=nothing) = get_QWBIB_ba(model, b, a, D.Q, D.B, D.SAOs, D.SAO_probs, D.constants; ai=ai, S_dict=D.S_dict, Bbao_data=Bbao_data, bi=bi)
+
+function get_QWBIB_ba(model::POMDP,b,a,Qs,B, SAOs, SAO_probs, constants::C; ai=nothing, Bbao_data=nothing, bi=nothing, S_dict=nothing)
     Q = breward(model,b,a)
-    for (oi, o) in enumerate(constants.O)
+    for oi in get_possible_obs(b,ai,SAOs, S_dict)
         Qo = -Inf
         for (api, ap) in enumerate(constants.A) #TODO: would it be quicker to let the solver also find the best action?
             thisQo = 0
@@ -441,8 +440,10 @@ function get_QWBIB_ba(model::POMDP,b,a,Qs,B, SAO_probs, constants::C; ai=nothing
                 thisBs, thisQs = B[overlap_idxs], Qs[overlap_idxs, api]
                 thisQo = get_QLP(bao, thisQs, thisBs)
             else
+                o = observations(model)[oi]
                 bao = update(DiscreteHashedBeliefUpdater(model),b,a,o)
-                thisQo = get_QLP(bao, Qs[:,api],B)
+                B_rel, Bidx_rel = get_overlapping_beliefs(bao,B)
+                thisQo = get_QLP(bao, Qs[Bidx_rel,api],B_rel)
             end
             Qo = max(Qo, thisQo)
         end
@@ -457,10 +458,9 @@ end
 
 """ Uses a point-set B with value estimates Qs to estimate the value of a belief b."""
 function get_QLP(b,Qs,B)
-    # model = Model(() -> Gurobi.Optimizer(GRB_ENV))
-    model = direct_model(Gurobi.Optimizer(GRB_ENV))
+    model = Model(HiGHS.Optimizer)
     set_silent(model)
-    @variable(model, b_ps[1:length(B)] in Semicontinuous(0.0,1.0))
+    @variable(model, 0.0 <= b_ps[1:length(B)] <= 1.0)
     for s in support(b)
         Idx, Ps = [], []
         for (bpi, bp) in enumerate(B)
@@ -470,9 +470,9 @@ function get_QLP(b,Qs,B)
                 push!(Ps,p)
             end
         end
-        @constraint(model, sum(b_ps[Idx[i]] * Ps[i] for i in 1:length(Idx)) == pdf(b,s) )
+        length(Idx) > 0 && @constraint(model, sum(b_ps[Idx[i]] * Ps[i] for i in 1:length(Idx)) == pdf(b,s) )
     end
-    @objective(model, Max, sum(Qs .* b_ps))
+    @objective(model, Min, sum(Qs .* b_ps))
     optimize!(model)
     return(objective_value(model))
 end
@@ -503,7 +503,7 @@ function get_QEBIB_ba(model::POMDP, b, a, Qs, B, SAOs, SAO_probs, constants::C; 
         else
             bao = update(DiscreteHashedBeliefUpdater(model),b,a,o)
             relevant_Bs, relevant_Bis = get_overlapping_beliefs(bao, B)
-            weights = map(x -> last(x), get_entropy_weights(model,bao,relevant_Bs))
+            weights = map(x -> last(x), get_entropy_weights(bao,relevant_Bs))
             this_Qs = Qs[relevant_Bis,:]
             Qo = sum(weights .* this_Qs, dims=1)
         end
