@@ -31,7 +31,7 @@ function solve(sol::QMDPSolver_alt, m::POMDP)
                     Qnext += pdf(thisT, sp) * discount(m) * Qmax[spi]
                 end
                 # largest_change = max(largest_change, abs(Q[si,ai] / Qnext), abs(2- Q[si,ai] / Qnext))
-                largest_change = max(largest_change, abs(Q[si,ai]-Qnext) / (Qnext+1e-10) )
+                largest_change = max(largest_change, abs((Q[si,ai]-Qnext) / (Qnext+1e-10) ))
                 Q[si,ai] = Qnext
                 Qmax[si] = max(Qmax[si], Q[si,ai])
             end

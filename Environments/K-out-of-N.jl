@@ -21,7 +21,7 @@ end
 default_args = Dict{Symbol, Any}(
     :N=>3, :K=>3, :smax=>3,
     :spread=>2, :p0=>0.2, :p1=>0.5, :p2=>0.9,
-    :break_cost=>50, :repair_cost=>25, :inspect_cost=>5, :deterministic_obs=>true )
+    :break_cost=>0.5, :repair_cost=>0.25, :inspect_cost=>0.05, :deterministic_obs=>true )
 
 function K_out_of_N(D::Dict{Symbol,Any})
     for key in keys(default_args)
@@ -142,7 +142,7 @@ R = function(M::K_out_of_N,s,a)
             r -= M.inspect_cost
         end
     end
-    return r
+    return r # + (M.break_cost + M.repair_cost + M.inspect_cost) * M.N
 end
 
 ################################

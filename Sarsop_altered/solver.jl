@@ -14,9 +14,9 @@ end
 function POMDPTools.solve_info(solver::SARSOPSolver, pomdp::POMDP)
     tree = SARSOPTree(solver, pomdp)
     
-    # if solver.verbose
-    #     initialize_verbose_output()
-    # end
+    if solver.verbose
+        initialize_verbose_output()
+    end
     
     t0 = time()
     iter = 0
@@ -24,17 +24,17 @@ function POMDPTools.solve_info(solver::SARSOPSolver, pomdp::POMDP)
         sample!(solver, tree)
         backup!(tree)
         prune!(solver, tree)
-        # if solver.verbose && iter % 10 == 0
-        #     log_verbose_info(t0, iter, tree)
-        # end
+        if solver.verbose && iter % 10 == 0
+            log_verbose_info(t0, iter, tree)
+        end
         iter += 1
     end
 
-    # if solver.verbose 
-    #     dashed_line()
-    #     log_verbose_info(t0, iter, tree)
-    #     dashed_line()
-    # end
+    if solver.verbose 
+        dashed_line()
+        log_verbose_info(t0, iter, tree)
+        dashed_line()
+    end
     
     pol = AlphaVectorPolicy(
         pomdp,

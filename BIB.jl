@@ -1,5 +1,5 @@
 module BIB
-    using POMDPs, POMDPTools, Random, Distributions, SparseArrays, JuMP, Gurobi, HiGHS
+    using POMDPs, POMDPTools, Random, Distributions, SparseArrays, JuMP, Gurobi, HiGHS, Memoization, LRUCache
     const GRB_ENV=Gurobi.Env()
     import HiGHS
     
@@ -25,6 +25,6 @@ module BIB
 
     #Solver:
     SBIBSolver, WBIBSolver, EBIBSolver, 
-    SBIBPolicy, WBIBPolicy, EBIBPolicy, action_value
+    SBIBPolicy, WBIBPolicy, EBIBPolicy, action_value 
     
 end

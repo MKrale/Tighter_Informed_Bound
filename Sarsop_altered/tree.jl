@@ -137,7 +137,7 @@ function update(tree::SARSOPTree, b_idx::Int, a, o)
     V̲, V̄ = if tree.is_terminal[bp_idx]
         0.,0.
     else
-        lower_value(tree, tree.b[bp_idx]), upper_value(tree, tree.b[bp_idx])
+        lower_value(tree, tree.b[bp_idx]), upper_value(tree, bp_idx) #CHANGED!
     end
     tree.V_lower[bp_idx] = V̲
     tree.V_upper[bp_idx] = V̄
@@ -158,7 +158,7 @@ function add_belief!(tree::SARSOPTree, b, ba_idx::Int, o)
     V̲, V̄ = if terminal
         0., 0.
     else
-        lower_value(tree, b), upper_value(tree, b)
+        lower_value(tree, b), upper_value(tree, b_idx)
     end
 
     push!(tree.V_upper, V̄)
