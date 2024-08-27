@@ -571,8 +571,8 @@ end
     model = π.model
     bestQ, bestA = -Inf, nothing
     for (ai,a) in enumerate(actions(model))
-        Qa = get_QEBIB_ba(model, b, a, π.Data; ai=ai)
-        # Qa = get_QBIB_ba(model, b, a, π.Data; ai=ai)
+        # Qa = get_QEBIB_ba(model, b, a, π.Data; ai=ai)
+        Qa = get_QBIB_ba(model, b, a, π.Data; ai=ai)
         # Qa = get_QWBIB_ba(model, b, a, π.Data; ai=ai)
         Qa > bestQ && ((bestQ, bestA) = (Qa, a))
     end

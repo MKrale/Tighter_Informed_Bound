@@ -2,7 +2,7 @@
 
 julia_version = "1.10.4"
 manifest_format = "2.0"
-project_hash = "f5169c7992855826ef2a5da088c5571882fe060d"
+project_hash = "10f0ad17fd5969affdb1a649cfac230eebd88513"
 
 [[deps.AMD]]
 deps = ["LinearAlgebra", "SparseArrays", "SuiteSparse_jll"]
@@ -1150,6 +1150,12 @@ git-tree-sha1 = "5ee6203157c120d79034c748a2acba45b82b8807"
 uuid = "38a345b3-de98-5d2b-a5d3-14cd9215e700"
 version = "2.40.1+0"
 
+[[deps.LightXML]]
+deps = ["Libdl", "XML2_jll"]
+git-tree-sha1 = "3a994404d3f6709610701c7dabfc03fed87a81f8"
+uuid = "9c8b4983-aa76-5018-a973-4c85ecc9e179"
+version = "0.9.1"
+
 [[deps.LinearAlgebra]]
 deps = ["Libdl", "OpenBLAS_jll", "libblastrampoline_jll"]
 uuid = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
@@ -1433,6 +1439,12 @@ git-tree-sha1 = "67186a2bc9a90f9f85ff3cc8277868961fb57cbd"
 uuid = "f57f5aa1-a3ce-4bc8-8ab9-96f992907883"
 version = "0.4.3"
 
+[[deps.POMDPFiles]]
+deps = ["POMDPModels", "POMDPTools", "POMDPXFiles", "POMDPs", "Printf", "Reexport"]
+git-tree-sha1 = "2ec913fa98d2ca7d1672096d3688ae0a5fa00122"
+uuid = "9cf5b727-2e06-5671-8c87-8c6b0f729d5d"
+version = "0.2.5"
+
 [[deps.POMDPLinter]]
 deps = ["Logging"]
 git-tree-sha1 = "cb2a591ec2418b81947ea23c098064c8b8bd3550"
@@ -1450,6 +1462,12 @@ deps = ["CommonRLInterface", "DataFrames", "Distributed", "Distributions", "Line
 git-tree-sha1 = "723a9378f08879c019220dc125afd6043799d7d4"
 uuid = "7588e00f-9cae-40de-98dc-e0c70c48cdd7"
 version = "1.1.0"
+
+[[deps.POMDPXFiles]]
+deps = ["LightXML", "POMDPTools", "POMDPs", "ProgressMeter"]
+git-tree-sha1 = "b625976c74a2611182324d76061247fe69f922e6"
+uuid = "c6f6ee83-58c6-5336-a19f-2c76817e1af6"
+version = "0.3.0"
 
 [[deps.POMDPs]]
 deps = ["Distributions", "Graphs", "NamedTupleTools", "POMDPLinter", "Pkg", "Random", "Statistics"]

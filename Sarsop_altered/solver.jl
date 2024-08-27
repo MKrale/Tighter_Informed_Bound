@@ -41,11 +41,12 @@ function POMDPTools.solve_info(solver::SARSOPSolver, pomdp::POMDP)
         getproperty.(tree.Γ, :alpha),
         ordered_actions(pomdp)[getproperty.(tree.Γ, :action)]
     )
-    return pol, (;
-        time = time()-t0, 
-        tree,
-        iter
-    )
+    # return pol, (;
+    #     time = time()-t0, 
+    #     tree,
+    #     iter
+    # )
+    return pol, (time=time()-t0, value=tree.V_upper[1])
 end
 
 POMDPs.solve(solver::SARSOPSolver, pomdp::POMDP) = first(solve_info(solver, pomdp))

@@ -46,11 +46,11 @@ function upper_value(tree::SARSOPTree, b_idx::Int)
     v̂_min = Inf
     b= tree.b[b_idx]
 
-    ### Method 1) if real, just use values of children.
-    if tree.is_real[b_idx]
-        fill_populated!(tree, b_idx)
-        return tree.V_upper[b_idx]
-    end
+    # ### Method 1) if real, just use values of children.
+    # if tree.is_real[b_idx]
+    #     fill_populated!(tree, b_idx)
+    #     return tree.V_upper[b_idx]
+    # end
 
     ### Method 2) Point set approximation (standard)
     α_corner = tree.Vs_upper
@@ -73,12 +73,12 @@ function upper_value(tree::SARSOPTree, b_idx::Int)
     #     v̂ < v̂_min && (v̂_min = v̂)
     # end
 
-    # ### Method 3) BIB
-    idxs, vals = findnz(b)
-    ss = map(si -> tree.S[si], idxs)
-    b_sparsecat = DiscreteHashedBelief(ss, vals, UInt(0))
-    v̂_min = min(v̂_min, value(tree.BIB_Policy, b_sparsecat))
-    ###
+    # # ### Method 3) BIB
+    # idxs, vals = findnz(b)
+    # ss = map(si -> tree.S[si], idxs)
+    # b_sparsecat = DiscreteHashedBelief(ss, vals, UInt(0))
+    # v̂_min = min(v̂_min, value(tree.BIB_Policy, b_sparsecat))
+    # ###
 
     return v̂_min
 end

@@ -1,9 +1,10 @@
 import POMDPs, POMDPTools
 using POMDPs
-using POMDPTools
+using POMDPTools, POMDPFiles
 include("BIB.jl")
 using .BIB
 using Statistics, POMDPModels
+import RockSample
 
 ##################################################################
 #                           Set Solvers 
@@ -11,10 +12,10 @@ using Statistics, POMDPModels
 
 solvers, solverargs = [], []
 
-### FIB
-using FIB
-push!(solvers, FIB.FIBSolver)
-push!(solverargs, (name="FIB", sargs=(), pargs=(), get_Q0=true))
+# ### FIB
+# using FIB
+# push!(solvers, FIB.FIBSolver)
+# push!(solverargs, (name="FIB", sargs=(), pargs=(), get_Q0=true))
 
 ### BIB
 push!(solvers, SBIBSolver)
@@ -28,11 +29,11 @@ push!(solverargs, (name="BIBSolver (entropy)", sargs=(max_iterations=100, precis
 # push!(solvers, WBIBSolver)
 # push!(solverargs, (name="BIBSolver (worst-case)", sargs=(max_iterations=100, precision=1e-5), pargs=(), get_Q0=true))
 
-# ### SARSOP + BIB
-# include("Sarsop_altered/NativeSARSOP.jl")
-# import .NativeSARSOP_alt
-# push!(solvers, NativeSARSOP_alt.SARSOPSolver)
-# push!(solverargs, (name="SARSOP+BIB", sargs=(epsilon=0.5, precision=0.001, kappa=0.5, delta=1e-1, max_time=2.0, max_steps=1, verbose=true), pargs=(), get_Q0=true))
+### SARSOP + BIB
+include("Sarsop_altered/NativeSARSOP.jl")
+import .NativeSARSOP_alt
+push!(solvers, NativeSARSOP_alt.SARSOPSolver)
+push!(solverargs, (name="SARSOP (max 30s)", sargs=(epsilon=0.5, precision=0.0001, kappa=0.5, delta=1e-1, max_time=30.0, max_steps=1, verbose=true), pargs=(), get_Q0=true))
 
 # ### SARSOP
 # using NativeSARSOP
@@ -75,22 +76,27 @@ abcmodel = ABC()
 push!(envs, abcmodel)
 push!(envargs, (name="ABCModel",))
 
-# ### Tiger
-# tiger = POMDPModels.TigerPOMDP()
-# tiger.discount_factor = 0.9
-# push!(envs, tiger)
-# push!(envargs, (name="Tiger",))
+### Tiger
+tiger = POMDPModels.TigerPOMDP()
+tiger.discount_factor = 0.99
+push!(envs, tiger)
+push!(envargs, (name="Tiger",))
 
-# ### RockSample
-# import RockSample
-# # This env is very difficult to work with for some reason...
-# POMDPs.states(M::RockSample.RockSamplePOMDP) = map(si -> RockSample.state_from_index(M,si), 1:length(M))
-# # map_size, rock_pos = (5,5), [(1,1), (3,3), (4,4)] # Default
-# # push!(envargs, (name="RockSample (default)",))
-# map_size, rock_pos = (10,10), [(2,3), (4,6), (7,4), (8,9) ] # Big Boy!
-# push!(envargs, (name="RockSample (10x10)",))
-# rocksample = RockSample.RockSamplePOMDP(map_size, rock_pos)
-# push!(envs, rocksample)
+### RockSample
+import RockSample
+# This env is very difficult to work with for some reason...
+POMDPs.states(M::RockSample.RockSamplePOMDP) = map(si -> RockSample.state_from_index(M,si), 1:length(M))
+POMDPs.discount(M::RockSample.RockSamplePOMDP) = 0.99
+
+map_size, rock_pos = (5,5), [(1,1), (3,3), (4,4)] # Default
+rocksamplesmall = RockSample.RockSamplePOMDP(map_size, rock_pos)
+push!(envargs, (name="RockSample (5x5)",))
+push!(envs, rocksamplesmall)
+
+map_size, rock_pos = (10,10), [(2,3), (4,6), (7,4), (8,9) ] # Big Boy!
+rocksamplelarge = RockSample.RockSamplePOMDP(map_size, rock_pos)
+push!(envargs, (name="RockSample (10x10)",))
+push!(envs, rocksamplelarge)
 
 # ### K-out-of-N
 # include("Environments/K-out-of-N.jl"); using .K_out_of_Ns
@@ -98,6 +104,17 @@ push!(envargs, (name="ABCModel",))
 # k_model = K_out_of_N(N, K)
 # push!(envs, k_model)
 # push!(envargs, (name="$K-out-of-$N",))
+
+### Frozen Lake esque
+include("Environments/GridWorldPOMDP.jl"); using .AMGridworlds
+
+lakesmall = FrozenLakeSmall
+push!(envs, lakesmall)
+push!(envargs, (name="Frozen Lake (4x4)",))
+
+lakelarge = FrozenLakeLarge
+push!(envs, lakelarge)
+push!(envargs, (name="Frozen Lake (10x10)",))
 
 # ### DroneSurveilance
 # import DroneSurveillance
@@ -140,15 +157,16 @@ push!(envargs, (name="ABCModel",))
 #                           Run Solvers 
 ##################################################################
 
-sims, steps = 20, 10
+verbose = true
+sims, steps = 100, 100
 
 function sample_avg_accuracy(model::POMDP, policies::Vector; samples::Int=100, distance::Int=5, samplepolicy=nothing)
     if isnothing(samplepolicy)
         samplepolicy = POMDPTools.RandomPolicy(model; updater=DiscreteHashedBeliefUpdater(model))
     end
-
     relative_bounds = zeros(length(policies))
 
+    cum_times = zeros(length(policies))
     bs = []
     for (i,data) in enumerate(stepthrough(model,samplepolicy, "b,s,a,o,r"; max_steps=(samples+1)*distance))
         b = data.b
@@ -156,57 +174,101 @@ function sample_avg_accuracy(model::POMDP, policies::Vector; samples::Int=100, d
     end
     for b in bs
         bounds = []
-        for policy in policies
-            push!(bounds, POMDPs.value(policy, b))
+        for (i,policy) in enumerate(policies)
+            t = @elapsed begin bound = POMDPs.value(policy, b) end
+            push!(bounds, bound)
+            cum_times[i] += t
         end
         best_bound = minimum(bounds)
         bounds =  (bounds .- best_bound) ./ abs(best_bound)
         relative_bounds = relative_bounds .+ bounds
     end
-    return relative_bounds ./ samples
+    return (relative_bounds ./ samples), (cum_times ./ samples)
 end
 
+policy_names = map(sarg -> sarg.name, solverargs)
+env_names = map(envarg -> envarg.name, envargs)
+nr_pols, nr_envs = length(policy_names), length(env_names)
 
-for (model, modelargs) in zip(envs, envargs)
-    println("Testing in $(modelargs.name) environment")
+upperbounds_init = zeros(nr_envs, nr_pols)
+upperbounds_sampled = zeros( nr_envs, nr_pols)
+return_means = zeros( nr_envs, nr_pols)
+time_solve = zeros( nr_envs, nr_pols)
+time_online = zeros( nr_envs, nr_pols)
+
+for (m_idx,(model, modelargs)) in enumerate(zip(envs, envargs))
+    verbose && println("Testing in $(modelargs.name) environment")
+    policies = []
     
+    # Calculate & print model size
     constants = BIB.get_constants(model)
     SAO_probs, SAOs = BIB.get_all_obs_probs(model; constants)
     B, B_idx = BIB.get_belief_set(model, SAOs; constants)
     ns, na, no, nb = constants.ns, constants.na, constants.no, length(B)
     nbao = nb * na * no
-    println("|S| = $ns, |A| = $na, |O| = $no, |B| = $nb, |BAO| = $nbao")
-    policies = []
-    for (solver, solverarg) in zip(solvers, solverargs)
-        println("\nRunning $(solverarg.name):")
+    verbose && println("|S| = $ns, |A| = $na, |O| = $no, |B| = $nb, |BAO| = $nbao")
+
+
+    for (s_idx,(solver, solverarg)) in enumerate(zip(solvers, solverargs))
+        verbose && println("\nRunning $(solverarg.name):")
         solver = solver(;solverarg.sargs...)
-        # simulator = POMDPTools.RolloutSimulator(max_steps=steps)
-        # simulator = StepSimulator(max_steps=steps)
 
-        @time policy, info = POMDPTools.solve_info(solver, model; solverarg.pargs...)
-        solverarg.get_Q0 && println("Value for b: ", POMDPs.value(policy, POMDPs.initialstate(model)))
+        # Compute policy & get upper bound
+        t = @elapsed begin
+             policy, info = POMDPTools.solve_info(solver, model; solverarg.pargs...) 
+        end
+        (info isa Nothing) ? val = POMDPs.value(policy, POMDPs.initialstate(model)) : val = info.value        
+        verbose && println("Upperbound $val (computed in $t seconds)")
+        upperbounds_init[m_idx, s_idx] = val
         push!(policies, policy)
+        time_solve[m_idx, s_idx] = t
 
-        print("Simulating policy...")
+        # Simulate policy & get avg returns
+        verbose && print("Simulating policy...")
         rs = []
-        @time begin
-            for i=1:sims
-                rtot = 0
-                for (t,(b,s,a,o,r)) in enumerate(stepthrough(model,policy,"b,s,a,o,r";max_steps=steps))
-                    rtot += POMDPs.discount(model)^(t-1) * r
-                end
-                push!(rs,rtot)
+        for i=1:sims
+            rtot = 0
+            for (t,(b,s,a,o,r)) in enumerate(stepthrough(model,policy,"b,s,a,o,r";max_steps=steps))
+                rtot += POMDPs.discount(model)^(t-1) * r
             end
+            push!(rs,rtot)
         end
         rs_avg, rs_min, rs_max = mean(rs), minimum(rs), maximum(rs)
-        println("Returns: mean = $rs_avg, min = $rs_min, max = $rs_max")
+        verbose && println("Returns: mean = $rs_avg, min = $rs_min, max = $rs_max")
+        return_means[m_idx, s_idx] = rs_avg
 
-        # # #TODO: export 
     end
 
-    println(sample_avg_accuracy(model, policies))
-    println("########################")
+    # Simulate upper bounds on different sampled beliefs & get avg differences
+    if !(model isa RockSample.RockSamplePOMDP)
+        upperbounds_sampled[m_idx, :], time_online[m_idx,:] = sample_avg_accuracy(model, policies)
+    end
+    verbose && println("...")
 end
+
+t = time()
+data = [upperbounds_init, time_solve, time_online, return_means, upperbounds_sampled]
+names = ["bound:\t\t", "solve time:\t", "comp time:\t", "retuns:\t\t", "avg bound:\t" ]
+
+open("run_out_$t.txt", "w") do file
+    write(file, "Policies:  ")
+    for p in policy_names
+        write(file, "$p \t")
+    end
+    write(file, "\n")
+
+    for (m_idx, env) in enumerate(env_names)
+        write(file, "\n\n$env: \n")
+        for (d_idx, d) in enumerate(data) 
+            write(file, names[d_idx])
+            for p_idx in 1:length(policy_names)
+                write(file, "$(round(d[m_idx, p_idx],sigdigits=3))\t")
+            end
+            write(file, "\n")
+        end
+    end
+end
+
 
 
 

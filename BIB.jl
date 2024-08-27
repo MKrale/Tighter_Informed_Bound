@@ -1,9 +1,7 @@
 module BIB
     using POMDPs, POMDPTools, Random, Distributions, SparseArrays, JuMP, Gurobi, HiGHS, Memoization, LRUCache
     const GRB_ENV=Gurobi.Env()
-    import HiGHS
     
-
     printdb(x) = print(x,"\n")
     function printdb(x,y...)
         print(x,", ")
