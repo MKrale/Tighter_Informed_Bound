@@ -142,7 +142,7 @@ R = function(M::K_out_of_N,s,a)
             r -= M.inspect_cost
         end
     end
-    return r + r_plus # (M.break_cost + M.repair_cost + M.inspect_cost) * M.N
+    return r #+ r_plus # (M.break_cost + M.repair_cost + M.inspect_cost) * M.N
 end
 
 r_plus = 1

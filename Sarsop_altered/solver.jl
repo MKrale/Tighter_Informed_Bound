@@ -9,26 +9,37 @@ Base.@kwdef struct SARSOPSolver{LOW,UP} <: Solver
     init_lower::LOW     = BlindLowerBound(bel_res = 1e-2)
     init_upper::UP      = FastInformedBound(bel_res=1e-2)
     prunethresh::Float64= 0.10
+    heuristic_solver::Union{Nothing,Solver} = nothing
 end
 
 function POMDPTools.solve_info(solver::SARSOPSolver, pomdp::POMDP)
+    t0 = time()
     tree = SARSOPTree(solver, pomdp)
     
     if solver.verbose
         initialize_verbose_output()
     end
     
-    t0 = time()
     iter = 0
-    while time()-t0 < solver.max_time && root_diff(tree) > solver.precision
+    times, ubs, lbs = [], [], []
+    push!(times, time()-t0)
+    push!(ubs, tree.V_upper[1])
+    push!(lbs, tree.V_lower[1])
+    
+    while time()-t0 < solver.max_time && root_diff_normalized(tree) > solver.precision
         sample!(solver, tree)
         backup!(tree)
         prune!(solver, tree)
         if solver.verbose && iter % 10 == 0
             log_verbose_info(t0, iter, tree)
         end
+
+        push!(times, time()-t0)
+        push!(ubs, tree.V_upper[1])
+        push!(lbs, tree.V_lower[1])
         iter += 1
     end
+    is_timed_out = root_diff_normalized(tree) > solver.precision
 
     if solver.verbose 
         dashed_line()
@@ -46,7 +57,7 @@ function POMDPTools.solve_info(solver::SARSOPSolver, pomdp::POMDP)
     #     tree,
     #     iter
     # )
-    return pol, (time=time()-t0, value=tree.V_upper[1])
+    return pol, (time=time()-t0, value=tree.V_upper[1], ubs = ubs, lbs = lbs, times = times, timeout=is_timed_out)
 end
 
 POMDPs.solve(solver::SARSOPSolver, pomdp::POMDP) = first(solve_info(solver, pomdp))

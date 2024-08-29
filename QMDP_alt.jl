@@ -3,7 +3,7 @@ struct QMDPSolver_alt <: Solver
     max_iterations::Int
 end
 
-QMDPSolver_alt() = QMDPSolver_alt(0, 50)
+QMDPSolver_alt() = QMDPSolver_alt(1e-10, 5000)
 
 struct QMDPPlanner_alt <: Policy
     Model::POMDP
@@ -11,32 +11,48 @@ struct QMDPPlanner_alt <: Policy
     V_MDP::Vector{AbstractFloat}
 end
 
+function get_max_r(m::POMDP)
+    maxr = 0
+    for s in states(m)
+        for a in actions(m)
+            maxr = max(maxr, reward(m,s,a))
+        end
+    end
+    return maxr 
+end
+
+
 """Computes the QMDP table using value iteration"""
 function solve(sol::QMDPSolver_alt, m::POMDP)
     Q = zeros((length(states(m)),length(actions(m))))
     Qmax = zeros(length(states(m)))
+    max_r = get_max_r(m)
+    maxQ = max_r / (1-discount(m))
+    Q[:,:] .= maxQ
+    Qmax[:] .= maxQ
+
     i=0
     # Lets iterate!
     largest_change = Inf
     i=0
+    S_dict = Dict( zip(states(m), 1:length(states(m))))
     while (largest_change > sol.precision) && (i < sol.max_iterations)
         i+=1
         largest_change = 0
-        S = reverse(sortperm(Qmax)) #TODO: this can maybe be made even more efficient by also keeping track of how far states are from the initial state & updating in reverse order to that?
         for (si,s) in enumerate(states(m))
             for (ai,a) in enumerate(actions(m))
                 Qnext = reward(m,s,a)
                 thisT = transition(m,s,a)
-                for (spi, sp) in enumerate(states(m))
-                    Qnext += pdf(thisT, sp) * discount(m) * Qmax[spi]
+                for sp in support(thisT)
+                    Qnext += pdf(thisT, sp) * discount(m) * Qmax[S_dict[sp]]
                 end
-                # largest_change = max(largest_change, abs(Q[si,ai] / Qnext), abs(2- Q[si,ai] / Qnext))
-                largest_change = max(largest_change, abs((Q[si,ai]-Qnext) / (Qnext+1e-10) ))
+                largest_change = max(largest_change, abs((Qnext - Q[si,ai]) / (Q[si,ai]+1e-10) ))
                 Q[si,ai] = Qnext
-                Qmax[si] = max(Qmax[si], Q[si,ai])
             end
+            Qmax[si] = maximum(Q[si,:])
         end
     end
+    
     return QMDPPlanner_alt(m,Q,Qmax)
 end
 

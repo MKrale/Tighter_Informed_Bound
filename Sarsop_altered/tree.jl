@@ -34,12 +34,26 @@ struct SARSOPTree
     Γ::Vector{AlphaVec{Int}}
     #######
     S
-    # B_pointset::Vector{SparseVector{Float64, Int}}
-    # Vs_pointset::Vector{Float64}
-    # BIB_Policy::EBIBPolicy
+    B_heuristic::Vector{SparseVector{Float64, Int}}
+    V_heuristic::Vector{Float64}
+    # Heuristic_Policy::Union{Nothing,Policy}
     #######
 end
 
+function get_heuristic_pointset(policy)
+    B_heuristic, V_heuristic = Vector{Float64}[], Float64[]
+    ns = policy.Data.constants.ns
+    S_dict = policy.Data.S_dict
+    for (b_idx, b) in enumerate(policy.Data.B)
+        b_svector = spzeros(ns)
+        for (s, p) in weighted_iterator(b)
+            b_svector[S_dict[s]] = p 
+        end
+        push!(B_heuristic, b_svector)
+        push!(V_heuristic, maximum(policy.Data.Q[b_idx,:]))
+    end
+    return B_heuristic, V_heuristic
+end
 
 function SARSOPTree(solver, pomdp::POMDP)
     sparse_pomdp = ModifiedSparseTabular(pomdp)
@@ -47,8 +61,17 @@ function SARSOPTree(solver, pomdp::POMDP)
 
     upper_policy = solve(solver.init_upper, sparse_pomdp)
     ######
-    # BIB_policy = POMDPs.solve(EBIBSolver(), pomdp)
-    # Bs_pointset, Vs_pointset = get_pointset_Sarsop(pomdp, BIB_policy)
+    # if !(solver.heuristic_solver isa Nothing)
+    #     policy = POMDPs.solve(EBIBSolver(), pomdp)
+    # else
+    #     policy = nothing
+    # end
+    if !(solver.heuristic_solver isa Nothing)
+        policy = POMDPs.solve(solver.heuristic_solver, pomdp)
+        B_heuristic, V_heuristic = get_heuristic_pointset(policy)
+    else
+        B_heuristic, V_heuristic = [], []
+    end
     ######
     corner_values = map(maximum, zip(upper_policy.alphas...))
 
@@ -77,9 +100,9 @@ function SARSOPTree(solver, pomdp::POMDP)
         AlphaVec{Int}[],
         ####
         states(pomdp),
-        # Bs_pointset,
-        # Vs_pointset,
-        # BIB_policy
+        B_heuristic,
+        V_heuristic,
+        # policy
         ####
     )
 

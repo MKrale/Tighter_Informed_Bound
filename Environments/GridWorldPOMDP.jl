@@ -112,10 +112,12 @@ function POMDPs.transition(mdp::AMGridWorld, s::AbstractVector{Int}, a::Symbol)
         return Deterministic(s)
     end
 
-    destinations = MVector{length(actions(mdp))+1, GWPos}(undef)
-    destinations[1] = s
+    # destinations = MVector{length(actions(mdp))+1, GWPos}(undef)
+    # destinations[1] = s
+    # probs = @MVector(zeros(length(actions(mdp))+1))
+    destinations, probs = [], []
 
-    probs = @MVector(zeros(length(actions(mdp))+1))
+    
     for (i, act) in enumerate(actions(mdp))
         if act == a
             prob = mdp.tprob # probability of transitioning to the desired cell
@@ -124,17 +126,18 @@ function POMDPs.transition(mdp::AMGridWorld, s::AbstractVector{Int}, a::Symbol)
         end
 
         dest = s + dir[act]
-        destinations[i+1] = dest
-
-        if !inbounds(mdp, dest) # hit an edge and come back
-            probs[1] += prob
-            destinations[i+1] = GWPos(-1, -1) # dest was out of bounds - this will have probability zero, but it should be a valid state
+        inbounds(mdp, dest) || (dest = s) # hit an edge and come back
+        if dest in destinations
+            probs[findfirst(==(dest), destinations)] += prob
         else
-            probs[i+1] += prob
+            push!(destinations, dest)
+            push!(probs, prob)
         end
+
     end
 
-    return SparseCat(convert(SVector, destinations), convert(SVector, probs))
+    # return SparseCat(convert(SVector, destinations), convert(SVector, probs))
+    return SparseCat(destinations, probs)
 end
 
 function inbounds(m::AMGridWorld, s::AbstractVector{Int})

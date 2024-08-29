@@ -56,29 +56,33 @@ function upper_value(tree::SARSOPTree, b_idx::Int)
     α_corner = tree.Vs_upper
     V_corner = dot(b, α_corner)
     V_upper = tree.V_upper
-    for b_idx ∈ tree.real
+
+    for b_idx in tree.real 
         (tree.b_pruned[b_idx] || tree.is_terminal[b_idx]) && continue
-        vint = V_upper[b_idx]
         bint = tree.b[b_idx]
+        vint = V_upper[b_idx]
         ϕ = min_ratio(b, bint)
         v̂ = V_corner + ϕ * (vint - dot(bint, α_corner))
         v̂ < v̂_min && (v̂_min = v̂)
     end
 
-    ####
-    # for (bpsi, bps) in enumerate(tree.B_pointset)
-    #     vint = tree.Vs_pointset[bpsi]
-    #     ϕ = min_ratio(b, bps)
-    #     v̂ = V_corner + ϕ * (vint - dot(bps, α_corner))
-    #     v̂ < v̂_min && (v̂_min = v̂)
-    # end
+
+    ### 
+    for (bpsi, bps) in enumerate(tree.B_heuristic)
+        vint = tree.V_heuristic[bpsi]
+        ϕ = min_ratio(b, bps)
+        v̂ = V_corner + ϕ * (vint - dot(bps, α_corner))
+        v̂ < v̂_min && (v̂_min = v̂)
+    end
 
     # # ### Method 3) BIB
-    # idxs, vals = findnz(b)
-    # ss = map(si -> tree.S[si], idxs)
-    # b_sparsecat = DiscreteHashedBelief(ss, vals, UInt(0))
-    # v̂_min = min(v̂_min, value(tree.BIB_Policy, b_sparsecat))
-    # ###
+    # if !(tree.Heuristic_Policy isa Nothing)
+    #     idxs, vals = findnz(b)
+    #     ss = map(si -> tree.S[si], idxs)
+    #     b_sparsecat = DiscreteHashedBelief(ss, vals, UInt(0))
+    #     v̂_min = min(v̂_min, value(tree.Heuristic_Policy, b_sparsecat))
+    # end
+    ###
 
     return v̂_min
 end
@@ -95,3 +99,11 @@ function lower_value(tree::SARSOPTree, b::AbstractVector)
 end
 
 root_diff(tree) = tree.V_upper[1] - tree.V_lower[1]
+
+function root_diff_normalized(tree)
+    if tree.V_lower[1] != 0
+        return abs( root_diff(tree) / tree.V_lower[1] )
+    end
+    return abs( root_diff(tree) / (tree.V_lower[1]+1e-10) )
+end
+

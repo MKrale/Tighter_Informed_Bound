@@ -1,0 +1,33 @@
+Policies:  BIBSolver (worst-case) 	
+
+
+ABCModel: 
+bound:		0.45	
+solve time:	1.7	
+comp time:	0.0	
+retuns:		0.0	
+avg bound:	0.0	
+
+
+Tiger: 
+bound:		238.0	
+solve time:	6.52	
+comp time:	0.000375	
+retuns:		18.7	
+avg bound:	0.0	
+
+
+RockSample (5x5): 
+bound:		23.5	
+solve time:	16.1	
+comp time:	0.0	
+retuns:		4.95	
+avg bound:	0.0	
+
+
+Frozen Lake (4x4): 
+bound:		0.293	
+solve time:	36.6	
+comp time:	0.00106	
+retuns:		0.185	
+avg bound:	0.0	

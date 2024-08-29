@@ -115,8 +115,12 @@ function POMDPs.solve(solver::X, model::POMDP) where X<:BIBSolver
     for i=1:solver.max_iterations
         # printdb(i)
         Qs, max_dif = get_Q(model, Qs, args...)
-        max_dif < solver.precision && (printdb("breaking after $i iterations:"); break)
+        # max_dif < solver.precision && (printdb("breaking after $i iterations:"); break)
+        max_dif < solver.precision && (break)
     end
+    # if solver isa EBIBSolver
+    #     return pol(model, BIB_Data(Qs,Data),Bbao_data, Weights)
+    # end
     return pol(model, BIB_Data(Qs,Data))
 end
 
@@ -495,7 +499,7 @@ function get_QEBIB_ba(model::POMDP, b, a, Qs, B, SAOs, SAO_probs, constants::C; 
     for oi in get_possible_obs(b,ai,SAOs, S_dict)
         o = constants.O[oi]
         Qo = []
-        if !(Bbao_data isa Nothing) && !(Weights_data isa Nothing) && !(bi isa Nothing)
+        if !(Bbao_data isa Nothing) || !(Weights_data isa Nothing) || !(bi isa Nothing)
             bao = get_bao(Bbao_data, bi, ai, oi, B)
             weights = get_weights_indexfree(Bbao_data, Weights_data,bi,ai,oi)
             this_Qs = Qs[get_overlap(Bbao_data, bi, ai, oi), :]
@@ -571,14 +575,32 @@ end
     model = π.model
     bestQ, bestA = -Inf, nothing
     for (ai,a) in enumerate(actions(model))
-        # Qa = get_QEBIB_ba(model, b, a, π.Data; ai=ai)
-        Qa = get_QBIB_ba(model, b, a, π.Data; ai=ai)
-        # Qa = get_QWBIB_ba(model, b, a, π.Data; ai=ai)
+        # if π.evaluate_full
+            Qa = get_QEBIB_ba(model, b, a, π.Data; ai=ai)
+        # else
+            # Qa = get_QBIB_ba(model, b, a, π.Data; ai=ai)
+        # end
         Qa > bestQ && ((bestQ, bestA) = (Qa, a))
     end
     return (bestA, bestQ)
 end
 
-
-
-
+# function get_heuristic_pointset(π::EBIBPolicy)
+#     B_heuristic, V_heuristic = Vector{Float64}[], Float64[]
+#     ns = policy.Data.constants.ns
+#     S_dict = policy.Data.S_dict
+#     model = π.model
+#     for (b_idx, b) in enumerate(policy.Data.B)
+#         b_svector = spzeros(ns)
+#         for (s, p) in weighted_iterator(b)
+#             b_svector[S_dict[s]] = p 
+#         end
+#         push!(B_heuristic, b_svector)
+#         value = -Inf
+#         for a in enumerate(actions(model))
+#             value = max(value, get_QEBIB_ba(model,b,a,π.Data; ai=ai, bi=b_idx, Bbao_data=π.Bbao_Data, Weights_data=π.Weigth_Data) )
+#         end
+#         push!(V_heuristic, value(policy, b))
+#     end
+#     return B_heuristic, V_heuristic
+# end

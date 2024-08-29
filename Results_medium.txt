@@ -1,0 +1,49 @@
+Policies:  FIB 	BIBSolver (standard) 	BIBSolver (entropy) 	SARSOP (max 30s) 	
+
+
+ABCModel: 
+bound:		0.648	0.496	0.45	0.45	
+solve time:	0.291	0.772	1.52	3.18	
+comp time:	0.0	0.0	0.0	0.0	
+retuns:		0.0	0.0	0.0	0.36	
+avg bound:	0.0	0.0	0.0	0.0	
+
+
+Tiger: 
+bound:		284.0	280.0	239.0	106.0	
+solve time:	0.292	0.555	0.42	19.0	
+comp time:	0.000145	7.19e-5	7.04e-5	2.93e-7	
+retuns:		3.23	16.6	13.4	14.6	
+avg bound:	1.66	1.63	1.24	0.0	
+
+
+RockSample (5x5): 
+bound:		23.5	23.5	23.5	23.1	
+solve time:	0.286	0.646	1.05	0.646	
+comp time:	0.0	0.0	0.0	0.0	
+retuns:		0.0	5.94	1.98	12.6	
+avg bound:	0.0	0.0	0.0	0.0	
+
+
+RockSample (10x10): 
+bound:		26.5	26.5	26.5	25.8	
+solve time:	0.502	8.97	48.8	31.2	
+comp time:	0.0	0.0	0.0	0.0	
+retuns:		4.8	0.0	0.0	4.8	
+avg bound:	0.0	0.0	0.0	0.0	
+
+
+Frozen Lake (4x4): 
+bound:		0.374	0.297	0.296	0.257	
+solve time:	0.403	0.468	0.664	1.61	
+comp time:	0.000364	7.27e-7	4.15e-7	2.02e-7	
+retuns:		0.0	0.184	0.282	0.139	
+avg bound:	0.00524	0.0023	0.00228	0.0	
+
+
+Frozen Lake (10x10): 
+bound:		0.323	0.243	0.236	0.256	
+solve time:	0.209	4.0	8.31	30.8	
+comp time:	2.69e-7	5.96e-5	1.07e-5	3.81e-7	
+retuns:		0.0	0.0	0.0	0.0	
+avg bound:	0.133	0.0858	0.0842	0.0	
