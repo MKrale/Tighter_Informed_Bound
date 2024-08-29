@@ -82,6 +82,7 @@ envs, envargs = [], []
     ###ABC
 if env_name == "ABC"
     include("Environments/ABCModel.jl"); using .ABCModel
+    discount(::ABC) = 0.99
     abcmodel = ABC()
     push!(envs, abcmodel)
     push!(envargs, (name="ABCModel",))
@@ -122,7 +123,8 @@ elseif env_name == "FrozenLake10"
     push!(envargs, (name="Frozen Lake (10)",))
 elseif env_name == "Tag"
     ### Tag
-    import TagPOMDPProblem
+    using TagPOMDPProblem
+    discount(m::TagPOMDP) = 0.99
     tag = TagPOMDPProblem.TagPOMDP()
     push!(envs, tag)
     push!(envargs, (name="Tag",))

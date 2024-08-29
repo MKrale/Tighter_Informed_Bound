@@ -34,14 +34,16 @@ Base.@kwdef struct AMGridWorld <: POMDP{GWPos, Symbol, GWPos}
     terminate_from::Set{GWPos}      = Set(keys(rewards))
     tprob::Float64                  = 0.7
     discount::Float64               = 0.95
+    measurecost::Float64            = -0.1
 end
 
 FrozenLakeSmall = AMGridWorld(
     (4,4),
     Dict(GWPos(4,4)=>1),
     Set([GWPos(2,2), GWPos(1,4), GWPos(4,2), GWPos(4,3), GWPos(4,4)]),
-    0.7,
-    0.99
+    0.85,
+    0.99,
+    -0.05
     )
 
 FrozenLakeLarge = AMGridWorld(
@@ -50,11 +52,11 @@ FrozenLakeLarge = AMGridWorld(
     Set([   GWPos(1,4), GWPos(2,4), GWPos(3,7), GWPos(5,4), GWPos(5,8),
             GWPos(6,2), GWPos(6,5), GWPos(7,1), GWPos(7,3), GWPos(8,9),
             GWPos(9,3), GWPos(9,6), GWPos(10,8), GWPos(10,10)]),
-    0.7,
-    0.99
+    0.85,
+    0.99,
+    -0.01
     )
 
-measurecost = -0.1
 
 # States
 
@@ -157,7 +159,7 @@ POMDPs.obsindex(m::AMGridWorld, o) = POMDPs.stateindex(m,o)
 # Rewards
 
 POMDPs.reward(mdp::AMGridWorld, s::AbstractVector{Int}) = get(mdp.rewards, s, 0.0)
-POMDPs.reward(mdp::AMGridWorld, s::AbstractVector{Int}, a::Symbol) = a==:measure ? (return measurecost) : return(reward(mdp, s))
+POMDPs.reward(mdp::AMGridWorld, s::AbstractVector{Int}, a::Symbol) = a==:measure ? (return mdp.measurecost) : return(reward(mdp, s))
 
 
 # discount

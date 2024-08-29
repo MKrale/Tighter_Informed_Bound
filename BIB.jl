@@ -1,6 +1,12 @@
 module BIB
     using POMDPs, POMDPTools, Random, Distributions, SparseArrays, JuMP, Gurobi, HiGHS, Memoization, LRUCache
+
+    # Surpressing Gurobis printing...
+    oldstd = stdout
+    redirect_stdout(devnull)
     const GRB_ENV=Gurobi.Env()
+    redirect_stdout(oldstd)
+
     
     printdb(x) = print(x,"\n")
     function printdb(x,y...)

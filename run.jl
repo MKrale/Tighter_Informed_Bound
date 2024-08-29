@@ -79,6 +79,7 @@ envs, envargs = [], []
 # ### ABC
 # include("Environments/ABCModel.jl"); using .ABCModel
 # abcmodel = ABC()
+# discount(::ABCModel) = 0.99
 # push!(envs, abcmodel)
 # push!(envargs, (name="ABCModel",))
 

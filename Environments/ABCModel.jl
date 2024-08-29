@@ -22,7 +22,7 @@ ABC_ints() = QuickPOMDP(
     states=1:4,     # s_0, s_a, s_b, terminal
     actions=1:3,    # c, a, b
     observations=[1], # nullObs
-    discount=0.90,
+    discount=0.99,
 
     transition = T_int,
     observation = O_int,
@@ -49,7 +49,7 @@ ABC() = QuickPOMDP(
     states = ["init","A","B","Ap","Bp","terminal"],
     actions=["a","b","c"],
     observations=["nothing"],
-    discount=0.90,
+    discount=0.99,
 
     transition = T,
     observation = O,
