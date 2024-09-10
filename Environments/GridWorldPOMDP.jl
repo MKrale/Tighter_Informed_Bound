@@ -13,21 +13,6 @@ export AMGridworld, FrozenLakeSmall, FrozenLakeLarge
 
 const GWPos = SVector{2,Int}
 
-"""
-    SimpleGridWorld(;kwargs...)
-
-Create a simple grid world MDP. Options are specified with keyword arguments.
-
-# States and Actions
-The states are represented by 2-element static vectors of integers. Typically any Julia `AbstractVector` e.g. `[x,y]` can also be used for arguments. Actions are the symbols `:up`, `:left`, `:down`, and `:right`.
-
-# Keyword Arguments
-- `size::Tuple{Int, Int}`: Number of cells in the x and y direction [default: `(10,10)`]
-- `rewards::Dict`: Dictionary mapping cells to the reward in that cell, e.g. `Dict([1,2]=>10.0)`. Default reward for unlisted cells is 0.0
-- `terminate_from::Set`: Set of cells from which the problem will terminate. Note that these states are not themselves terminal, but from these states, the next transition will be to a terminal state. [default: `Set(keys(rewards))`]
-- `tprob::Float64`: Probability of a successful transition in the direction specified by the action. The remaining probability is divided between the other neighbors. [default: `0.7`]
-- `discount::Float64`: Discount factor [default: `0.95`]
-"""
 Base.@kwdef struct AMGridWorld <: POMDP{GWPos, Symbol, GWPos}
     size::Tuple{Int, Int}           = (10,10)
     rewards::Dict{GWPos, Float64}   = Dict(GWPos(4,3)=>-10.0, GWPos(4,6)=>-5.0, GWPos(9,3)=>10.0, GWPos(8,8)=>3.0)
@@ -56,7 +41,6 @@ FrozenLakeLarge = AMGridWorld(
     0.99,
     -0.01
     )
-
 
 # States
 

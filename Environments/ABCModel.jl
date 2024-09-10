@@ -6,36 +6,12 @@ export ABC
 
 struct ABC <: POMDP{Int,Int,Int} end
 
-function T_int(s,a)
-    s==1 && (return SparseCat([2,3], [0.5,0.5]))
-    s==4 && (return SparseCat([4], [1]))
-    (a==2 || a==3) && (return SparseCat([4], [1]))
-    s==2 ? sn = 3 : sn = 2
-    return SparseCat([s,sn], [1.0, 0.2])
-end
-
-R_int(s::Int,a) = (s!=1 && s==a) ? 1 : 0
-O_int(a,sp) = SparseCat([1], [1])
-
-"""A toy model for testing heuristics."""
-ABC_ints() = QuickPOMDP(
-    states=1:4,     # s_0, s_a, s_b, terminal
-    actions=1:3,    # c, a, b
-    observations=[1], # nullObs
-    discount=0.99,
-
-    transition = T_int,
-    observation = O_int,
-    reward= R_int,
-    initialstate= SparseCat([1], [1]),
-    isterminal = s -> s==4
-)
-
+# function
 
 function T(s,a)
     s=="init" && (return SparseCat(["A", "B"], [0.5, 0.5]))
-    s=="Ap" && (return SparseCat(["A"], [1]))
-    s=="Bp" && (return SparseCat(["B"], [1]))
+    # s=="Ap" && (return SparseCat(["A"], [1]))
+    # s=="Bp" && (return SparseCat(["B"], [1]))
     s=="terminal" && (return SparseCat(["terminal"], [1]))
     (a=="a" || a=="b") && (return SparseCat(["terminal"], [1]))
     s=="A" ? not_s = "B" : not_s = "A"
@@ -47,6 +23,7 @@ O(a,sp) = SparseCat(["nothing"],[1])
 
 ABC() = QuickPOMDP(
     states = ["init","A","B","Ap","Bp","terminal"],
+    # states = ["init","A","B","terminal"],
     actions=["a","b","c"],
     observations=["nothing"],
     discount=0.99,

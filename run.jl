@@ -12,30 +12,32 @@ import RockSample
 
 solvers, solverargs = [], []
 
-# ### FIB
-# using FIB
-# push!(solvers, FIB.FIBSolver)
-# push!(solverargs, (name="FIB", sargs=(), pargs=(), get_Q0=true))
+iters, tol = 250, 1e-5
 
-# ### BIB
-# push!(solvers, SBIBSolver)
-# push!(solverargs, (name="BIBSolver (standard)", sargs=(max_iterations=250, precision=1e-5), pargs=(), get_Q0=true))
+### FIB
+using FIB
+push!(solvers, FIB.FIBSolver)
+push!(solverargs, (name="FIB", sargs=(max_iterations=iters,tolerance=tol), pargs=(), get_Q0=true))
+
+### BIB
+push!(solvers, SBIBSolver)
+push!(solverargs, (name="BIBSolver (standard)", sargs=(max_iterations=iters, precision=tol), pargs=(), get_Q0=true))
 
 # ### EBIB
 # push!(solvers, EBIBSolver)
-# push!(solverargs, (name="BIBSolver (entropy)", sargs=(max_iterations=250, precision=1e-5), pargs=(), get_Q0=true))
+# push!(solverargs, (name="BIBSolver (entropy)", sargs=(max_iterations=iters, precision=tol), pargs=(), get_Q0=true))
 
 # ### WBIBs
 # push!(solvers, WBIBSolver)
 # push!(solverargs, (name="BIBSolver (worst-case)", sargs=(max_iterations=250, precision=1e-5), pargs=(), get_Q0=true))
 
-### SARSOP
-# include("Sarsop_altered/NativeSARSOP.jl")
-# import .NativeSARSOP_alt
-# max_time = 30.0
+# SARSOP
+include("Sarsop_altered/NativeSARSOP.jl")
+import .NativeSARSOP_alt
+max_time = 30.0
 
-# push!(solvers, NativeSARSOP_alt.SARSOPSolver)
-# push!(solverargs, (name="SARSOP (max $max_time s)", sargs=( precision=1e-5, max_time=max_time, max_steps=1, verbose=false), pargs=(), get_Q0=true))
+push!(solvers, NativeSARSOP_alt.SARSOPSolver)
+push!(solverargs, (name="SARSOP (max $max_time s)", sargs=( precision=1e-5, max_time=max_time, max_steps=1, verbose=false), pargs=(), get_Q0=true))
 
 # push!(solvers, NativeSARSOP_alt.SARSOPSolver)
 # solver = EBIBSolver(max_iterations=250, precision=1e-5)
@@ -79,7 +81,7 @@ envs, envargs = [], []
 # ### ABC
 # include("Environments/ABCModel.jl"); using .ABCModel
 # abcmodel = ABC()
-# discount(::ABCModel) = 0.99
+# discount(::ABC) = 0.99
 # push!(envs, abcmodel)
 # push!(envargs, (name="ABCModel",))
 
@@ -116,7 +118,7 @@ envs, envargs = [], []
 # push!(envs, k_model3)
 # push!(envargs, (name="K-out-of-N (3)",))
 
-## Frozen Lake esque
+# # Frozen Lake esque
 # include("Environments/GridWorldPOMDP.jl"); using .AMGridworlds
 
 # lakesmall = FrozenLakeSmall
@@ -127,14 +129,41 @@ envs, envargs = [], []
 # push!(envs, lakelarge)
 # push!(envargs, (name="Frozen Lake (10x10)",))
 
-# ### DroneSurveilance
-# import DroneSurveillance
-# dronesurv = DroneSurveillance.DroneSurveillancePOMDP()
-# push!(envs, dronesurv)
-# push!(envargs, (name="DroneSurveilance",))
+### CustomGridWorlds
+include("Environments/CustomGridworld.jl"); using .CustomGridWorlds
+# lakesmall = FrozenLakeSmall
+# push!(envs, lakesmall)
+# push!(envargs, (name="Frozen Lake (4x4)",))
+
+# lakelarge = FrozenLakeLarge
+# push!(envs, lakelarge)
+# push!(envargs, (name="Frozen Lake (10x10)",))
+
+minihallway = CustomMiniHallway
+push!(envs, minihallway)
+push!(envargs, (name="MiniHallway", ))
+
+# hallway1 = Hallway1
+# push!(envs, hallway1)
+# push!(envargs, (name="Hallway1",))
+
+# hallway2 = Hallway2
+# push!(envs, hallway2)
+# push!(envargs, (name="Hallway2",))
+
+# hallway3 = Hallway3
+# push!(envs, hallway3)
+# push!(envargs, (name="Hallway3",))
+
+# # ### DroneSurveilance
+# # import DroneSurveillance
+# # dronesurv = DroneSurveillance.DroneSurveillancePOMDP()
+# # push!(envs, dronesurv)
+# # push!(envargs, (name="DroneSurveilance",))
 
 # ### Tag
-# import TagPOMDPProblem
+# using TagPOMDPProblem
+# discount(m::TagPOMDP) = 0.99
 # tag = TagPOMDPProblem.TagPOMDP()
 # push!(envs, tag)
 # push!(envargs, (name="Tag",))

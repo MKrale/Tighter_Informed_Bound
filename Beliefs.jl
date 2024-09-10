@@ -9,6 +9,8 @@ struct DiscreteHashedBelief{S}
 end
 
 function DiscreteHashedBelief(state_list::Vector, probs::Vector{<:Float64})
+    nonzero_els = findall(>(0),probs)
+    state_list, probs = state_list[nonzero_els], probs[nonzero_els]
     idxs = sortperm(state_list; lt= (x,y) -> objectid(x) < objectid(y))
     ordered_state_list, ordered_probs = state_list[idxs], probs[idxs]
     hash = makeDBhash(ordered_state_list, ordered_probs)
@@ -22,7 +24,10 @@ end
 function DiscreteHashedBelief(b) 
     S,P = [], Float64[]
     for (s,p) in weighted_iterator(b)
-        push!(S,s); push!(P,p)
+        if p>0
+            push!(S,s)
+            push!(P,p)
+        end
     end
     return DiscreteHashedBelief(S,P)
 end

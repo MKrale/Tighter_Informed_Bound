@@ -43,9 +43,11 @@ BIB_Data(Q::Array{Float64,2}, D::BIB_Data) = BIB_Data(Q,D.B, D.B_idx, D.SAO_prob
 struct BBAO_Data
     Bbao::Vector
     Bbao_idx::Array{Dict{Int,Tuple{Bool,Int}},2}
+    B_in_Bbao::BitVector
     B_overlap::Array{Vector{Int}}
     Bbao_overlap::Array{Vector{Int}}
     B_entropies::Array{Float64}
+    Valid_weights::Array{Dict{Int,Float64}}
 end
 function get_bao(Bbao_data::BBAO_Data, bi::Int, ai::Int, oi::Int, B)
     in_B, baoi = Bbao_data.Bbao_idx[bi,ai][oi]
@@ -84,7 +86,7 @@ function POMDPs.solve(solver::X, model::POMDP) where X<:BIBSolver
     Qs = get_QMDP_Beliefset(model, B, constants)    # ∀b∈B, contains QBIB value (initialized using QMDP)
 
     # 3.5 : combine all data thus far
-    S_dict = Dict( zip(states(model), 1:length(states(model))))
+    S_dict = Dict( zip(constants.S, 1:constants.ns))
     Data = BIB_Data(Qs, B,B_idx,SAO_probs,SAOs, S_dict, constants)
 
     # 4 : If WBIB or EBIB, precompute all beliefs after 2 steps
@@ -148,11 +150,11 @@ function get_all_obs_probs(model::POMDP; constants::Union{C,Nothing}=nothing)
         end
     end
 
-    for (oi,o) in enumerate(O)
-        for (si,s) in enumerate(S)
-            for (ai,a) in enumerate(A)
+    for (oi,o) in enumerate(constants.O)
+        for (si,s) in enumerate(constants.S)
+            for (ai,a) in enumerate(constants.A)
                 SAO_probs[oi,si,ai] = get_obs_prob(model,o,s,a)
-                SAO_probs[oi,si,ai] > 0 && push!(SAOs[si,ai], oi)
+                SAO_probs[oi,si,ai] > 0.0 && push!(SAOs[si,ai], oi)
             end
         end
     end
@@ -169,10 +171,35 @@ function get_obs_prob(model::POMDP, o,s,a)
     return p
 end
 """Computes the probability of an observation given a belief-action pair."""
-get_obs_prob(model::POMDP, o, b::DiscreteHashedBelief, a) = sum( (s,p) -> p*get_obs_prob(model,o,s,a), zip(b.state_list, b.probs) )
+function get_obs_prob(model::POMDP, o, b::DiscreteHashedBelief, a) 
+    sum = 0
+    for (s,p) in zip(b.state_list, b.probs)
+        sum += p*get_obs_prob(model,o,s,a)
+    end
+    return sum
+end
+
+
+# sum( (s,p) -> p*get_obs_prob(model,o,s,a), zip(b.state_list, b.probs) )
 
 #TODO: add this to Bdata or something...
-@memoize LRU(maxsize=100) function get_possible_obs(b::DiscreteHashedBelief, ai, SAOs, S_dict)
+@memoize LRU(maxsize=1000) function get_possible_obs(bi::Tuple{Bool, Int}, ai, Data, Bbao_data)
+    if first(bi)
+        b = Data.B[last(bi)]
+        possible_os = Set{Int}
+        for s in support(b)
+            si = S_dict[s]
+            union!(possible_os, SAOs[si,ai])
+        end
+        return 
+    else
+        return collect(keys(Bbao_Data.Bbao_idx[last(bi), ai]))
+    end
+end
+
+
+
+@memoize LRU(maxsize=1000) function get_possible_obs(b::DiscreteHashedBelief, ai, SAOs, S_dict)
     possible_os = Set{Int}()
     for s in support(b)
         si = S_dict[s]
@@ -203,7 +230,10 @@ function get_belief_set(model, SAOs; constants::Union{C,Nothing}=nothing)
                 o = O[oi]
                 b = update(U, b_s, a, o)
                 k = findfirst( x -> x==b , B)
-                isnothing(k) && (push!(B,b); k=length(B))
+                if isnothing(k)
+                    push!(B,b)
+                    k=length(B)
+                end
                 B_idx[si,ai,oi] = k
             end
         end
@@ -216,17 +246,22 @@ For each belief-action-observation pair, compute which beliefs from our set have
 """
 function get_Bbao(model, Data, constants)
     B = Data.B
+    S_dict = Data.S_dict
+    O_dict = Dict( zip(constants.O, 1:constants.no) )
     U = DiscreteHashedBeliefUpdater(model)
     nb = length(B)
 
     Bbao = []
+    B_in_Bboa = zeros(Bool, length(B))
+    Bbao_valid_weights = Dict{Int,Float64}[]
     Bbao_idx = Array{Dict{Int, Tuple{Bool,Int}}}(undef, nb, constants.na)
 
     # Record bao: reference B if it's already in there, otherwise add to Bbao
     for (bi,b) in enumerate(B)
         for (ai, a) in enumerate(constants.A)
             Bbao_idx[bi,ai] = Dict{Int, Tuple{Bool, Int}}()
-            for (oi,o) in enumerate(constants.O)
+            for oi in get_possible_obs(b,ai,Data.SAOs,S_dict)
+                o = constants.O[oi]
                 bao = POMDPs.update(U,b,a,o)
                 if length(support(bao)) > 0
                     in_B = true
@@ -234,7 +269,17 @@ function get_Bbao(model, Data, constants)
                     if isnothing(k)
                         in_B = false
                         k = findfirst(x -> x==bao, Bbao)
-                        isnothing(k) && (push!(Bbao, bao); k=length(Bbao))
+                        if isnothing(k)
+                            push!(Bbao, bao)
+                            k=length(Bbao)
+                            valid_weights = Dict{Int, Float64}()
+                            for (s,ps) in weighted_iterator(b)
+                            valid_weights[Data.B_idx[S_dict[s],ai,oi]] = ps
+                            end
+                            push!(Bbao_valid_weights, valid_weights)
+                        end
+                    else
+                        B_in_Bboa[k] = true
                     end
                     Bbao_idx[bi,ai][oi] = (in_B, k)
                 end              
@@ -261,8 +306,7 @@ function get_Bbao(model, Data, constants)
     end
 
     B_entropy = map( b -> get_entropy(b), B)
-
-    return BBAO_Data(Bbao, Bbao_idx, B_overlap, Bbao_overlap, B_entropy)
+    return BBAO_Data(Bbao, Bbao_idx, B_in_Bboa, B_overlap, Bbao_overlap, B_entropy, Bbao_valid_weights)
 end
 
 function have_overlap(b,bp)
@@ -299,9 +343,12 @@ function get_entropy_weights_all(B, Bbao_data::BBAO_Data)
     #TODO: only use those Bs that we need!
     B_weights = Array{Vector{Tuple{Int,Float64}}}(undef, length(B))
     Bbao_weights = Array{Vector{Tuple{Int,Float64}}}(undef, length(Bbao_data.Bbao))
+    model = 
     for (bi, b) in enumerate(B)
-        # B_weights[bi] = get_entropy_weights(model,b, B; overlap=Bbao_data.B_overlap[bi])
-        B_weights[bi] = get_entropy_weights(b, B; bi=(true,bi), Bbao_data=Bbao_data) 
+        if Bbao_data.B_in_Bbao[bi]
+            # B_weights[bi] = get_entropy_weights(model,b, B; overlap=Bbao_data.B_overlap[bi])
+            B_weights[bi] = get_entropy_weights(b, B; bi=(true,bi), Bbao_data=Bbao_data)
+        end
     end
     for (bi, b) in enumerate(Bbao_data.Bbao)
         # Bbao_weights[bi] = get_entropy_weights(model,b, B; overlap=Bbao_data.Bbao_overlap[bi])
@@ -310,17 +357,84 @@ function get_entropy_weights_all(B, Bbao_data::BBAO_Data)
     return Weights_Data(B_weights, Bbao_weights)
 end
 
+
+# function get_arrays_entropy_computation(b, B, bi, Bbao_data)
+#     B_relevant = []
+#     B_entropies = []
+#     B_idxs = []
+#     if !(Bbao_data isa Nothing) && !(bi isa Nothing)
+#         first(bi) ? (overlap=Bbao_data.B_overlap[last(bi)]) : (overlap=Bbao_data.Bbao_overlap[last(bi)])
+#         length(overlap) == 0 && ( printdb(b, bi))
+#         for bpi in overlap
+#             push!(B_relevant, B[bpi])
+#             push!(B_idxs, bpi)
+#             push!(B_entropies, Bbao_data.B_entropies[bpi])
+#         end
+#     else
+#         B_relevant = B
+#         B_idxs = 1:length(B)
+#         B_entropies = map( b -> get_entropy(b), B)
+#     end
+#     return B_relevant, B_entropies, B_idxs
+# end
+
+# function add_model_contraints(model,b, B_relevant,vars_idx )
+#     @variable(model, 0.0 <= b_ps[vars_idx:length(B_relevant)+vars_idx] <= 1.0)
+#     for s in support(b)
+#         Idx, Ps = [], []
+#         for (bpi, bp) in enumerate(B_relevant)
+#             p = pdf(bp,s)
+#             if p > 0
+#                 push!(Idx, bpi+vars_idx-1) #-1?
+#                 push!(Ps,p)
+#             end
+#         end
+#         length(Idx) > 0 && @constraint(model, sum(b_ps[Idx[i]] * Ps[i] for i in 1:length(Idx)) == pdf(b,s) )
+#     end
+#     return model
+# end
+
+# function get_entropy_weights_batch(bs, Bs, bis=nothing, Bbao_data=nothing)
+#     model = direct_model(Gurobi.Optimizer(GRB_ENV))
+#     # set_silent(model)
+#     # set_attribute(model, "TimeLimit", 0.5)
+#     # model = direct_model(Tulip.Optimizer())
+#     # model = direct_model(HiGHS.Optimizer())
+#     # model = Model(HiGHS.Optimizer)
+#     set_silent(model)
+#     set_string_names_on_creation(model, false)
+
+#     vars_idx = 0
+#     all_B_entropies, all_B_idxs = [], []
+#     for (problem_idx,(b, B, bi)) in enumerate(zip(bs, Bs, bis))
+#         B_relevant, B_entropies, B_idxs = get_arrays_entropy_computation(b,B,bi,Bbao_data)
+#         B_idxs .+= vars_idx
+#         vars_idx += length(b_idxs)
+#         model = add_model_contraints(model, b, B_relevant, vars_idx)
+#         append!(all_B_entropies, B_entropies) 
+#         append!(all_B_idxs, all_B_idxs)
+#     end
+#     @objective(model, Max, sum(b_ps.*B_entropies))
+# end
+    
 function get_entropy_weights(b, B; bi=nothing, Bbao_data=nothing )
     B_relevant = []
+    B_start = []
     B_entropies = []
     B_idxs = []
-    if !(Bbao_data isa Nothing) && !(bi isa Nothing)
-        first(bi) ? (overlap=Bbao_data.B_overlap[last(bi)]) : (overlap=Bbao_data.Bbao_overlap[last(bi)])
-        length(overlap) == 0 && ( printdb(b, bi))
+    if !(Bbao_data isa Nothing) || !(bi isa Nothing)
+        if first(bi)
+            overlap=Bbao_data.B_overlap[last(bi)]
+            valid_weights = Dict(last(bi) => 1.0)
+        else
+            overlap=Bbao_data.Bbao_overlap[last(bi)]
+            valid_weights = Bbao_data.Valid_weights[last(bi)]
+        end
         for bpi in overlap
             push!(B_relevant, B[bpi])
             push!(B_idxs, bpi)
             push!(B_entropies, Bbao_data.B_entropies[bpi])
+            haskey(valid_weights, bpi) ? push!(B_start, valid_weights[bpi]) : push!(B_start, 0.0)
         end
     else
         B_relevant = B
@@ -328,12 +442,15 @@ function get_entropy_weights(b, B; bi=nothing, Bbao_data=nothing )
         B_entropies = map( b -> get_entropy(b), B)
     end
 
-    # model = direct_model(Gurobi.Optimizer(GRB_ENV))
-    # set_silent(model)
-    # set_attribute(model, "TimeLimit", 0.5)
-    model = Model(HiGHS.Optimizer)
+    model = direct_generic_model(Float64,Gurobi.Optimizer(GRB_ENV))
+    # model = direct_generic_model(Float64,Tulip.Optimizer())
+    # model = Model(Tulip.Optimizer; add_bridges = false)
+    # model = direct_model(HiGHS.Optimizer())
+    # model = Model(HiGHS.Optimizer)
     set_silent(model)
+    set_string_names_on_creation(model, false)
     @variable(model, 0.0 <= b_ps[1:length(B_relevant)] <= 1.0)
+    # !(B_start == []) && set_start_value.(b_ps, B_start)
     for s in support(b)
         Idx, Ps = [], []
         for (bpi, bp) in enumerate(B_relevant)
@@ -397,7 +514,7 @@ function get_QBIB_Beliefset(model::POMDP, Q, Data::BIB_Data)
 end
 
 function get_QBIB_ba(model::POMDP,b,a,Qs,B_idx,SAO_probs, SAOs, constants::C; ai=nothing, S_dict=nothing)
-    isnothing(ai) && ( ai=findfirst(==(a), actions(model)) )
+    isnothing(ai) && ( ai=findfirst(==(a), constants.A) )
     Q = breward(model,b,a)
     for (oi, o) in enumerate(constants.O)
         Qo = zeros(constants.na)
@@ -444,7 +561,7 @@ function get_QWBIB_ba(model::POMDP,b,a,Qs,B, SAOs, SAO_probs, constants::C; ai=n
                 thisBs, thisQs = B[overlap_idxs], Qs[overlap_idxs, api]
                 thisQo = get_QLP(bao, thisQs, thisBs)
             else
-                o = observations(model)[oi]
+                o = constants.O[oi]
                 bao = update(DiscreteHashedBeliefUpdater(model),b,a,o)
                 B_rel, Bidx_rel = get_overlapping_beliefs(bao,B)
                 thisQo = get_QLP(bao, Qs[Bidx_rel,api],B_rel)
@@ -499,7 +616,7 @@ function get_QEBIB_ba(model::POMDP, b, a, Qs, B, SAOs, SAO_probs, constants::C; 
     for oi in get_possible_obs(b,ai,SAOs, S_dict)
         o = constants.O[oi]
         Qo = []
-        if !(Bbao_data isa Nothing) || !(Weights_data isa Nothing) || !(bi isa Nothing)
+        if !(Bbao_data isa Nothing) && !(Weights_data isa Nothing) && !(bi isa Nothing)
             bao = get_bao(Bbao_data, bi, ai, oi, B)
             weights = get_weights_indexfree(Bbao_data, Weights_data,bi,ai,oi)
             this_Qs = Qs[get_overlap(Bbao_data, bi, ai, oi), :]
@@ -552,7 +669,7 @@ POMDPs.value(π::X, b) where X<: BIBPolicy = last(action_value(π,b))
     b = DiscreteHashedBelief(b)
     model = π.model
     bestQ, bestA = -Inf, nothing
-    for (ai,a) in enumerate(actions(model))
+    for (ai,a) in enumerate(π.Data.constants.A)
         Qa = get_QBIB_ba(model, b, a, π.Data; ai=ai)
         Qa > bestQ && ((bestQ, bestA) = (Qa, a))
     end
@@ -563,7 +680,7 @@ end
     b = DiscreteHashedBelief(b)
     model = π.model
     bestQ, bestA = -Inf, nothing
-    for (ai,a) in enumerate(actions(model))
+    for (ai,a) in enumerate(π.Data.constants.A)
         Qa = get_QWBIB_ba(model, b, a, π.Data; ai=ai)
         Qa > bestQ && ((bestQ, bestA) = (Qa, a))
     end
@@ -574,7 +691,7 @@ end
     b = DiscreteHashedBelief(b)
     model = π.model
     bestQ, bestA = -Inf, nothing
-    for (ai,a) in enumerate(actions(model))
+    for (ai,a) in enumerate(π.Data.constants.A)
         # if π.evaluate_full
             Qa = get_QEBIB_ba(model, b, a, π.Data; ai=ai)
         # else
