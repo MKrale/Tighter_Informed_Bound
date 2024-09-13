@@ -1,7 +1,6 @@
 import POMDPs, POMDPTools
 using POMDPs
 using POMDPTools, POMDPFiles, ArgParse, JSON
-using Plots
 include("BIB.jl")
 using .BIB
 using Statistics, POMDPModels
