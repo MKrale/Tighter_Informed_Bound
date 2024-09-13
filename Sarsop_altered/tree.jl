@@ -36,6 +36,7 @@ struct SARSOPTree
     S
     B_heuristic::Vector{SparseVector{Float64, Int}}
     V_heuristic::Vector{Float64}
+    # pol_heuristic
     # Heuristic_Policy::Union{Nothing,Policy}
     #######
 end
@@ -45,6 +46,7 @@ function get_heuristic_pointset(policy)
     ns = policy.Data.constants.ns
     S_dict = policy.Data.S_dict
     for (b_idx, b) in enumerate(policy.Data.B)
+        length(support(b)) == 1 && continue #TODO: why is this required?
         b_svector = spzeros(ns)
         for (s, p) in weighted_iterator(b)
             b_svector[S_dict[s]] = p 

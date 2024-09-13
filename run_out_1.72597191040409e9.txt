@@ -1,4 +1,0 @@
-Policies:  FIB 	BIBSolver (standard) 	SARSOP (max 30.0 s) 	
-
-
-MiniHallway: 

@@ -9,7 +9,7 @@ using Random
 using Memoization, LRUCache
 
 
-export Gridworld, FrozenLakeSmall, FrozenLakeLarge, CustomMiniHallway, Hallway1, Hallway2, Hallway3
+export Gridworld, FrozenLakeSmall, FrozenLakeLarge, CustomMiniHallway, Hallway1, Hallway2, TigerGrid
 
 #########################################
 #               Types:
@@ -65,6 +65,7 @@ end
 # Observations
 
 abstract type Observations end
+struct TrueObs <: Observations end
 struct EmptyObs <: Observations end
 struct NeighbourObs <: Observations end
 struct CustomRelState <: Observations
@@ -101,9 +102,10 @@ Base.@kwdef struct LocationGridWorld <: GridWorld{Location, Action, Location}
     holes::Set{Location}                = Set(keys(rewards))
     walls::Set{Location}                = Set()
     marks::Set{Location}                = Set()
-    hole_effect:: HoleEffect            = Terminate()
+    hole_effect:: HoleEffect            = Reset()
     discount::Float64                   = 0.95
     initial_state::Any                  = Deterministic(Location(0,0))
+    measuring_effect::Observation_Type  = Observation_Type(FullState(), 0.0, EmptyObs())
 end
 
 Base.@kwdef struct PositionGridWorld <: GridWorld{Position, Action, Relative_Observation}
@@ -114,41 +116,43 @@ Base.@kwdef struct PositionGridWorld <: GridWorld{Position, Action, Relative_Obs
     holes::Set{Location}                = Set(keys(rewards))
     walls::Set{Location}                = Set()
     marks::Set{Location}                = Set()
-    hole_effect:: HoleEffect            = Terminate()
+    hole_effect:: HoleEffect            = Reset()
     discount::Float64                   = 0.95
     initial_state::Any                  = Deterministic(Location(0,0))
+    measuring_effect::Observation_Type  = Observation_Type(FullState(), 1, EmptyObs())
 end
+
 
 #########################################
 #               Defaults:
 #########################################
 
 FrozenLakeSmall = LocationGridWorld(
-    (4,4),
-    Observation_Type(FullState(), 0.5, EmptyObs()),
-    Transition_Type(0.5, DoubleAction()),
-    Dict(Location(4,4)=>1),
-    Set([Location(2,2), Location(1,4), Location(4,2), Location(4,3), Location(4,4)]),
-    Set([]),
-    Set([]),
-    Terminate(),
-    0.99,
-    Deterministic(Location(1,1))
+    size                = (4,4),
+    observation_type    = Observation_Type(FullState(), 0.5, EmptyObs()),
+    transition_type     = Transition_Type(0.5, DoubleAction()),
+    rewards             = Dict(Location(4,4)=>1),
+    holes               = Set([Location(2,2), Location(1,4), Location(4,2), Location(4,3), Location(4,4)]),
+    walls               = Set([]),
+    marks               = Set([]),
+    hole_effect         = Terminate(),
+    discount            = 0.99,
+    initial_state       = Deterministic(Location(1,1))
     )
 
 FrozenLakeLarge = LocationGridWorld(
-    (10,10),
-    Observation_Type(FullState(), 0.5, EmptyObs()),
-    Transition_Type(0.5, DoubleAction()),
-    Dict(Location(10,10)=>1),
-    Set([   Location(1,4), Location(2,4), Location(3,7), Location(5,4), Location(5,8),
+    size                = (10,10),
+    observation_type    = Observation_Type(FullState(), 0.5, EmptyObs()),
+    transition_type     = Transition_Type(0.5, DoubleAction()),
+    rewards             = Dict(Location(10,10)=>1),
+    holes               = Set([   Location(1,4), Location(2,4), Location(3,7), Location(5,4), Location(5,8),
             Location(6,2), Location(6,5), Location(7,1), Location(7,3), Location(8,9),
             Location(9,3), Location(9,6), Location(10,8), Location(10,10)]),
-    Set([]),
-    Set([]),
-    Terminate(),
-    0.99,
-    Deterministic(Location(1,1))
+    walls               = Set([]),
+    marks               = Set([]),
+    hole_effect         = Terminate(),
+    discount            = 0.99,
+    initial_state       = Deterministic(Location(1,1))
     )
 
 movement_hallway = Dict{Action, Any}(
@@ -176,57 +180,62 @@ obs_hallway     = Dict{CellType, Any}(
 )
 
 CustomMiniHallway = PositionGridWorld(
-    (2,3),
-    # Observation_Type(RelState(), 0.0, CustomRelState(obs_hallway)),
-    Observation_Type(RelState(), 1, EmptyObs()),
-    Transition_Type(0.0, CustomActionEffect(movement_hallway)),
-    Dict(Location(2,3) => 1),
-    Set([Location(2,3)]),
-    Set([Location(1,3), Location(2,1)]),
-    Set([]),
-    Reset(),
-    0.99,
-    Deterministic(Position(Location(1,1), EAST))
+    size                = (2,3),
+    observation_type    = Observation_Type(RelState(), 0.0, CustomRelState(obs_hallway)),
+    # observation_type    = Observation_Type(RelState(), 1, EmptyObs()),
+    transition_type     = Transition_Type(0.0, CustomActionEffect(movement_hallway)),
+    rewards             = Dict(Location(2,3) => 1),
+    holes               = Set([Location(2,3)]),
+    walls               = Set([Location(1,3), Location(2,1)]),
+    marks               = Set([]),
+    hole_effect         = Reset(),
+    discount            = 0.99,
+    initial_state       = Deterministic(Position(Location(1,1), EAST))
 )
 
 Hallway1 = PositionGridWorld(
-    (11,2),
-    Observation_Type(RelState(), 1, CustomRelState(obs_hallway)),
-    Transition_Type(0.8, CustomActionEffect(movement_hallway)),
-    Dict(Location(9,2) => 1),
-    Set([Location(9,2)]),
-    Set([Location(1,2), Location(2,2), Location(4,4), Location(6,2), Location(8,2), Location(10,2), Location(11,2)]),
-    Set([Location(3,2), Location(5,2), Location(7,2)]),
-    Reset(),
-    0.99,
-    Deterministic(Position(Location(1,1), EAST)) # TODO: should be Uniform()
+    size                = (11,2),
+    # observation_type    = Observation_Type(RelState(), 1, CustomRelState(obs_hallway)),
+    observation_type    = Observation_Type(RelState(), 1, EmptyObs()),
+    transition_type     = Transition_Type(0.8, CustomActionEffect(movement_hallway)),
+    rewards             = Dict(Location(9,2) => 1),
+    holes               = Set([Location(9,2)]),
+    walls               = Set([Location(1,2), Location(2,2), Location(4,4), Location(6,2), Location(8,2), Location(10,2), Location(11,2)]),
+    marks               = Set([Location(3,2), Location(5,2), Location(7,2)]),
+    hole_effect         = Reset(),
+    discount            = 0.99,
+    initial_state       = :Uniform
+    # initial_state       = Deterministic(Position(Location(1,1), EAST)) # TODO: should be Uniform()
 )
 
 Hallway2 = PositionGridWorld(
-    (7,5),
-    Observation_Type(RelState(), 1, CustomRelState(obs_hallway)),
-    Transition_Type(0.8, CustomActionEffect(movement_hallway)),
-    Dict(Location(7,4) => 1),
-    Set([Location(7,4)]),
-    Set([Location(1,1), Location(1,3), Location(1,5), Location(3,2), Location(3,3), Location(3,4),
-         Location(5,2), Location(5,3), Location(5,4), Location(5,1), Location(5,3), Location(5,5)]),
-    Set([]),
-    Reset(),
-    0.99,
-    Deterministic(Position(Location(1,1), EAST)) # TODO: should be Uniform()
+    size                = (7,5),
+    # observation_type    = Observation_Type(RelState(), 1, CustomRelState(obs_hallway)),
+    observation_type    = Observation_Type(RelState(), 1, EmptyObs()),
+    transition_type     = Transition_Type(0.8, CustomActionEffect(movement_hallway)),
+    rewards             = Dict(Location(7,4) => 1),
+    holes               = Set([Location(7,4)]),
+    walls               = Set([Location(1,1), Location(1,3), Location(1,5), Location(3,2), Location(3,3), Location(3,4),
+                                Location(5,2), Location(5,3), Location(5,4), Location(7,1), Location(7,3), Location(7,5)]),
+    marks               = Set([]),
+    hole_effect         = Reset(),
+    discount            = 0.99,
+    initial_state       = :Uniform
+    # initial_state       = Deterministic(Position(Location(1,2), EAST)) # TODO: should be Uniform()
 )
 
-Hallway3 = PositionGridWorld(
-    (5,2),
-    Observation_Type(RelState(), 1, CustomRelState(obs_hallway)),
-    Transition_Type(0.8, CustomActionEffect(movement_hallway)),
-    Dict(Location(3,1) => 1, Location(1,1) => -1, Location(5,1) => -1),
-    Set([Location(3,1), Location(1,1), Location(5,1)]),
-    Set([Location(3,2)]),
-    Set([]),
-    Reset(),
-    0.99,
-    SparseCat(Position(Location(2,2), NORTH), Position(Location(4,2), NORTH))
+TigerGrid = PositionGridWorld(
+    size                = (5,2),
+    observation_type    = Observation_Type(RelState(), 1, CustomRelState(obs_hallway)),
+    # observation_type    = Observation_Type(RelState(), 1, EmptyObs()),
+    transition_type     = Transition_Type(0.8, CustomActionEffect(movement_hallway)),
+    rewards             = Dict(Location(3,1) => 1, Location(1,1) => -1, Location(5,1) => -1),
+    holes               = Set([Location(3,1), Location(1,1), Location(5,1)]),
+    walls               = Set([Location(3,2)]),
+    marks               = Set([]),
+    hole_effect         = Reset(),
+    discount            = 0.99,
+    initial_state       = SparseCat([Position(Location(2,2), NORTH), Position(Location(4,2), NORTH)], [0.5, 0.5])
 )
 
 
@@ -274,12 +283,16 @@ function SinkState(m::X) where X<:GridWorld
     statetype == Position && (return Position(Location(-1,-1), NORTH))
 end
 
-function POMDPs.states(m::X) where X<:GridWorld
+states_idxs_dict = LRU(maxsize=10)
+function states_and_idxs(m::X) where X<:GridWorld
+    m_id = objectid(m)
+    haskey(states_idxs_dict, m_id) && return states_idxs_dict[m_id]
     statetype = POMDPs.statetype(m)
     if statetype == Location
         ss = vec(Location[Location(x,y) for x in 1:m.size[1], y in 1:m.size[2]])
+        ss = ss[findall(s -> !(get_location_type(m, s) in [Wall]), ss)]
         push!(ss, SinkState(m))
-        return ss
+        dict =  Dict(zip(ss, 1:length(ss)))
     elseif statetype == Position 
         locations = vec(Location[Location(x,y) for x in 1:m.size[1], y in 1:m.size[2]])
         orientations :: Vector{Orientation} = [NORTH, SOUTH, EAST, WEST]
@@ -288,61 +301,73 @@ function POMDPs.states(m::X) where X<:GridWorld
         for (loc, or) in prod
             push!(ss, Position(loc,or))
         end
+        ss = ss[findall(s -> !(get_location_type(m, s.location) in [Wall]), ss)]
         # TODO: Figure out why this does not work !!!
         # ss = map( (loc, or) -> (Position(loc,or)),  prod )
         push!(ss, SinkState(m))
-        return ss
+        dict = Dict(zip(ss, 1:length(ss)))
     end
+    states_idxs_dict[m_id] = dict
+    return dict 
 end
 
-POMDPs.initialstate(m::X) where X<:GridWorld = m.initial_state
+POMDPs.states(m::X) where X<:GridWorld = collect(keys(states_and_idxs(m)))
+POMDPs.stateindex(m::X, s) where X<:GridWorld = states_and_idxs(m)[s]
+
+init_state_dict = LRU(maxsize=10)
+function POMDPs.initialstate(m::X) where X<:GridWorld
+    m_id = objectid(m)
+    haskey(init_state_dict, m_id) && return init_state_dict[m_id]
+    m.initial_state == :Uniform ? (sinit = uniform_state_dist(m)) : (sinit = m.initial_state)
+    init_state_dict[m_id] = sinit 
+    return sinit
+end
+function uniform_state_dist(m::X) where X <: GridWorld
+    ss = states(m)[findall(s -> s != SinkState(m), states(m))]
+    p = 1.0/length(ss)
+    return SparseCat(ss, repeat([p], length(ss)))
+end
+
 POMDPs.isterminal(m::X, s) where X <: GridWorld = s == SinkState(m)
 
-function POMDPs.stateindex(m::X, s::Location) where X<:GridWorld
-    s == SinkState(m) && return length(states(m))
-    return s[1] + m.size[1] * (s[2]-1)
-end
+# function POMDPs.stateindex(m::X, s::Location) where X<:GridWorld
+#     s == SinkState(m) && return length(states(m))
+#     return s[1] + m.size[1] * (s[2]-1)
+# end
 
-function POMDPs.stateindex(m::X, s::Position) where X<:GridWorld
-    s == SinkState(m) && return length(states(m))
-    return s.location[1] + m.size[1] * ( (s.location[2]-1) + m.size[2] * s.orientation)
-end
+# function POMDPs.stateindex(m::X, s::Position) where X<:GridWorld
+#     s == SinkState(m) && return length(states(m))
+#     return s.location[1] + m.size[1] * ( (s.location[2]-1) + m.size[2] * s.orientation)
+# end
 
-POMDPs.actions(m::X) where X<:GridWorld = [GoForward, GoLeft, GoBack, GoRight, NoOp]
+function POMDPs.actions(m::X) where X<:GridWorld
+    if m.measuring_effect.effect isa EmptyObs
+        return([GoForward, GoLeft, GoBack, GoRight, NoOp])
+    end
+    return [GoForward, GoLeft, GoBack, GoRight, NoOp, Measure]
+end
 POMDPs.actionindex(mdp::X, a) where X<:GridWorld = a
 
-function allCombs(A, n::Int)
-    """Return all possible tuples of lenght n with elements from A"""
-    list = []
-    for el in Iterators.product(fill(A,n)...)
-        push!(list, el)
+obs_idxs_dict = LRU(maxsize=10)
+function obs_and_idxs(m::X) where X<:GridWorld
+    m_id = objectid(m)
+    haskey(obs_idxs_dict, m_id) && return obs_idxs_dict[m_id]
+    Os = Set()    
+    for s in states(m)
+        for a in actions(m)
+            for o in support(observation(m,a,s))
+                push!(Os, o)
+            end
+        end
     end
-    return list
+    dict = Dict(zip(Os, 1:length(Os)))
+    obs_idxs_dict[m_id] = dict 
+    return dict
 end
 
-all_rel_observations = map( s -> Relative_Observation(s[1], s[2], s[3], s[4]),  
-                            allCombs([Empty, Wall, Hole, Mark], 4) )
-                            # allCombs([Empty, Wall], 4) )
-# println(Iterators.product(ntuple(i->[Empty, Wall, Hole, Mark], 4)...))
-rel_obs_idxs = Dict(zip(all_rel_observations, 1:length(all_rel_observations)))
 
-function POMDPs.observations(m::X) where X<:GridWorld
-    obsinfo = m.observation_type.observedinfo
-    if obsinfo isa FullState
-        obs = POMDPs.states(m)
-        return obs
-    elseif obsinfo isa RelState || obsinfo isa CustomRelState
-        return all_rel_observations
-    end
-end
-
-function POMDPs.obsindex(m::X, o) where X<:GridWorld
-    if m.observation_type.observedinfo == FullState()
-        o != NullObs(m) ? (return stateindex(m, o)) : (return prod(m.size) + 1)
-    elseif m.observation_type.observedinfo == RelState()
-        return rel_obs_idxs[o]
-    end
-end
+POMDPs.observations(m::X) where X<:GridWorld = collect(keys(obs_and_idxs(m)))
+POMDPs.obsindex(m::X,o) where X<:GridWorld = obs_and_idxs(m)[o]
 
 #########################################
 #      Transitions:
@@ -368,28 +393,29 @@ function transition_normal(m::X, s::Position, a::Action) where X <: GridWorld
     end
 end
 
-@memoize LRU(maxsize=10_000) function POMDPs.transition(m::X, s, a) where X<:GridWorld
+trans_dict = LRU(maxsize=10_000)
+function POMDPs.transition(m::X, s, a) where X<:GridWorld
+    m_id = objectid(m)
+    haskey(trans_dict, (m_id,s,a)) && return trans_dict[(m_id,s,a)]
+
     s isa Location ? loc = s : loc = s.location
-    if loc in m.holes || s == SinkState(m)
-        m.hole_effect == Terminate() && return Deterministic(SinkState(m))
-        m.hole_effect == Reset() && return m.initial_state
-    end
-
     T = m.transition_type
-
     s_normal = transition_normal(m, s, a)
     p = T.probability
-
-    if T.effect == Normal() || p == 1
-        return Deterministic(s_normal)
+    snext = nothing
+    if loc in m.holes || s == SinkState(m)
+        m.hole_effect == Terminate() && (snext = Deterministic(SinkState(m)))
+        m.hole_effect == Reset() && (snext = initialstate(m))
+    elseif T.effect == Normal() || p == 1
+        snext = Deterministic(s_normal)
     elseif T.effect == DoubleAction()
         s_double = transition_normal(m, s_normal, a)
-        return SparseCat([s_normal, s_double], [p, 1-p])
+        snext = SparseCat([s_normal, s_double], [p, 1-p])
     elseif T.effect == Deviate()
         printdb("Not Implemented")
-        return Deterministic(s_normal)
+        snext = Deterministic(s_normal)
     elseif T.effect == NoAction()
-        return SparseCat([s, s_normal], [1-p, p])
+        snext = SparseCat([s, s_normal], [1-p, p])
 
 
     elseif T.effect isa CustomActionEffect
@@ -401,10 +427,13 @@ end
             end
             haskey(outcomes, sp) ? outcomes[sp] += prob : outcomes[sp] = prob
         end
-        return SparseCat(collect(keys(outcomes)), collect(values(outcomes)))
+        snext = SparseCat(collect(keys(outcomes)), collect(values(outcomes)))
+    else
+        println("Error: transition type not implemented!")
+        snext = Deterministic(s)
     end
-    println("Error: transition type not implemented!")
-    return Deterministic(s)
+    trans_dict[(m_id,s,a)] = snext 
+    return snext
 end
 
 POMDPs.isterminal(m::X, s) where X<:GridWorld = s == SinkState(m)
@@ -413,7 +442,7 @@ POMDPs.isterminal(m::X, s) where X<:GridWorld = s == SinkState(m)
 #      Observations:
 #########################################
 
-@memoize LRU(maxsize=10_000) function observation_normal(m::X, a, sp) where X<:GridWorld
+function observation_normal(m::X, a, sp) where X<:GridWorld
     O = m.observation_type
 
     if O.observedinfo == FullState()
@@ -424,7 +453,7 @@ POMDPs.isterminal(m::X, s) where X<:GridWorld = s == SinkState(m)
     end
 end
 
-@memoize LRU(maxsize=10_000) function get_custom_obs(m::X, o_normal) where X <: GridWorld
+function get_custom_obs(m::X, o_normal) where X <: GridWorld
     obs_vec = [o_normal.front, o_normal.right, o_normal.back, o_normal.left]
     univariate_outcomes = Vector{Tuple{CellType, Float64}}[]
     for obs in obs_vec
@@ -440,26 +469,32 @@ end
 end
 
 
-
+obs_dict = LRU(maxsize=10_000)
 function POMDPs.observation(m::X, a, sp) where X<:GridWorld
+    m_id = objectid(m)
+    haskey(obs_dict, (m_id,a,sp)) && return obs_dict[(m_id,a,sp)]
     O = m.observation_type
 
     o_normal = observation_normal(m,a,sp)
     p = O.probability
 
+    obs = nothing
     if p == 1 && !(O.effect isa CustomRelState)
-        return Deterministic(o_normal)
+        obs = Deterministic(o_normal)
     elseif O.effect == EmptyObs()
-        return SparseCat([o_normal, NullObs(m)], [p, 1-p])
+        obs = SparseCat([o_normal, NullObs(m)], [p, 1-p])
     elseif O.effect == NeighbourObs()
         printdb("Error: observatin type NeighbourObs not yet implemented!")
-        return o_normal
+        obs = o_normal
 
     elseif O.effect isa CustomRelState
-        return get_custom_obs(m, o_normal)
+        obs = get_custom_obs(m, o_normal)
+    else
+        print("Oh-oh!")
+        obs = Deterministic(o_normal)
     end
-    print("Help!")
-    return Deterministic(o_normal)
+    obs_dict[(m_id,a,sp)] = obs
+    return obs
 end
 
 # Rewards

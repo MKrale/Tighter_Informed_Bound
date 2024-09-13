@@ -1,4 +1,4 @@
-#Copied gridworld definition from POMDPModels, but now as a POMDP.
+
 
 module AMGridworlds
 using POMDPs

@@ -21,7 +21,7 @@ s = ArgParseSettings()
         default = 60
     "--precision"
         help = "Precision parameter of SARSOP."
-        default = 5e-3
+        default = 1e-2
     "--path"
         help = "File path for data output."
         default = "./Data/"
@@ -74,7 +74,7 @@ import RockSample
 POMDPs.states(M::RockSample.RockSamplePOMDP) = map(si -> RockSample.state_from_index(M,si), 1:length(M))
 POMDPs.discount(M::RockSample.RockSamplePOMDP) = 0.99
 include("Environments/K-out-of-N.jl"); using .K_out_of_Ns
-include("Environments/GridWorldPOMDP.jl"); using .AMGridworlds
+include("Environments/CustomGridworld.jl"); using .CustomGridWorlds
 
 
 envs, envargs = [], []
@@ -121,6 +121,22 @@ elseif env_name == "FrozenLake10"
     lakelarge = FrozenLakeLarge
     push!(envs, lakelarge)
     push!(envargs, (name="Frozen Lake (10)",))
+elseif env_name == "Hallway1"
+    hallway1 = Hallway1
+    push!(envs, hallway1)
+    push!(envargs, (name="Hallway1",))
+elseif env_name == "Hallway2"
+    hallway2 = Hallway2
+    push!(envs, hallway2)
+    push!(envargs, (name="Hallway2",))
+elseif env_name == "MiniHallway"
+    minihall = CustomMiniHallway
+    push!(envs, minihall)
+    push!(envargs, (name="MiniHallway",))
+elseif env_name == "TigerGrid"
+    tigergrid = TigerGrid
+    push!(envs, tigergrid)
+    push!(envargs, (name="TigerGrid",))
 elseif env_name == "Tag"
     ### Tag
     using TagPOMDPProblem

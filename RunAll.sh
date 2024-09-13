@@ -18,8 +18,9 @@ folder_path="Data/"
 i=0
 
 # for env in "ABC" "Tiger" "RockSample5" "RockSample10" "K-out-of-N2" "K-out-of-N3" "FrozenLake4" "FrozenLake10" "Tag" # ALL
-for env in "ABC" "RockSample5" "FrozenLake4" #"Tiger" # QUICK
+# for env in "ABC" "RockSample5" "FrozenLake4" #"Tiger" # QUICK
 # for env in "RockSample10" "K-out-of-N2" "K-out-of-N3" "FrozenLake10" "Tag" # LONG
+for env in "Hallway1" "Hallway2" "MiniHallway" "TigerGrid"
 do
     julia --project=. run_sarsoptest.jl --env $env --timeout 1800 --path $folder_path &
 done

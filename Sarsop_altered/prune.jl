@@ -76,6 +76,7 @@ end
 function prune_alpha!(tree::SARSOPTree, δ)
     Γ = tree.Γ
     B_valid = tree.b[map(!,tree.b_pruned)]
+    # B_valid = union(B_valid, tree.B_heuristic)
     pruned = falses(length(Γ))
 
     # checking if α_i dominates α_j

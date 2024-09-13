@@ -12,16 +12,16 @@ import RockSample
 
 solvers, solverargs = [], []
 
-iters, tol = 250, 1e-5
+iters, tol = 1000, 1e-5
 
-### FIB
-using FIB
-push!(solvers, FIB.FIBSolver)
-push!(solverargs, (name="FIB", sargs=(max_iterations=iters,tolerance=tol), pargs=(), get_Q0=true))
+# ### FIB
+# using FIB
+# push!(solvers, FIB.FIBSolver)
+# push!(solverargs, (name="FIB", sargs=(max_iterations=iters,tolerance=tol), pargs=(), get_Q0=true))
 
 ### BIB
-push!(solvers, SBIBSolver)
-push!(solverargs, (name="BIBSolver (standard)", sargs=(max_iterations=iters, precision=tol), pargs=(), get_Q0=true))
+# push!(solvers, SBIBSolver)
+# push!(solverargs, (name="BIBSolver (standard)", sargs=(max_iterations=iters, precision=tol), pargs=(), get_Q0=true))
 
 # ### EBIB
 # push!(solvers, EBIBSolver)
@@ -34,14 +34,14 @@ push!(solverargs, (name="BIBSolver (standard)", sargs=(max_iterations=iters, pre
 # SARSOP
 include("Sarsop_altered/NativeSARSOP.jl")
 import .NativeSARSOP_alt
-max_time = 30.0
+max_time = 60.0
 
 push!(solvers, NativeSARSOP_alt.SARSOPSolver)
-push!(solverargs, (name="SARSOP (max $max_time s)", sargs=( precision=1e-5, max_time=max_time, max_steps=1, verbose=false), pargs=(), get_Q0=true))
+push!(solverargs, (name="SARSOP (max $max_time s)", sargs=( precision=1e-5, max_time=max_time, verbose=false), pargs=(), get_Q0=true))
 
-# push!(solvers, NativeSARSOP_alt.SARSOPSolver)
-# solver = EBIBSolver(max_iterations=250, precision=1e-5)
-# push!(solverargs, (name="SARSOP+BIB (max $max_time s)", sargs=(epsilon=0.5, precision=1e-5, kappa=0.5, delta=1e-1, max_time=max_time, max_steps=1, verbose=false, heuristic_solver=solver), pargs=(), get_Q0=true))
+push!(solvers, NativeSARSOP_alt.SARSOPSolver)
+solver = SBIBSolver(max_iterations=250, precision=1e-5)
+push!(solverargs, (name="SARSOP+BIB (max $max_time s)", sargs=( precision=1e-5, max_time=max_time, verbose=false, heuristic_solver=solver), pargs=(), get_Q0=true))
 
 # ### SARSOP
 # using NativeSARSOP
@@ -93,14 +93,14 @@ envs, envargs = [], []
 
 # ### RockSample
 # import RockSample
-# # This env is very difficult to work with for some reason...
+# # # This env is very difficult to work with for some reason...
 # POMDPs.states(M::RockSample.RockSamplePOMDP) = map(si -> RockSample.state_from_index(M,si), 1:length(M))
 # POMDPs.discount(M::RockSample.RockSamplePOMDP) = 0.99
 
-# map_size, rock_pos = (5,5), [(1,1), (3,3), (4,4)] # Default
-# rocksamplesmall = RockSample.RockSamplePOMDP(map_size, rock_pos)
-# push!(envargs, (name="RockSample (5x5)",))
-# push!(envs, rocksamplesmall)
+# # map_size, rock_pos = (5,5), [(1,1), (3,3), (4,4)] # Default
+# # rocksamplesmall = RockSample.RockSamplePOMDP(map_size, rock_pos)
+# # push!(envargs, (name="RockSample (5x5)",))
+# # push!(envs, rocksamplesmall)
 
 # map_size, rock_pos = (10,10), [(2,3), (4,6), (7,4), (8,9) ] # Big Boy!
 # rocksamplelarge = RockSample.RockSamplePOMDP(map_size, rock_pos)
@@ -108,7 +108,7 @@ envs, envargs = [], []
 # push!(envs, rocksamplelarge)
 
 # # ### K-out-of-N
-# include("Environments/K-out-of-N.jl"); using .K_out_of_Ns
+include("Environments/K-out-of-N.jl"); using .K_out_of_Ns
 
 # k_model2 = K_out_of_N(2, 2)
 # push!(envs, k_model2)
@@ -118,19 +118,11 @@ envs, envargs = [], []
 # push!(envs, k_model3)
 # push!(envargs, (name="K-out-of-N (3)",))
 
-# # Frozen Lake esque
-# include("Environments/GridWorldPOMDP.jl"); using .AMGridworlds
-
-# lakesmall = FrozenLakeSmall
-# push!(envs, lakesmall)
-# push!(envargs, (name="Frozen Lake (4x4)",))
-
-# lakelarge = FrozenLakeLarge
-# push!(envs, lakelarge)
-# push!(envargs, (name="Frozen Lake (10x10)",))
-
 ### CustomGridWorlds
 include("Environments/CustomGridworld.jl"); using .CustomGridWorlds
+
+# # Frozen Lake variants
+
 # lakesmall = FrozenLakeSmall
 # push!(envs, lakesmall)
 # push!(envargs, (name="Frozen Lake (4x4)",))
@@ -139,21 +131,25 @@ include("Environments/CustomGridworld.jl"); using .CustomGridWorlds
 # push!(envs, lakelarge)
 # push!(envargs, (name="Frozen Lake (10x10)",))
 
-minihallway = CustomMiniHallway
-push!(envs, minihallway)
-push!(envargs, (name="MiniHallway", ))
+# # Deterministic Observations
 
-# hallway1 = Hallway1
-# push!(envs, hallway1)
-# push!(envargs, (name="Hallway1",))
+hallway1 = Hallway1
+push!(envs, hallway1)
+push!(envargs, (name="Hallway1",))
 
 # hallway2 = Hallway2
 # push!(envs, hallway2)
 # push!(envargs, (name="Hallway2",))
 
-# hallway3 = Hallway3
-# push!(envs, hallway3)
-# push!(envargs, (name="Hallway3",))
+# # Non-deterministic Observations
+
+# minihallway = CustomMiniHallway
+# push!(envs, minihallway)
+# push!(envargs, (name="MiniHallway", ))
+
+# tigergrid = TigerGrid
+# push!(envs, tigergrid)
+# push!(envargs, (name="TigerGrid",))
 
 # # ### DroneSurveilance
 # # import DroneSurveillance
@@ -198,7 +194,7 @@ push!(envargs, (name="MiniHallway", ))
 ##################################################################
 
 verbose = true
-sims, steps = 10, 10
+sims, steps = 100, 100
 
 function sample_avg_accuracy(model::POMDP, policies::Vector; samples::Int=100, distance::Int=5, samplepolicy=nothing)
     if isnothing(samplepolicy)
@@ -260,8 +256,10 @@ open("run_out_$t.txt", "w") do file
         constants = BIB.get_constants(model)
         SAO_probs, SAOs = BIB.get_all_obs_probs(model; constants)
         B, B_idx = BIB.get_belief_set(model, SAOs; constants)
+        Data = BIB.BIB_Data(zeros(2,2), B, B_idx, SAO_probs, SAOs, Dict(zip(constants.S, 1:constants.ns)), constants)
+        BBao_data = BIB.get_Bbao(model, Data, constants)
         ns, na, no, nb = constants.ns, constants.na, constants.no, length(B)
-        nbao = nb * na * no
+        nbao = length(BBao_data.Bbao) + length(B)
         verbose && println("|S| = $ns, |A| = $na, |O| = $no, |B| = $nb, |BAO| = $nbao")
 
 

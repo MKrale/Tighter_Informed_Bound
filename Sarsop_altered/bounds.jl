@@ -66,7 +66,6 @@ function upper_value(tree::SARSOPTree, b_idx::Int)
         v̂ < v̂_min && (v̂_min = v̂)
     end
 
-
     ### 
     for (bpsi, bps) in enumerate(tree.B_heuristic)
         vint = tree.V_heuristic[bpsi]
@@ -75,12 +74,12 @@ function upper_value(tree::SARSOPTree, b_idx::Int)
         v̂ < v̂_min && (v̂_min = v̂)
     end
 
-    # # ### Method 3) BIB
-    # if !(tree.Heuristic_Policy isa Nothing)
+    # ### Method 3) BIB
+    # if !(tree.pol_heuristic isa Nothing)
     #     idxs, vals = findnz(b)
     #     ss = map(si -> tree.S[si], idxs)
     #     b_sparsecat = DiscreteHashedBelief(ss, vals, UInt(0))
-    #     v̂_min = min(v̂_min, value(tree.Heuristic_Policy, b_sparsecat))
+    #     v̂_min = min(v̂_min, value(tree.pol_heuristic, b_sparsecat))
     # end
     ###
 

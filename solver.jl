@@ -256,6 +256,18 @@ function get_Bbao(model, Data, constants)
     Bbao_valid_weights = Dict{Int,Float64}[]
     Bbao_idx = Array{Dict{Int, Tuple{Bool,Int}}}(undef, nb, constants.na)
 
+    Bs_found = Dict(zip(B, map( idx -> (true, idx), 1:length(B))))
+
+    Bs_lowest_support_state = Dict()
+    for (bi, b) in enumerate(B)
+        s_lowest = minimum(s -> stateindex(model, s), support(b))
+        if haskey(Bs_lowest_support_state, s_lowest)
+            push!(Bs_lowest_support_state[s_lowest], bi)
+        else
+            Bs_lowest_support_state[s_lowest] = [bi]
+        end
+    end
+
     # Record bao: reference B if it's already in there, otherwise add to Bbao
     for (bi,b) in enumerate(B)
         for (ai, a) in enumerate(constants.A)
@@ -264,24 +276,21 @@ function get_Bbao(model, Data, constants)
                 o = constants.O[oi]
                 bao = POMDPs.update(U,b,a,o)
                 if length(support(bao)) > 0
-                    in_B = true
-                    k = findfirst( x-> x==bao, B)
-                    if isnothing(k)
-                        in_B = false
-                        k = findfirst(x -> x==bao, Bbao)
-                        if isnothing(k)
-                            push!(Bbao, bao)
-                            k=length(Bbao)
-                            valid_weights = Dict{Int, Float64}()
-                            for (s,ps) in weighted_iterator(b)
-                            valid_weights[Data.B_idx[S_dict[s],ai,oi]] = ps
-                            end
-                            push!(Bbao_valid_weights, valid_weights)
-                        end
+                    if haskey(Bs_found, bao)
+                        (in_B, idx) = Bs_found[bao]
+                        in_B && (B_in_Bboa[idx] = true)
+                        Bbao_idx[bi,ai][oi] = (in_B, idx)
                     else
-                        B_in_Bboa[k] = true
+                        push!(Bbao, bao)
+                        k=length(Bbao)
+                        valid_weights = Dict{Int, Float64}()
+                        for (s,ps) in weighted_iterator(b)
+                            valid_weights[Data.B_idx[S_dict[s],ai,oi]] = ps
+                        end
+                        push!(Bbao_valid_weights, valid_weights)
+                        Bbao_idx[bi,ai][oi] = (false, k)
+                        Bs_found[bao] = (false, k)
                     end
-                    Bbao_idx[bi,ai][oi] = (in_B, k)
                 end              
             end
         end
@@ -293,15 +302,27 @@ function get_Bbao(model, Data, constants)
     # Record overlap for b
     for (bi,b) in enumerate(B)
         B_overlap[bi] = []
-        for (bpi,bp) in enumerate(B)
-            have_overlap(b,bp) && push!(B_overlap[bi], bpi)
+        s_lowest = minimum(map(s -> stateindex(model, s), support(b)))
+        s_highest = maximum(map(s -> stateindex(model, s), support(b)))
+        for s=s_lowest:s_highest
+            if haskey(Bs_lowest_support_state, s)
+                for bpi in Bs_lowest_support_state[s]
+                    have_overlap(b,B[bpi]) && push!(B_overlap[bi], bpi)
+                end
+            end
         end
     end
     # Record overlap for bao
     for (bi,b) in enumerate(Bbao)
         Bbao_overlap[bi] = []
-        for (bpi,bp) in enumerate(B)
-            have_overlap(b,bp) && push!(Bbao_overlap[bi], bpi)
+        s_lowest = minimum(map(s -> stateindex(model, s), support(b)))
+        s_highest = maximum(map(s -> stateindex(model, s), support(b)))
+        for s=s_lowest:s_highest
+            if haskey(Bs_lowest_support_state, s)
+                for bpi in Bs_lowest_support_state[s]
+                    have_overlap(b,B[bpi]) && push!(Bbao_overlap[bi], bpi)
+                end
+            end
         end
     end
 
@@ -343,7 +364,6 @@ function get_entropy_weights_all(B, Bbao_data::BBAO_Data)
     #TODO: only use those Bs that we need!
     B_weights = Array{Vector{Tuple{Int,Float64}}}(undef, length(B))
     Bbao_weights = Array{Vector{Tuple{Int,Float64}}}(undef, length(Bbao_data.Bbao))
-    model = 
     for (bi, b) in enumerate(B)
         if Bbao_data.B_in_Bbao[bi]
             # B_weights[bi] = get_entropy_weights(model,b, B; overlap=Bbao_data.B_overlap[bi])
@@ -422,7 +442,7 @@ function get_entropy_weights(b, B; bi=nothing, Bbao_data=nothing )
     B_start = []
     B_entropies = []
     B_idxs = []
-    if !(Bbao_data isa Nothing) || !(bi isa Nothing)
+    if !(Bbao_data isa Nothing) && !(bi isa Nothing)
         if first(bi)
             overlap=Bbao_data.B_overlap[last(bi)]
             valid_weights = Dict(last(bi) => 1.0)
@@ -441,7 +461,6 @@ function get_entropy_weights(b, B; bi=nothing, Bbao_data=nothing )
         B_idxs = 1:length(B)
         B_entropies = map( b -> get_entropy(b), B)
     end
-
     model = direct_generic_model(Float64,Gurobi.Optimizer(GRB_ENV))
     # model = direct_generic_model(Float64,Tulip.Optimizer())
     # model = Model(Tulip.Optimizer; add_bridges = false)
