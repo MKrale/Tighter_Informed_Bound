@@ -156,7 +156,7 @@ POMDPs.observations(M::K_out_of_N) = allCombs(0:M.smax , M.N)
 POMDPs.transition(M::K_out_of_N, s,a) = T(M,s,a)
 POMDPs.observation(M::K_out_of_N, a,sp) = O(M,sp,a)
 POMDPs.reward(M::K_out_of_N, s,a) = R(M,s,a)
-POMDPs.discount(M::K_out_of_N) = 0.99
+POMDPs.discount(M::K_out_of_N) = 0.95
 POMDPs.initialstate(M::K_out_of_N) = Deterministic(Tuple(fill(1,M.N)))
 
 POMDPs.actiontype(M::K_out_of_N) = NTuple{M.N, Integer}

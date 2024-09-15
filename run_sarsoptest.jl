@@ -71,9 +71,13 @@ end
 import RockSample
 # This env is very difficult to work with for some reason...
 POMDPs.states(M::RockSample.RockSamplePOMDP) = map(si -> RockSample.state_from_index(M,si), 1:length(M))
-POMDPs.discount(M::RockSample.RockSamplePOMDP) = 0.99
+POMDPs.discount(M::RockSample.RockSamplePOMDP) = 0.95
 include("Environments/K-out-of-N.jl"); using .K_out_of_Ns
 include("Environments/CustomGridworld.jl"); using .CustomGridWorlds
+include("Environments/TigerGrid.jl"); using .mTigerGrid
+include("Environments/Hallway1.jl"); using .mHallway1
+include("Environments/Hallway2.jl"); using .mHallway2
+
 
 
 envs, envargs = [], []
@@ -81,14 +85,14 @@ envs, envargs = [], []
     ###ABC
 if env_name == "ABC"
     include("Environments/ABCModel.jl"); using .ABCModel
-    discount(::ABC) = 0.99
+    discount(::ABC) = 0.95
     abcmodel = ABC()
     push!(envs, abcmodel)
     push!(envargs, (name="ABCModel",))
     ### Tiger
 elseif env_name == "Tiger"
     tiger = POMDPModels.TigerPOMDP()
-    tiger.discount_factor = 0.99
+    tiger.discount_factor = 0.95
     push!(envs, tiger)
     push!(envargs, (name="Tiger",))
     ### RockSample
@@ -139,7 +143,7 @@ elseif env_name == "TigerGrid"
 elseif env_name == "Tag"
     ### Tag
     using TagPOMDPProblem
-    discount(m::TagPOMDP) = 0.99
+    discount(m::TagPOMDP) = 0.95
     tag = TagPOMDPProblem.TagPOMDP()
     push!(envs, tag)
     push!(envargs, (name="Tag",))

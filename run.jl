@@ -4,6 +4,7 @@ using POMDPTools, POMDPFiles
 include("BIB.jl")
 using .BIB
 using Statistics, POMDPModels
+using SparseArrays
 import RockSample
 
 ##################################################################
@@ -12,16 +13,16 @@ import RockSample
 
 solvers, solverargs = [], []
 
-iters, tol = 1000, 1e-5
+iters, tol = 200, 1e-5
 
 # ### FIB
-# using FIB
-# push!(solvers, FIB.FIBSolver)
-# push!(solverargs, (name="FIB", sargs=(max_iterations=iters,tolerance=tol), pargs=(), get_Q0=true))
+ using FIB
+ push!(solvers, FIB.FIBSolver)
+ push!(solverargs, (name="FIB", sargs=(max_iterations=iters,tolerance=tol), pargs=(), get_Q0=true))
 
 ### BIB
-# push!(solvers, SBIBSolver)
-# push!(solverargs, (name="BIBSolver (standard)", sargs=(max_iterations=iters, precision=tol), pargs=(), get_Q0=true))
+ push!(solvers, SBIBSolver)
+ push!(solverargs, (name="BIBSolver (standard)", sargs=(max_iterations=iters, precision=tol), pargs=(), get_Q0=true))
 
 # ### EBIB
 # push!(solvers, EBIBSolver)
@@ -34,7 +35,7 @@ iters, tol = 1000, 1e-5
 # SARSOP
 include("Sarsop_altered/NativeSARSOP.jl")
 import .NativeSARSOP_alt
-max_time = 60.0
+max_time = 120.0
 
 push!(solvers, NativeSARSOP_alt.SARSOPSolver)
 push!(solverargs, (name="SARSOP (max $max_time s)", sargs=( precision=1e-5, max_time=max_time, verbose=false), pargs=(), get_Q0=true))
@@ -79,17 +80,19 @@ push!(solverargs, (name="SARSOP+BIB (max $max_time s)", sargs=( precision=1e-5, 
 envs, envargs = [], []
 
 # ### ABC
-# include("Environments/ABCModel.jl"); using .ABCModel
-# abcmodel = ABC()
-# discount(::ABC) = 0.99
-# push!(envs, abcmodel)
-# push!(envargs, (name="ABCModel",))
+include("Environments/ABCModel.jl"); using .ABCModel
+abcmodel = ABC()
+discount(::ABC) = 0.95
+push!(envs, abcmodel)
+push!(envargs, (name="ABCModel",))
 
-# ### Tiger
-# tiger = POMDPModels.TigerPOMDP()
-# tiger.discount_factor = 0.99
-# push!(envs, tiger)
-# push!(envargs, (name="Tiger",))
+ 
+ # ### Tiger
+ tiger = POMDPModels.TigerPOMDP()
+ tiger.discount_factor = 0.95
+ push!(envs, tiger)
+ push!(envargs, (name="Tiger",))
+
 
 # ### RockSample
 # import RockSample
@@ -110,26 +113,29 @@ envs, envargs = [], []
 # # ### K-out-of-N
 include("Environments/K-out-of-N.jl"); using .K_out_of_Ns
 
-# k_model2 = K_out_of_N(2, 2)
-# push!(envs, k_model2)
-# push!(envargs, (name="K-out-of-N (2)",))
+k_model2 = SparseTabularPOMDP(K_out_of_N(2, 2))
+push!(envs, k_model2)
+push!(envargs, (name="K-out-of-N (2)",))
 
-# k_model3 = K_out_of_N(3, 3)
-# push!(envs, k_model3)
-# push!(envargs, (name="K-out-of-N (3)",))
+k_model3 = SparseTabularPOMDP(K_out_of_N(3, 3))
+push!(envs, k_model3)
+push!(envargs, (name="K-out-of-N (3)",))
 
 ### CustomGridWorlds
 include("Environments/CustomGridworld.jl"); using .CustomGridWorlds
+include("Environments/TigerGrid.jl"); using .mTigerGrid
+include("Environments/Hallway1.jl"); using .mHallway1
+include("Environments/Hallway2.jl"); using .mHallway2
 
 # # Frozen Lake variants
 
-# lakesmall = FrozenLakeSmall
-# push!(envs, lakesmall)
-# push!(envargs, (name="Frozen Lake (4x4)",))
+lakesmall = SparseTabularPOMDP(FrozenLakeSmall)
+push!(envs, lakesmall)
+push!(envargs, (name="Frozen Lake (4x4)",))
 
-# lakelarge = FrozenLakeLarge
-# push!(envs, lakelarge)
-# push!(envargs, (name="Frozen Lake (10x10)",))
+lakelarge = SparseTabularPOMDP(FrozenLakeLarge)
+push!(envs, lakelarge)
+push!(envargs, (name="Frozen Lake (10x10)",))
 
 # # Deterministic Observations
 
@@ -137,9 +143,9 @@ hallway1 = Hallway1
 push!(envs, hallway1)
 push!(envargs, (name="Hallway1",))
 
-# hallway2 = Hallway2
-# push!(envs, hallway2)
-# push!(envargs, (name="Hallway2",))
+hallway2 = Hallway2
+push!(envs, hallway2)
+push!(envargs, (name="Hallway2",))
 
 # # Non-deterministic Observations
 
@@ -147,9 +153,9 @@ push!(envargs, (name="Hallway1",))
 # push!(envs, minihallway)
 # push!(envargs, (name="MiniHallway", ))
 
-# tigergrid = TigerGrid
-# push!(envs, tigergrid)
-# push!(envargs, (name="TigerGrid",))
+ tigergrid = TigerGrid
+ push!(envs, tigergrid)
+ push!(envargs, (name="TigerGrid",))
 
 # # ### DroneSurveilance
 # # import DroneSurveillance
@@ -157,12 +163,12 @@ push!(envargs, (name="Hallway1",))
 # # push!(envs, dronesurv)
 # # push!(envargs, (name="DroneSurveilance",))
 
-# ### Tag
-# using TagPOMDPProblem
-# discount(m::TagPOMDP) = 0.99
-# tag = TagPOMDPProblem.TagPOMDP()
-# push!(envs, tag)
-# push!(envargs, (name="Tag",))
+ ### Tag
+ using TagPOMDPProblem
+ discount(m::TagPOMDP) = 0.95
+ tag = SparseTabularPOMDP(TagPOMDPProblem.TagPOMDP())
+ push!(envs, tag)
+ push!(envargs, (name="Tag",))
 
 # ### Mini Hallway
 # minihall = POMDPModels.MiniHallway()

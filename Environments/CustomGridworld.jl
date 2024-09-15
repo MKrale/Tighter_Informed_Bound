@@ -9,7 +9,7 @@ using Random
 using Memoization, LRUCache
 
 
-export Gridworld, FrozenLakeSmall, FrozenLakeLarge, CustomMiniHallway, Hallway1, Hallway2, TigerGrid
+export Gridworld, FrozenLakeSmall, FrozenLakeLarge, CustomMiniHallway, Hallway1alt, Hallway2alt, TigerGrid_alt
 
 #########################################
 #               Types:
@@ -136,7 +136,7 @@ FrozenLakeSmall = LocationGridWorld(
     walls               = Set([]),
     marks               = Set([]),
     hole_effect         = Terminate(),
-    discount            = 0.99,
+    discount            = 0.95,
     initial_state       = Deterministic(Location(1,1))
     )
 
@@ -151,7 +151,7 @@ FrozenLakeLarge = LocationGridWorld(
     walls               = Set([]),
     marks               = Set([]),
     hole_effect         = Terminate(),
-    discount            = 0.99,
+    discount            = 0.95,
     initial_state       = Deterministic(Location(1,1))
     )
 
@@ -193,14 +193,14 @@ CustomMiniHallway = PositionGridWorld(
     initial_state       = Deterministic(Position(Location(1,1), EAST))
 )
 
-Hallway1 = PositionGridWorld(
+Hallway1alt = PositionGridWorld(
     size                = (11,2),
     # observation_type    = Observation_Type(RelState(), 1, CustomRelState(obs_hallway)),
     observation_type    = Observation_Type(RelState(), 1, EmptyObs()),
     transition_type     = Transition_Type(0.8, CustomActionEffect(movement_hallway)),
     rewards             = Dict(Location(9,2) => 1),
     holes               = Set([Location(9,2)]),
-    walls               = Set([Location(1,2), Location(2,2), Location(4,4), Location(6,2), Location(8,2), Location(10,2), Location(11,2)]),
+    walls               = Set([Location(1,2), Location(2,2), Location(4,2), Location(6,2), Location(8,2), Location(10,2), Location(11,2)]),
     marks               = Set([Location(3,2), Location(5,2), Location(7,2)]),
     hole_effect         = Reset(),
     discount            = 0.99,
@@ -208,7 +208,7 @@ Hallway1 = PositionGridWorld(
     # initial_state       = Deterministic(Position(Location(1,1), EAST)) # TODO: should be Uniform()
 )
 
-Hallway2 = PositionGridWorld(
+Hallway2alt = PositionGridWorld(
     size                = (7,5),
     # observation_type    = Observation_Type(RelState(), 1, CustomRelState(obs_hallway)),
     observation_type    = Observation_Type(RelState(), 1, EmptyObs()),
@@ -224,7 +224,7 @@ Hallway2 = PositionGridWorld(
     # initial_state       = Deterministic(Position(Location(1,2), EAST)) # TODO: should be Uniform()
 )
 
-TigerGrid = PositionGridWorld(
+TigerGrid_alt = PositionGridWorld(
     size                = (5,2),
     observation_type    = Observation_Type(RelState(), 1, CustomRelState(obs_hallway)),
     # observation_type    = Observation_Type(RelState(), 1, EmptyObs()),
