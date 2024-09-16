@@ -8,12 +8,6 @@ using .BIB
 include("Sarsop_altered/NativeSARSOP.jl")
 import .NativeSARSOP_alt
 
-include("Environments/CustomGridworld.jl"); using .CustomGridWorlds
-include("Environments/K-out-of-N.jl"); using .K_out_of_Ns
-using RockSample
-POMDPs.states(M::RockSample.RockSamplePOMDP) = map(si -> RockSample.state_from_index(M,si), 1:length(M))
-POMDPs.discount(M::RockSample.RockSamplePOMDP) = 0.99
-
 ##################################################################
 #                     Parsing Arguments
 ##################################################################
@@ -25,10 +19,11 @@ s = ArgParseSettings()
         required = true
     "--timeout", "-t"
         help = "Time untill timeout."
-        arg_type = Int
+        arg_type = Float64
         default = 60
     "--precision"
         help = "Precision parameter of SARSOP."
+        arg_type = Float64
         default = 1e-2
     "--path"
         help = "File path for data output."
@@ -39,6 +34,10 @@ s = ArgParseSettings()
     "--solvers"
         help = "Solver to be run. Availble options: FIB, BIB, EBIB, WBIB, SARSOP, BIBSARSOP, EBIBSARSOP. (default: run all but BIBSARSOP & EBIBSARSOP)"
         default = "All"
+    "--discount"
+        help = "Discount factor"
+        arg_type = Float64
+        default = 0.95
 end
 
 parsed_args = parse_args(ARGS, s)
@@ -47,6 +46,8 @@ path = parsed_args["path"]
 filename = parsed_args["filename"]
 solver_names = [parsed_args["solvers"]]
 solver_names == ["All"] && (solver_names = ["FIB", "BIB", "EBIB", "WBIB", "SARSOP"])
+discount = parsed_args["discount"]
+discount_str = string(discount)[2:end]
 
 ##################################################################
 #                       Defining Solvers 
@@ -95,21 +96,24 @@ end
 
 import RockSample
 # This env is very difficult to work with for some reason...
+POMDPs.states(M::RockSample.RockSamplePOMDP) = map(si -> RockSample.state_from_index(M,si), 1:length(M))
+POMDPs.discount(M::RockSample.RockSamplePOMDP) = discount
+include("Environments/K-out-of-N.jl"); using .K_out_of_Ns
+include("Environments/CustomGridworld.jl"); using .CustomGridWorlds
+include("Environments/Sparse_models/SparseModels.jl"); using .SparseModels
 
 envs, envargs = [], []
 
-    ###ABC
 if env_name == "ABC"
     include("Environments/ABCModel.jl"); using .ABCModel
-    discount(::ABC) = 0.99
-    abcmodel = ABC()
+    abcmodel = ABC(discount=discount)
     push!(envs, abcmodel)
     push!(envargs, (name="ABCModel",))
     ### Tiger
 end
 if env_name == "Tiger"
     tiger = POMDPModels.TigerPOMDP()
-    tiger.discount_factor = 0.99
+    tiger.discount_factor = discount
     push!(envs, tiger)
     push!(envargs, (name="Tiger",))
     ### RockSample
@@ -128,51 +132,71 @@ if env_name == "RockSample10"
 end
 if env_name == "K-out-of-N2"
     # ### K-out-of-N
-    k_model2 = K_out_of_N(2, 2)
+    k_model2 = K_out_of_N(N=2, K=2, discount=discount)
     push!(envs, k_model2)
     push!(envargs, (name="K-out-of-N (2)",))
 end
 if env_name == "K-out-of-N3"
-    k_model3 = K_out_of_N(3, 3)
+    k_model3 = K_out_of_N(N=3, K=3, discount=discount)
     push!(envs, k_model3)
     push!(envargs, (name="K-out-of-N (3)",))
 end
 if env_name == "FrozenLake4"
     # Frozen Lake esque
     lakesmall = FrozenLakeSmall
+    lakesmall.discount = discount
     push!(envs, lakesmall)
     push!(envargs, (name="Frozen Lake (4)",))
 end
 if env_name == "FrozenLake10"
     lakelarge = FrozenLakeLarge
+    lakelarge.discount = discount
     push!(envs, lakelarge)
     push!(envargs, (name="Frozen Lake (10)",))
 end
 if env_name == "Hallway1"
     hallway1 = Hallway1
+    hallway.discount = discount
     push!(envs, hallway1)
     push!(envargs, (name="Hallway1",))
 end
 if env_name == "Hallway2"
     hallway2 = Hallway2
+    hallway2.discount = discount
     push!(envs, hallway2)
     push!(envargs, (name="Hallway2",))
 end
 if env_name == "MiniHallway"
     minihall = CustomMiniHallway
+    minihall.discount = discount
     push!(envs, minihall)
     push!(envargs, (name="MiniHallway",))
 end
 if env_name == "TigerGrid"
     tigergrid = TigerGrid
+    tigergrid.discount = discount
+    push!(envs, tigergrid)
+    push!(envargs, (name="TigerGrid",))
+end
+if env_name == "SparseHallway1"
+    hallway1 = SparseHallway1(discount=discount)
+    push!(envs, hallway1)
+    push!(envargs, (name="SparseHallway1",))
+end
+if env_name == "SparseHallway2"
+    hallway2 = SparseHallway2(discount=discount)
+    push!(envs, hallway2)
+    push!(envargs, (name="SparseHallway2",))
+end
+if env_name == "SparseTigerGrid"
+    tigergrid = TigerGrid(discount=discount)
     push!(envs, tigergrid)
     push!(envargs, (name="TigerGrid",))
 end
 if env_name == "Tag"
     ### Tag
     using TagPOMDPProblem
-    discount(m::TagPOMDP) = 0.99
-    tag = TagPOMDPProblem.TagPOMDP()
+    tag = TagPOMDPProblem.TagPOMDP(discount_factor=discount)
     push!(envs, tag)
     push!(envargs, (name="Tag",))
 end

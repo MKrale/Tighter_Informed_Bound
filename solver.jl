@@ -68,8 +68,9 @@ function get_weights(Bbao_data, weights_data, bi, ai, oi)
 end
 get_weights_indexfree(Bbao_data, weights_data,bi,ai,oi) = map(x -> last(x), get_weights(Bbao_data,weights_data,bi,ai,oi))
 
-
+verbose = false
 function POMDPs.solve(solver::X, model::POMDP) where X<:BIBSolver
+    t0 = time()
     constants = get_constants(model)
 
     # 1: Precompute observation probabilities
@@ -94,12 +95,18 @@ function POMDPs.solve(solver::X, model::POMDP) where X<:BIBSolver
     if solver isa WBIBSolver || solver isa EBIBSolver
         Bbao_data = get_Bbao(model, Data, constants)
     end
+    t_init = time() - t0
+    verbose && printdb("general init time:", t_init)
 
     # 5 : If using EBIB, pre-compute entropy weights
+    
     Weights = []
     if solver isa EBIBSolver
         Weights = get_entropy_weights_all(Data.B, Bbao_data)
     end
+
+    t_w = time() - t0 - t_init
+    verbose && printdb("weights calculation time:", t_w)
 
     # Lets be overly fancy! Define a function for computing Q, depending on the specific solver
     get_Q, args = identity, []
@@ -114,12 +121,16 @@ function POMDPs.solve(solver::X, model::POMDP) where X<:BIBSolver
     end
     
     # Now iterate:
+    it = 0
     for i=1:solver.max_iterations
         # printdb(i)
         Qs, max_dif = get_Q(model, Qs, args...)
         # max_dif < solver.precision && (printdb("breaking after $i iterations:"); break)
-        max_dif < solver.precision && (break)
+        max_dif < solver.precision && break
+        it = i
     end
+    t_it = time()- t0 - t_init - t_w
+    verbose && printdb("iteration time $t_it (avg over $it iterations: $(t_it/it))")
     # if solver isa EBIBSolver
     #     return pol(model, BIB_Data(Qs,Data),Bbao_data, Weights)
     # end
@@ -387,67 +398,7 @@ function get_entropy_weights_all(B, Bbao_data::BBAO_Data)
     end
     return Weights_Data(B_weights, Bbao_weights)
 end
-
-
-# function get_arrays_entropy_computation(b, B, bi, Bbao_data)
-#     B_relevant = []
-#     B_entropies = []
-#     B_idxs = []
-#     if !(Bbao_data isa Nothing) && !(bi isa Nothing)
-#         first(bi) ? (overlap=Bbao_data.B_overlap[last(bi)]) : (overlap=Bbao_data.Bbao_overlap[last(bi)])
-#         length(overlap) == 0 && ( printdb(b, bi))
-#         for bpi in overlap
-#             push!(B_relevant, B[bpi])
-#             push!(B_idxs, bpi)
-#             push!(B_entropies, Bbao_data.B_entropies[bpi])
-#         end
-#     else
-#         B_relevant = B
-#         B_idxs = 1:length(B)
-#         B_entropies = map( b -> get_entropy(b), B)
-#     end
-#     return B_relevant, B_entropies, B_idxs
-# end
-
-# function add_model_contraints(model,b, B_relevant,vars_idx )
-#     @variable(model, 0.0 <= b_ps[vars_idx:length(B_relevant)+vars_idx] <= 1.0)
-#     for s in support(b)
-#         Idx, Ps = [], []
-#         for (bpi, bp) in enumerate(B_relevant)
-#             p = pdf(bp,s)
-#             if p > 0
-#                 push!(Idx, bpi+vars_idx-1) #-1?
-#                 push!(Ps,p)
-#             end
-#         end
-#         length(Idx) > 0 && @constraint(model, sum(b_ps[Idx[i]] * Ps[i] for i in 1:length(Idx)) == pdf(b,s) )
-#     end
-#     return model
-# end
-
-# function get_entropy_weights_batch(bs, Bs, bis=nothing, Bbao_data=nothing)
-#     model = direct_model(Gurobi.Optimizer(GRB_ENV))
-#     # set_silent(model)
-#     # set_attribute(model, "TimeLimit", 0.5)
-#     # model = direct_model(Tulip.Optimizer())
-#     # model = direct_model(HiGHS.Optimizer())
-#     # model = Model(HiGHS.Optimizer)
-#     set_silent(model)
-#     set_string_names_on_creation(model, false)
-
-#     vars_idx = 0
-#     all_B_entropies, all_B_idxs = [], []
-#     for (problem_idx,(b, B, bi)) in enumerate(zip(bs, Bs, bis))
-#         B_relevant, B_entropies, B_idxs = get_arrays_entropy_computation(b,B,bi,Bbao_data)
-#         B_idxs .+= vars_idx
-#         vars_idx += length(b_idxs)
-#         model = add_model_contraints(model, b, B_relevant, vars_idx)
-#         append!(all_B_entropies, B_entropies) 
-#         append!(all_B_idxs, all_B_idxs)
-#     end
-#     @objective(model, Max, sum(b_ps.*B_entropies))
-# end
-    
+   
 function get_entropy_weights(b, B; bi=nothing, Bbao_data=nothing )
     B_relevant = []
     B_start = []
@@ -546,7 +497,8 @@ end
 function get_QBIB_ba(model::POMDP,b,a,Qs,B_idx,SAO_probs, SAOs, constants::C; ai=nothing, S_dict=nothing)
     isnothing(ai) && ( ai=findfirst(==(a), constants.A) )
     Q = breward(model,b,a)
-    for (oi, o) in enumerate(constants.O)
+    for oi in get_possible_obs(b,ai,SAOs, S_dict)
+        o = constants.O[oi]
         Qo = zeros(constants.na)
         for s in support(b)
             si = S_dict[s]

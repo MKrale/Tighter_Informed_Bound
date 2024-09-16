@@ -11,30 +11,38 @@ export K_out_of_N
 ################################
 
 # Parameters as used in other functions.
-struct K_out_of_N <: POMDP{Tuple{Vararg{Int}},Tuple{Vararg{Int}},Tuple{Vararg{Int}}}
-    N::Integer; K::Integer; smax::Integer
-    spread:: Integer; p0::Float64 ; p1::Float64; p2::Float64
-    break_cost::Float64; repair_cost::Float64; inspect_cost::Float64;
-    deterministic_obs::Bool
+@kwdef mutable struct K_out_of_N <: POMDP{Tuple{Vararg{Int}},Tuple{Vararg{Int}},Tuple{Vararg{Int}}}
+    N::Integer                  = 3
+    K::Integer                  = 3
+    smax::Integer               = 3
+    spread:: Integer            = 2
+    p0::Float64                 = 0.2
+    p1::Float64                 = 0.5
+    p2::Float64                 = 0.9
+    break_cost::Float64         = 0.5
+    repair_cost::Float64        = 0.25
+    inspect_cost::Float64       = 0.05
+    deterministic_obs::Bool     = true
+    discount::Float64           = 0.95
 end
 
-default_args = Dict{Symbol, Any}(
-    :N=>3, :K=>3, :smax=>3,
-    :spread=>2, :p0=>0.2, :p1=>0.5, :p2=>0.9,
-    :break_cost=>0.5, :repair_cost=>0.25, :inspect_cost=>0.05, :deterministic_obs=>true )
+# default_args = Dict{Symbol, Any}(
+#     :N=>3, :K=>3, :smax=>3,
+#     :spread=>2, :p0=>0.2, :p1=>0.5, :p2=>0.9,
+#     :break_cost=>0.5, :repair_cost=>0.25, :inspect_cost=>0.05, :deterministic_obs=>true )
 
-function K_out_of_N(D::Dict{Symbol,Any})
-    for key in keys(default_args)
-        haskey(D,key) || (D[key] = default_args[key])
-    end
-    return K_out_of_N(D[:N], D[:K], D[:smax], 
-            D[:spread], D[:p0], D[:p1], D[:p2], 
-            D[:break_cost], D[:repair_cost], D[:inspect_cost], 
-            D[:deterministic_obs])
-end
+# function K_out_of_N(D::Dict{Symbol,Any})
+#     for key in keys(default_args)
+#         haskey(D,key) || (D[key] = default_args[key])
+#     end
+#     return K_out_of_N(D[:N], D[:K], D[:smax], 
+#             D[:spread], D[:p0], D[:p1], D[:p2], 
+#             D[:break_cost], D[:repair_cost], D[:inspect_cost], 
+#             D[:deterministic_obs])
+# end
 
-K_out_of_N() = K_out_of_N(default_args...)
-K_out_of_N(N::Int, K::Int; deterministic_obs=true) = K_out_of_N(Dict{Symbol, Any}(:N=>N, :K=>K, :deterministic_obs=>deterministic_obs))
+# K_out_of_N() = K_out_of_N(default_args...)
+# K_out_of_N(N::Int, K::Int; deterministic_obs=true) = K_out_of_N(Dict{Symbol, Any}(:N=>N, :K=>K, :deterministic_obs=>deterministic_obs))
 
 
 ################################
@@ -156,7 +164,7 @@ POMDPs.observations(M::K_out_of_N) = allCombs(0:M.smax , M.N)
 POMDPs.transition(M::K_out_of_N, s,a) = T(M,s,a)
 POMDPs.observation(M::K_out_of_N, a,sp) = O(M,sp,a)
 POMDPs.reward(M::K_out_of_N, s,a) = R(M,s,a)
-POMDPs.discount(M::K_out_of_N) = 0.95
+POMDPs.discount(M::K_out_of_N) = M.discount
 POMDPs.initialstate(M::K_out_of_N) = Deterministic(Tuple(fill(1,M.N)))
 
 POMDPs.actiontype(M::K_out_of_N) = NTuple{M.N, Integer}

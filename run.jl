@@ -13,16 +13,17 @@ import RockSample
 
 solvers, solverargs = [], []
 
-iters, tol = 200, 1e-5
+iters, tol = 0, 1.0 #200, 1e-5
+
 
 # ### FIB
- using FIB
- push!(solvers, FIB.FIBSolver)
- push!(solverargs, (name="FIB", sargs=(max_iterations=iters,tolerance=tol), pargs=(), get_Q0=true))
+using FIB
+push!(solvers, FIB.FIBSolver)
+push!(solverargs, (name="FIB", sargs=(max_iterations=iters,tolerance=tol), pargs=(), get_Q0=true))
 
-### BIB
- push!(solvers, SBIBSolver)
- push!(solverargs, (name="BIBSolver (standard)", sargs=(max_iterations=iters, precision=tol), pargs=(), get_Q0=true))
+# ### BIB
+#  push!(solvers, SBIBSolver)
+#  push!(solverargs, (name="BIBSolver (standard)", sargs=(max_iterations=iters, precision=tol), pargs=(), get_Q0=true))
 
 # ### EBIB
 # push!(solvers, EBIBSolver)
@@ -33,17 +34,17 @@ iters, tol = 200, 1e-5
 # push!(solverargs, (name="BIBSolver (worst-case)", sargs=(max_iterations=250, precision=1e-5), pargs=(), get_Q0=true))
 
 # SARSOP
-include("Sarsop_altered/NativeSARSOP.jl")
-import .NativeSARSOP_alt
-max_time = 120.0
+# include("Sarsop_altered/NativeSARSOP.jl")
+# import .NativeSARSOP_alt
+# max_time = 120.0
 
-push!(solvers, NativeSARSOP_alt.SARSOPSolver)
-solver = SBIBSolver(max_iterations=1_000, precision=1e-5)
-push!(solverargs, (name="SARSOP+BIB (max $max_time s)", sargs=( epsilon=1e-2, precision=1e-2, max_time=max_time, verbose=false, heuristic_solver=solver), pargs=(), get_Q0=true))
+# push!(solvers, NativeSARSOP_alt.SARSOPSolver)
+# solver = SBIBSolver(max_iterations=1_000, precision=1e-5)
+# push!(solverargs, (name="SARSOP+BIB (max $max_time s)", sargs=( epsilon=1e-2, precision=1e-2, max_time=max_time, verbose=false, heuristic_solver=solver), pargs=(), get_Q0=true))
 
 
-push!(solvers, NativeSARSOP_alt.SARSOPSolver)
-push!(solverargs, (name="SARSOP (max $max_time s)", sargs=( epsilon=1e-2, precision=1e-2, max_time=max_time, verbose=false), pargs=(), get_Q0=true))
+# push!(solvers, NativeSARSOP_alt.SARSOPSolver)
+# push!(solverargs, (name="SARSOP (max $max_time s)", sargs=( epsilon=1e-2, precision=1e-2, max_time=max_time, verbose=false), pargs=(), get_Q0=true))
 
 # ### SARSOP
 # using NativeSARSOP
@@ -79,27 +80,27 @@ push!(solverargs, (name="SARSOP (max $max_time s)", sargs=( epsilon=1e-2, precis
 ##################################################################
 
 envs, envargs = [], []
+discount = 0.95
 
-# ### ABC
-include("Environments/ABCModel.jl"); using .ABCModel
-abcmodel = ABC()
-discount(::ABC) = 0.95
-push!(envs, abcmodel)
-push!(envargs, (name="ABCModel",))
+# # # ### ABC
+# include("Environments/ABCModel.jl"); using .ABCModel
+# abcmodel = ABC(discount=discount)
+# push!(envs, abcmodel)
+# push!(envargs, (name="ABCModel",))
 
  
- # ### Tiger
- tiger = POMDPModels.TigerPOMDP()
- tiger.discount_factor = 0.95
- push!(envs, tiger)
- push!(envargs, (name="Tiger",))
+#  # ### Tiger
+#  tiger = POMDPModels.TigerPOMDP()
+#  tiger.discount_factor = discount
+#  push!(envs, tiger)
+#  push!(envargs, (name="Tiger",))
 
 
-# ### RockSample
+# # ### RockSample
 # import RockSample
 # # # This env is very difficult to work with for some reason...
 # POMDPs.states(M::RockSample.RockSamplePOMDP) = map(si -> RockSample.state_from_index(M,si), 1:length(M))
-# POMDPs.discount(M::RockSample.RockSamplePOMDP) = 0.99
+# POMDPs.discount(M::RockSample.RockSamplePOMDP) = discount
 
 # # map_size, rock_pos = (5,5), [(1,1), (3,3), (4,4)] # Default
 # # rocksamplesmall = RockSample.RockSamplePOMDP(map_size, rock_pos)
@@ -114,52 +115,65 @@ push!(envargs, (name="ABCModel",))
 # # ### K-out-of-N
 include("Environments/K-out-of-N.jl"); using .K_out_of_Ns
 
-k_model2 = SparseTabularPOMDP(K_out_of_N(2, 2))
-push!(envs, k_model2)
-push!(envargs, (name="K-out-of-N (2)",))
+# k_model2 = K_out_of_N(N=2, K=2, discount=discount)
+# push!(envs, k_model2)
+# push!(envargs, (name="K-out-of-N (2)",))
 
-k_model3 = SparseTabularPOMDP(K_out_of_N(3, 3))
-push!(envs, k_model3)
-push!(envargs, (name="K-out-of-N (3)",))
+# k_model3 = K_out_of_N(N=3, K=3, discount=discount)
+# push!(envs, k_model3)
+# push!(envargs, (name="K-out-of-N (3)",))
 
 ### CustomGridWorlds
 include("Environments/CustomGridworld.jl"); using .CustomGridWorlds
-include("Environments/TigerGrid.jl"); using .mTigerGrid
-include("Environments/Hallway1.jl"); using .mHallway1
-include("Environments/Hallway2.jl"); using .mHallway2
+# # # Frozen Lake variants
 
-# # Frozen Lake variants
+# lakesmall = FrozenLakeSmall
+# lakesmall.discount = discount
+# lakesmall.discount = discount
+# push!(envs, lakesmall)
+# push!(envargs, (name="Frozen Lake (4x4)",))
 
-lakesmall = FrozenLakeSmall
-push!(envs, lakesmall)
-push!(envargs, (name="Frozen Lake (4x4)",))
-lakesmall = SparseTabularPOMDP(FrozenLakeSmall)
-push!(envs, lakesmall)
-push!(envargs, (name="Frozen Lake (4x4)",))
+# lakelarge = FrozenLakeLarge
+# lakelarge.discount = discount
+# push!(envs, lakelarge)
+# push!(envargs, (name="Frozen Lake (10x10)",))
 
-lakelarge = SparseTabularPOMDP(FrozenLakeLarge)
-push!(envs, lakelarge)
-push!(envargs, (name="Frozen Lake (10x10)",))
-
-# # Deterministic Observations
-
-# hallway1 = Hallway1
-# push!(envs, hallway1)
-# push!(envargs, (name="Hallway1",))
-
-hallway2 = Hallway2
-push!(envs, hallway2)
-push!(envargs, (name="Hallway2",))
-
-# # Non-deterministic Observations
+### Hallway Envs
 
 # minihallway = CustomMiniHallway
+# minihallway.discount = discount
 # push!(envs, minihallway)
 # push!(envargs, (name="MiniHallway", ))
 
- tigergrid = TigerGrid
- push!(envs, tigergrid)
- push!(envargs, (name="TigerGrid",))
+# hallway1 = Hallway1
+# hallway1.discount = discount
+# push!(envs, hallway1)
+# push!(envargs, (name="Hallway1",))
+
+# hallway2 = Hallway2
+# hallway2.discount = discount
+# push!(envs, hallway2)
+# push!(envargs, (name="Hallway2",))
+
+# tigergrid = TigerGrid
+# tigergrid.discount = discount
+# push!(envs, tigergrid)
+# push!(envargs, (name="TigerGrid",))
+
+# ### Explicit Spares Hallways (Wietze)
+include("Environments/Sparse_models/SparseModels.jl"); using .SparseModels
+
+hallway1 = SparseHallway1(discount=discount)
+push!(envs, hallway1)
+push!(envargs, (name="Hallway1 (Sparse)",))
+
+hallway2 = SparseHallway2(discount=discount)
+push!(envs, hallway2)
+push!(envargs, (name="Hallway2 (Sparse)",))
+
+tigergrid = SparseTigerGrid(discount=discount)
+push!(envs, tigergrid)
+push!(envargs, (name="TigerGrid (Sparse)",))
 
 # # ### DroneSurveilance
 # # import DroneSurveillance
@@ -168,11 +182,10 @@ push!(envargs, (name="Hallway2",))
 # # push!(envargs, (name="DroneSurveilance",))
 
  ### Tag
- using TagPOMDPProblem
- discount(m::TagPOMDP) = 0.95
- tag = SparseTabularPOMDP(TagPOMDPProblem.TagPOMDP())
- push!(envs, tag)
- push!(envargs, (name="Tag",))
+#  using TagPOMDPProblem
+#  tag = TagPOMDPProblem.TagPOMDP(discount_factor=discount)
+#  push!(envs, tag)
+#  push!(envargs, (name="Tag",))
 
 # ### Mini Hallway
 # minihall = POMDPModels.MiniHallway()
@@ -227,6 +240,7 @@ models_to_skip_WBIB = ["RockSample (10x10)","Frozen Lake (10x10)","2-out-of-2","
 #     write(file, "\n")
 
 for (m_idx,(model, modelargs)) in enumerate(zip(envs, envargs))
+    model = SparseTabularPOMDP(model)
     verbose && println("Testing in $(modelargs.name) environment")
     policies = []
     upperbounds_init = zeros(nr_pols)

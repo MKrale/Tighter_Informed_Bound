@@ -4,8 +4,6 @@ using POMDPs, POMDPTools, QuickPOMDPs
 
 export ABC
 
-struct ABC <: POMDP{Int,Int,Int} end
-
 # function
 
 function T(s,a)
@@ -21,12 +19,12 @@ end
 R(s,a) = ( (s=="A" && a=="a") || (s=="B" && a=="b")) ? 1 : 0
 O(a,sp) = SparseCat(["nothing"],[1])
 
-ABC() = QuickPOMDP(
+ABC(;discount=0.95) = QuickPOMDP(
     states = ["init","A","B","Ap","Bp","terminal"],
     # states = ["init","A","B","terminal"],
     actions=["a","b","c"],
     observations=["nothing"],
-    discount=0.99,
+    discount=discount,
 
     transition = T,
     observation = O,

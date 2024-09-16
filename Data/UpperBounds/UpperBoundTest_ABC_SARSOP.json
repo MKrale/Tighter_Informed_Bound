@@ -1,1 +1,1 @@
-{"env_full":"ABCModel","env_data":{"na":3,"ns":6,"nbao":15,"no":1,"nb":11},"solvetime":3.621824293,"simtime":0.009302854537963867,"ub":0.495,"solver":"SARSOP","ravg":0.49500000000000305,"env":"ABC"}
+{"env_full":"ABCModel","env_data":{"na":3,"ns":6,"nbao":15,"no":1,"nb":11},"solvetime":2.954783348,"simtime":0.06943178176879883,"ub":0.475,"solver":"SARSOP","ravg":0.44269999999999654,"env":"ABC"}

@@ -10,7 +10,7 @@ using Memoization, LRUCache
 using OrderedCollections
 
 
-export Gridworld, FrozenLakeSmall, FrozenLakeLarge, CustomMiniHallway, Hallway1alt, Hallway2alt, TigerGrid_alt
+export Gridworld, FrozenLakeSmall, FrozenLakeLarge, CustomMiniHallway, Hallway1, Hallway2, TigerGrid
 
 #########################################
 #               Types:
@@ -96,7 +96,7 @@ Relative_Observation(v::Vector{CellType}) = Relative_Observation(v...)
 
 abstract type GridWorld{S, A, O} <: POMDP{S,A,O} end
 
-Base.@kwdef struct LocationGridWorld <: GridWorld{Location, Action, Location}
+Base.@kwdef mutable struct LocationGridWorld <: GridWorld{Location, Action, Location}
     size::Tuple{Int, Int}               = (10,10)
     observation_type::Observation_Type  = Observation_Type()
     transition_type::Transition_Type    = Transition_Type()
@@ -110,7 +110,7 @@ Base.@kwdef struct LocationGridWorld <: GridWorld{Location, Action, Location}
     measuring_effect::Observation_Type  = Observation_Type(FullState(), 0.0, EmptyObs())
 end
 
-Base.@kwdef struct PositionGridWorld <: GridWorld{Position, Action, Relative_Observation}
+Base.@kwdef mutable struct PositionGridWorld <: GridWorld{Position, Action, Relative_Observation}
     size::Tuple{Int, Int}               = (10,10)
     observation_type::Observation_Type  = Observation_Type()
     transition_type::Transition_Type    = Transition_Type()
@@ -177,7 +177,8 @@ obs_hallway     = Dict{CellType, Any}(
     # Thats really annoying to implement, though, so we won't.
     Mark    => Deterministic(Mark), 
     # No holes exist here.
-    Hole    => SparseCat([Empty, Wall], [0.95, 0.05]),
+    # Hole    => SparseCat([Empty, Wall], [0.95, 0.05]),
+    Hole => SparseCat([Empty, Wall], [0.95, 0.05]),
     # Hole => Deterministic(Hole)
 )
 
@@ -195,7 +196,7 @@ CustomMiniHallway = PositionGridWorld(
     initial_state       = Deterministic(Position(Location(1,1), EAST))
 )
 
-Hallway1alt = PositionGridWorld(
+Hallway1 = PositionGridWorld(
     size                = (11,2),
     observation_type    = Observation_Type(RelState(), 1, CustomRelState(obs_hallway)),
     # observation_type    = Observation_Type(RelState(), 1, EmptyObs()),
@@ -210,7 +211,7 @@ Hallway1alt = PositionGridWorld(
     # initial_state       = Deterministic(Position(Location(1,1), EAST)) # TODO: should be Uniform()
 )
 
-Hallway2alt = PositionGridWorld(
+Hallway2 = PositionGridWorld(
     size                = (7,5),
     observation_type    = Observation_Type(RelState(), 1, CustomRelState(obs_hallway)),
     # observation_type    = Observation_Type(RelState(), 1, EmptyObs()),
@@ -226,7 +227,7 @@ Hallway2alt = PositionGridWorld(
     # initial_state       = Deterministic(Position(Location(1,2), EAST)) # TODO: should be Uniform()
 )
 
-TigerGrid_alt = PositionGridWorld(
+TigerGrid = PositionGridWorld(
     size                = (5,2),
     observation_type    = Observation_Type(RelState(), 1, CustomRelState(obs_hallway)),
     # observation_type    = Observation_Type(RelState(), 1, EmptyObs()),
