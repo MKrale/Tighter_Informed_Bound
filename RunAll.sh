@@ -10,13 +10,14 @@ nmbr_cores=100
 
 echo -e "\n\n============= SARSOP TESTS  =============\n\n"
 
-folder_path="Data/"
+folder_path="Data/SarsopTest/"
 i=0
 
-for env in "ABC" "Tiger" "RockSample5" "RockSample10" "K-out-of-N2" "K-out-of-N3" "FrozenLake4" "FrozenLake10" "Hallway1" "Hallway2" "MiniHallway" "TigerGrid" "Tag" # ALL
-# for env in "ABC" "RockSample5" "FrozenLake4" #"Tiger" # QUICK
-# for env in "RockSample10" "K-out-of-N2" "K-out-of-N3" "FrozenLake10" "Tag" # LONG
+# for env in "ABC" "Tiger" "RockSample5" "RockSample10" "K-out-of-N2" "K-out-of-N3" "FrozenLake4" "FrozenLake10" "Hallway1" "Hallway2" "MiniHallway" "TigerGrid" "Tag" # ALL
+# for env in "ABC" "RockSample5" "FrozenLake4" "Tiger" # QUICK
+for env in "RockSample10" "K-out-of-N2" "K-out-of-N3" "FrozenLake10" "Tag" "Hallway1" "Hallway2" "MiniHallway" "TigerGrid" # LONG
 # for env in "Hallway1" "Hallway2" "MiniHallway" "TigerGrid"
+# for env in "K-out-of-N3" "FrozenLake10"
 do
     julia --project=. run_sarsoptest.jl --env $env --timeout 3200 --path $folder_path &
 done
@@ -28,11 +29,11 @@ wait
 
 # for env in "ABC" "Tiger" "RockSample5" "RockSample10" "K-out-of-N2" "K-out-of-N3" "FrozenLake4" "FrozenLake10" "Hallway1" "Hallway2" "MiniHallway" "TigerGrid" "Tag" # ALL
 # for env in "ABC" "RockSample5" "FrozenLake4" "Tiger" # QUICK
-# for env in "RockSample10" "K-out-of-N2" "K-out-of-N3" "FrozenLake10" "Hallway" "Hallway2" "MiniHallway" "TigerGrid" "Tag" # LONG
-#do
-#    julia --project=. run_upperbound.jl --env $env --path $folder_path &
-#done
-#wait
+for env in "RockSample10" "K-out-of-N2" "K-out-of-N3" "FrozenLake10" "Tag" "Hallway" "Hallway2" "MiniHallway" "TigerGrid"  # LONG
+do
+   julia --project=. run_upperbound.jl --env $env --path $folder_path &
+done
+wait
 
 
 #echo -e "\n\n============= RUNS COMPLETED =============\n\n"

@@ -1,1 +1,1 @@
-{"env_full":"ABCModel","env_data":{"na":3,"ns":6,"nbao":11,"no":1,"nb":7},"solvetime":5.3921336,"simtime":0.25978803634643555,"ub":0.495,"solver":"BIBSolver (worst-case)","ravg":0.487080000000003,"env":"ABC"}
+{"env_full":"ABCModel","env_data":{"na":3,"ns":6,"nbao":15,"no":1,"nb":11},"solvetime":7.290679024,"simtime":0.30799198150634766,"ub":0.495,"solver":"BIBSolver (worst-case)","ravg":0.5128200000000033,"env":"ABC"}

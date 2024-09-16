@@ -1,1 +1,1 @@
-{"env_full":"RockSample ()","env_data":{"na":8,"ns":201,"nbao":210,"no":3,"nb":202},"solvetime":1.544583313,"simtime":14.02679991722107,"ub":23.47795521977625,"solver":"BIBSolver (standard)","ravg":5.147999999999987,"env":"RockSample5"}
+{"env_full":"RockSample ()","env_data":{"na":8,"ns":201,"nbao":210,"no":3,"nb":202},"solvetime":1.686566607,"simtime":14.752753019332886,"ub":23.47795521977625,"solver":"BIBSolver (standard)","ravg":4.880699999999997,"env":"RockSample5"}

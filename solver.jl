@@ -222,7 +222,17 @@ function get_belief_set(model, SAOs; constants::Union{C,Nothing}=nothing)
 
     B = Array{DiscreteHashedBelief,1}()       
     B_idx = zeros(Int,ns,na,no)
-    push!(B, DiscreteHashedBelief(initialstate(model)))
+
+    # Initialize with states and initial belief
+    for s in S 
+        push!(B, DiscreteHashedBelief([s],[1.0]))
+    end
+    b_init = DiscreteHashedBelief(initialstate(model))
+    k = findfirst( x -> x==b_init , B)
+    if isnothing(k)
+        push!(B,b_init)
+    end
+
     for (si,s) in enumerate(S)
         b_s = DiscreteHashedBelief([s],[1.0])
         for (ai,a) in enumerate(A)
@@ -238,6 +248,7 @@ function get_belief_set(model, SAOs; constants::Union{C,Nothing}=nothing)
             end
         end
     end
+
     return B, B_idx
 end
 

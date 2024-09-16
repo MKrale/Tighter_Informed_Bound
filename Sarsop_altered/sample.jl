@@ -6,6 +6,8 @@ function sample!(sol, tree)
 end
 
 function sample_points(sol::SARSOPSolver, tree::SARSOPTree, b_idx::Int, L, U, t, ϵ)
+    # println(tree.b[b_idx])
+    # println("---")
     tree.b_pruned[b_idx] = false
     if !tree.is_real[b_idx]
         tree.is_real[b_idx] = true

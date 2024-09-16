@@ -46,7 +46,7 @@ function upper_value(tree::SARSOPTree, b_idx::Int)
     v̂_min = Inf
     b= tree.b[b_idx]
 
-    # ### Method 1) if real, just use values of children.
+    ### Method 1) if real, just use values of children.
     # if tree.is_real[b_idx]
     #     fill_populated!(tree, b_idx)
     #     return tree.V_upper[b_idx]
@@ -59,6 +59,7 @@ function upper_value(tree::SARSOPTree, b_idx::Int)
 
     for b_idx in tree.real 
         (tree.b_pruned[b_idx] || tree.is_terminal[b_idx]) && continue
+        # tree.b_pruned[b_idx] && continue
         bint = tree.b[b_idx]
         vint = V_upper[b_idx]
         ϕ = min_ratio(b, bint)
@@ -66,11 +67,15 @@ function upper_value(tree::SARSOPTree, b_idx::Int)
         v̂ < v̂_min && (v̂_min = v̂)
     end
 
-    ### 
+    # badB = spzeros(length(tree.S))
+    # badB[5]=0.5; badB[9]=0.5
+    # b == badB && println(b, v̂_min)
+    ## 
     for (bpsi, bps) in enumerate(tree.B_heuristic)
         vint = tree.V_heuristic[bpsi]
         ϕ = min_ratio(b, bps)
         v̂ = V_corner + ϕ * (vint - dot(bps, α_corner))
+        # v̂ < v̂_min && ( println("---");println(b);println(bps); println(vint); println(v̂, " ", v̂_min); v̂_min = v̂;)
         v̂ < v̂_min && (v̂_min = v̂)
     end
 
@@ -81,7 +86,7 @@ function upper_value(tree::SARSOPTree, b_idx::Int)
     #     b_sparsecat = DiscreteHashedBelief(ss, vals, UInt(0))
     #     v̂_min = min(v̂_min, value(tree.pol_heuristic, b_sparsecat))
     # end
-    ###
+    ##
 
     return v̂_min
 end

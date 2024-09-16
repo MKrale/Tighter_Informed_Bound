@@ -1,1 +1,1 @@
-{"env_full":"ABCModel","env_data":{"na":3,"ns":6,"nbao":11,"no":1,"nb":7},"solvetime":2.092263653,"simtime":0.2867410182952881,"ub":0.495,"solver":"BIBSolver (entropy)","ravg":0.5068800000000032,"env":"ABC"}
+{"env_full":"ABCModel","env_data":{"na":3,"ns":6,"nbao":15,"no":1,"nb":11},"solvetime":2.565226687,"simtime":0.36811208724975586,"ub":0.495,"solver":"BIBSolver (entropy)","ravg":0.5029200000000031,"env":"ABC"}
