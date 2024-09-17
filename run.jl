@@ -13,7 +13,7 @@ import RockSample
 
 solvers, solverargs = [], []
 
-iters, tol = 0, 1.0 #200, 1e-5
+iters, tol = 200, 1e-5
 
 
 # ### FIB

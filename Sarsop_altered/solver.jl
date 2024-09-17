@@ -27,7 +27,6 @@ function POMDPTools.solve_info(solver::SARSOPSolver, pomdp::POMDP)
     push!(lbs, tree.V_lower[1])
     while time()-t0 < solver.max_time && root_diff_normalized(tree) > solver.precision
         sample!(solver, tree)
-        # println(length(tree.sampled))
         backup!(tree)
         prune!(solver, tree)
         if solver.verbose && iter % 10 == 0
@@ -58,7 +57,7 @@ function POMDPTools.solve_info(solver::SARSOPSolver, pomdp::POMDP)
     #     iter
     # )
     print(length(times))
-    return pol, (time=time()-t0, value=tree.V_upper[1], ubs = ubs, lbs = lbs, times = times, timeout=is_timed_out)
+    return pol, (time=time()-t0, value=tree.V_upper[1], ubs = ubs, lbs = lbs, times = times, timeout=is_timed_out, iterations=iter)
 end
 
 POMDPs.solve(solver::SARSOPSolver, pomdp::POMDP) = first(solve_info(solver, pomdp))
