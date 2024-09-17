@@ -45,7 +45,7 @@ env_name = parsed_args["env"]
 path = parsed_args["path"]
 filename = parsed_args["filename"]
 solver_names = [parsed_args["solvers"]]
-solver_names == ["All"] && (solver_names = ["FIB", "BIB", "EBIB", "WBIB", "SARSOP"])
+solver_names == ["All"] && (solver_names = ["FIB", "BIB", "EBIB", "SARSOP"])
 discount = parsed_args["discount"]
 discount_str = string(discount)[2:end]
 
@@ -189,7 +189,7 @@ if env_name == "SparseHallway2"
     push!(envargs, (name="SparseHallway2",))
 end
 if env_name == "SparseTigerGrid"
-    tigergrid = TigerGrid(discount=discount)
+    tigergrid = SparseTigerGrid(discount=discount)
     push!(envs, tigergrid)
     push!(envargs, (name="TigerGrid",))
 end
@@ -230,8 +230,9 @@ for (m_idx,(model, modelargs)) in enumerate(zip(envs, envargs))
             "na" => constants.na,
             "no" => constants.no,
             "nb" => length(B),
-            "nbao"=> length(BBao_data.Bbao) + length(B)
-        )
+            "nbao"=> length(BBao_data.Bbao) + length(B),
+            "discount"=> discount
+	    )
 
         # Compute policy & get upper bound
         solver = solver(;solverarg.sargs...)
@@ -241,19 +242,20 @@ for (m_idx,(model, modelargs)) in enumerate(zip(envs, envargs))
         (info isa Nothing) ? val = POMDPs.value(policy, POMDPs.initialstate(model)) : val = info.value        
 
         # Simulate policy & get avg returns
-        rs = []
-        t0_sims = time()
-        for i=1:sims
-            rtot = 0
-            for (t,(b,s,a,o,r)) in enumerate(stepthrough(model,policy,"b,s,a,o,r";max_steps=steps))
-                rtot += POMDPs.discount(model)^(t-1) * r
-            end
-            push!(rs,rtot)
-        end
-        t_sims = time() - t0_sims
-        rs_avg, rs_min, rs_max = mean(rs), minimum(rs), maximum(rs)
-
-        # Writing data to files
+        #rs = []
+        #t0_sims = time()
+        #for i=1:sims
+        #    rtot = 0
+        #    for (t,(b,s,a,o,r)) in enumerate(stepthrough(model,policy,"b,s,a,o,r";max_steps=steps))
+        #        rtot += POMDPs.discount(model)^(t-1) * r
+        #    end
+        #    push!(rs,rtot)
+        #end
+        #t_sims = time() - t0_sims
+        #rs_avg, rs_min, rs_max = mean(rs), minimum(rs), maximum(rs)
+	rs_avg, rs_min, rs_max = -1.0, -1.0, -1.0
+        t_sims = -1.0
+	# Writing data to files
         data_dict = Dict(
             "env" => env_name,
             "env_full" => modelargs.name,
@@ -264,11 +266,11 @@ for (m_idx,(model, modelargs)) in enumerate(zip(envs, envargs))
             "ub" => val,
             # Simulation data
             "simtime" => t_sims,
-            "ravg" => rs_avg,
+            "ravg" => rs_avg
         )
         json_str = JSON.json(data_dict)
         if filename == ""
-            thisfilename =  path * "UpperBoundTest_$(env_name)_$(solver_names[s_idx]).json"
+		thisfilename =  path * "UpperBoundTest_$(env_name)_$(solver_names[s_idx])_d$(discount).json"
         else
             thisfilename = path * filename * solverarg.name
         end

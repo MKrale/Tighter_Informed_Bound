@@ -172,7 +172,7 @@ if env_name == "SparseHallway2"
     push!(envargs, (name="SparseHallway2",))
 end
 if env_name == "SparseTigerGrid"
-    tigergrid = TigerGrid(discount=discount)
+    tigergrid = SparseTigerGrid(discount=discount)
     push!(envs, tigergrid)
     push!(envargs, (name="TigerGrid",))
 end

@@ -1,0 +1,24 @@
+MiB Swap:   2048,0 total,   2048,0 free,      0,0 used. 243260,1 avail Mem
+
+    PID USER      PR  NI    VIRT    RES    SHR S  %CPU  %MEM     TIME+ COMMAND
+3114963 merlijn   20   0 4305452   1,2g 436032 R 101,7   0,5   4:12.64 julia
+3114965 merlijn   20   0 4331368   1,2g 436032 R 101,7   0,5   4:12.62 julia
+3114958 merlijn   20   0 4248812   1,1g 436608 R 101,3   0,5   4:11.32 julia
+3114959 merlijn   20   0 4753588   1,5g 435744 R 101,3   0,6   4:12.69 julia
+3114962 merlijn   20   0 5254492   1,8g 501120 R 101,3   0,7   4:12.58 julia
+3114964 merlijn   20   0 4370532   1,2g 437184 R 101,3   0,5   4:12.78 julia
+3114966 merlijn   20   0 4306860   1,2g 436032 R 101,3   0,5   4:12.67 julia
+3114960 merlijn   20   0 7068204   3,6g 436608 R 101,0   1,4   4:12.76 julia
+3115332 merlijn   20   0   13964   4608   3456 R   0,7   0,0   0:00.09 top
+1047950 systemd+  20   0   14836   6624   6048 S   0,3   0,0 203:43.45 systemd+
+3048582 merlijn   20   0   10460   2304   2016 S   0,3   0,0   0:00.25 screen
+      1 root      20   0  168892  13248   8064 S   0,0   0,0  35:25.95 systemd
+      2 root      20   0       0      0      0 S   0,0   0,0   0:04.42 kthreadd
+      3 root       0 -20       0      0      0 I   0,0   0,0   0:00.00 rcu_gp
+      4 root       0 -20       0      0      0 I   0,0   0,0   0:00.00 rcu_par+
+      5 root       0 -20       0      0      0 I   0,0   0,0   0:00.00 slub_fl+
+      6 root       0 -20       0      0      0 I   0,0   0,0   0:00.00 netns
+merlijn@verifai-benchmark-server:~/Backward_Informed_Bound$ git config --global
+user.email "merlijnkrale@gmail.com"^C
+merlijn@verifai-benchmark-server:~/Backward_Informed_Bound$ 2625
+merlijn@verifai-benchmark-server:~/Backward_Informed_Bound$

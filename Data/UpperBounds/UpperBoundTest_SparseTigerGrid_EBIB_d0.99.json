@@ -1,0 +1,1 @@
+{"env_full":"TigerGrid","env_data":{"na":5,"ns":36,"discount":0.99,"nbao":100177,"no":17,"nb":1418},"solvetime":939.408718442,"simtime":-1.0,"ub":13.455117376368392,"solver":"BIBSolver (entropy)","ravg":-1.0,"env":"SparseTigerGrid"}
