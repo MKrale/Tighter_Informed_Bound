@@ -17,10 +17,6 @@ s = ArgParseSettings()
     "--env"
         help = "The environment to be tested."
         required = true
-    "--timeout", "-t"
-        help = "Time untill timeout."
-        arg_type = Float64
-        default = 60
     "--precision"
         help = "Precision parameter of SARSOP."
         arg_type = Float64
@@ -54,9 +50,12 @@ discount_str = string(discount)[2:end]
 ##################################################################
 
 solvers, solverargs = [], []
-SARSOPprecision = 5e-3
+SARSOPprecision = 1e-2
 heuristicprecision, heuristicsteps = 1e-5, 1_000
-timeout = 60.0
+discount == 0.95 && (heuristicprecision = 1e-5;  heuristicsteps = 250)
+discount == 0.99 && (heuristicprecision = 1e-5;  heuristicsteps = 1_000)
+
+timeout = 300.0
 
 if "FIB" in solver_names
     using FIB

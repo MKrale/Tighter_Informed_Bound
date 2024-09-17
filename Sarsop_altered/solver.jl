@@ -56,7 +56,6 @@ function POMDPTools.solve_info(solver::SARSOPSolver, pomdp::POMDP)
     #     tree,
     #     iter
     # )
-    print(length(times))
     return pol, (time=time()-t0, value=tree.V_upper[1], ubs = ubs, lbs = lbs, times = times, timeout=is_timed_out, iterations=iter)
 end
 
