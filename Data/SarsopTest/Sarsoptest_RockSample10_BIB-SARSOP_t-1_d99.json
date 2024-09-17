@@ -1,0 +1,1 @@
+{"env_full":"RockSample (10)","timeout":true,"ubs":[26.464514833908105],"runtime":77.47653794288635,"solver":"BIB-SARSOP","final_ub":26.464514833908105,"lbs":[9.135172474836407],"env":"RockSample10","times":[77.47653794288635],"final_lw":9.135172474836407}

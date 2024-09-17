@@ -1,0 +1,1 @@
+{"env_full":"Frozen Lake (4)","timeout":true,"ubs":[0.7049223846794803],"runtime":3.6121609210968018,"solver":"BIB-SARSOP","final_ub":0.7049223846794803,"lbs":[0.0],"env":"FrozenLake4","times":[3.6121609210968018],"final_lw":0.0}

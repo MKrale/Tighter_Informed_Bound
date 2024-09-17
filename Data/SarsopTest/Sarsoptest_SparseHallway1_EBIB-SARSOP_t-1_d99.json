@@ -1,0 +1,1 @@
+{"env_full":"SparseHallway1","timeout":true,"ubs":[7.361339007643413],"runtime":1531.4161870479584,"solver":"EBIB-SARSOP","final_ub":7.361339007643413,"lbs":[0.01980625124262278],"env":"SparseHallway1","times":[1531.4161870479584],"final_lw":0.01980625124262278}

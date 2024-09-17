@@ -1,0 +1,1 @@
+{"env_full":"Tiger","timeout":true,"ubs":[51.13117535625311],"runtime":4.233342885971069,"solver":"BIB-SARSOP","final_ub":51.13117535625311,"lbs":[-19.999999999999982],"env":"Tiger","times":[4.233342885971069],"final_lw":-19.999999999999982}

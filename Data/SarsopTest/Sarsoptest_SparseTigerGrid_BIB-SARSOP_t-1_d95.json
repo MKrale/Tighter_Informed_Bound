@@ -1,0 +1,1 @@
+{"env_full":"TigerGrid","timeout":true,"ubs":[2.6367070940296133],"runtime":194.42817878723145,"solver":"BIB-SARSOP","final_ub":2.6367070940296133,"lbs":[0.0],"env":"SparseTigerGrid","times":[194.42817878723145],"final_lw":0.0}

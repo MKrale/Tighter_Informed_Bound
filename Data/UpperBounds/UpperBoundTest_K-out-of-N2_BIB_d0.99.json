@@ -1,0 +1,1 @@
+{"env_full":"K-out-of-N (2)","env_data":{"na":9,"ns":16,"discount":0.99,"nbao":232,"no":16,"nb":61},"solvetime":16.723265446,"simtime":-1.0,"ub":-6.962666611389957,"solver":"BIBSolver (standard)","ravg":-1.0,"env":"K-out-of-N2"}
