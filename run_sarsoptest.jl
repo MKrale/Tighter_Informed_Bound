@@ -48,8 +48,8 @@ discount = parsed_args["discount"]
 discount_str = string(discount)[3:end]
 
 if timeout == -1.0
-    discount == 0.95 && timeout == 1800.0
-    discount == 0.99 && timeout == 3200.0
+	discount == 0.95 && (timeout = 1800.0)
+	discount == 0.99 && (timeout = 3200.0)
 end
 
 ##################################################################
