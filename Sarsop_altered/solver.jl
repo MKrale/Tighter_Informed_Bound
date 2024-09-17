@@ -1,15 +1,16 @@
 Base.@kwdef struct SARSOPSolver{LOW,UP} <: Solver
-    epsilon::Float64    = 0.5
-    precision::Float64  = 1e-3
-    kappa::Float64      = 0.1
-    delta::Float64      = 1e-1
-    max_time::Float64   = 1.0
-    max_steps::Int      = typemax(Int)
-    verbose::Bool       = false
-    init_lower::LOW     = BlindLowerBound(bel_res = 1e-2)
-    init_upper::UP      = FastInformedBound(bel_res=1e-2)
-    prunethresh::Float64= 0.10
+    epsilon::Float64        = 0.5
+    precision::Float64      = 1e-3
+    kappa::Float64          = 0.1
+    delta::Float64          = 1e-1
+    max_time::Float64       = 1.0
+    max_steps::Int          = typemax(Int)
+    verbose::Bool           = false
+    init_lower::LOW         = BlindLowerBound(bel_res = 1e-2)
+    init_upper::UP          = FastInformedBound(bel_res=1e-2)
+    prunethresh::Float64    = 0.10
     heuristic_solver::Union{Nothing,Solver} = nothing
+    add_to_pointset::Bool   = false
 end
 
 function POMDPTools.solve_info(solver::SARSOPSolver, pomdp::POMDP)

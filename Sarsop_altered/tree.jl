@@ -41,26 +41,6 @@ struct SARSOPTree
     #######
 end
 
-function get_heuristic_pointset(policy)
-    B_heuristic, V_heuristic = Vector{Float64}[], Float64[]
-    ns = policy.Data.constants.ns
-    S_dict = policy.Data.S_dict
-
-    badBs = []
-
-    for (b_idx, b) in enumerate(policy.Data.B)
-        b_svector = spzeros(ns)
-        for (s, p) in weighted_iterator(b)
-            b_svector[stateindex(policy.model, s)] = p 
-        end
-        push!(B_heuristic, b_svector)
-        push!(V_heuristic, maximum(policy.Data.Q[b_idx,:]))
-    end
-    corner_values = V_heuristic[1:ns]
-    # return corner_values, B_heuristic[ns+1:end], V_heuristic[ns+1:end]
-    return corner_values, B_heuristic[ns:end], V_heuristic[ns:end]
-end
-
 function SARSOPTree(solver, pomdp::POMDP)
     sparse_pomdp = ModifiedSparseTabular(pomdp)
     cache = TreeCache(sparse_pomdp)
@@ -69,6 +49,7 @@ function SARSOPTree(solver, pomdp::POMDP)
         policy = POMDPs.solve(solver.heuristic_solver, pomdp)
         corner_values, B_heuristic, V_heuristic = get_heuristic_pointset(policy)
     else
+        println("help!")
         upper_policy = solve(solver.init_upper, sparse_pomdp)
         corner_values = map(maximum, zip(upper_policy.alphas...))
         B_heuristic, V_heuristic = [], []

@@ -1,7 +1,7 @@
 import POMDPs, POMDPTools
 using POMDPs
 using POMDPTools, POMDPFiles
-include("BIB.jl")
+include("BIB/BIB.jl")
 using .BIB
 using Statistics, POMDPModels
 using SparseArrays
@@ -13,17 +13,17 @@ import RockSample
 
 solvers, solverargs = [], []
 
-iters, tol = 200, 1e-5
+iters, tol = 250, 1e-5
 
 
 # ### FIB
-using FIB
-push!(solvers, FIB.FIBSolver)
-push!(solverargs, (name="FIB", sargs=(max_iterations=iters,tolerance=tol), pargs=(), get_Q0=true))
+# using FIB
+# push!(solvers, FIB.FIBSolver)
+# push!(solverargs, (name="FIB", sargs=(max_iterations=iters,precision=tol), pargs=(), get_Q0=true))
 
-# ### BIB
-#  push!(solvers, SBIBSolver)
-#  push!(solverargs, (name="BIBSolver (standard)", sargs=(max_iterations=iters, precision=tol), pargs=(), get_Q0=true))
+### BIB
+ push!(solvers, SBIBSolver)
+ push!(solverargs, (name="BIBSolver (standard)", sargs=(max_iterations=iters, precision=tol), pargs=(), get_Q0=true))
 
 # ### EBIB
 # push!(solvers, EBIBSolver)
@@ -129,14 +129,13 @@ include("Environments/CustomGridworld.jl"); using .CustomGridWorlds
 
 # lakesmall = FrozenLakeSmall
 # lakesmall.discount = discount
-# lakesmall.discount = discount
 # push!(envs, lakesmall)
 # push!(envargs, (name="Frozen Lake (4x4)",))
 
-# lakelarge = FrozenLakeLarge
-# lakelarge.discount = discount
-# push!(envs, lakelarge)
-# push!(envargs, (name="Frozen Lake (10x10)",))
+lakelarge = FrozenLakeLarge
+lakelarge.discount = discount
+push!(envs, lakelarge)
+push!(envargs, (name="Frozen Lake (10x10)",))
 
 ### Hallway Envs
 
@@ -163,17 +162,17 @@ include("Environments/CustomGridworld.jl"); using .CustomGridWorlds
 # ### Explicit Spares Hallways (Wietze)
 include("Environments/Sparse_models/SparseModels.jl"); using .SparseModels
 
-hallway1 = SparseHallway1(discount=discount)
-push!(envs, hallway1)
-push!(envargs, (name="Hallway1 (Sparse)",))
+# hallway1 = SparseHallway1(discount=discount)
+# push!(envs, hallway1)
+# push!(envargs, (name="Hallway1 (Sparse)",))
 
-hallway2 = SparseHallway2(discount=discount)
-push!(envs, hallway2)
-push!(envargs, (name="Hallway2 (Sparse)",))
+# hallway2 = SparseHallway2(discount=discount)
+# push!(envs, hallway2)
+# push!(envargs, (name="Hallway2 (Sparse)",))
 
-tigergrid = SparseTigerGrid(discount=discount)
-push!(envs, tigergrid)
-push!(envargs, (name="TigerGrid (Sparse)",))
+# tigergrid = SparseTigerGrid(discount=discount)
+# push!(envs, tigergrid)
+# push!(envargs, (name="TigerGrid (Sparse)",))
 
 # # ### DroneSurveilance
 # # import DroneSurveillance

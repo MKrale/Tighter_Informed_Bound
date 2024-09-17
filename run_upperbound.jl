@@ -3,7 +3,7 @@ using POMDPs
 using POMDPTools, POMDPFiles, ArgParse, JSON
 using Statistics, POMDPModels
 
-include("BIB.jl")
+include("BIB/BIB.jl")
 using .BIB
 include("Sarsop_altered/NativeSARSOP.jl")
 import .NativeSARSOP_alt
@@ -43,7 +43,7 @@ filename = parsed_args["filename"]
 solver_names = [parsed_args["solvers"]]
 solver_names == ["All"] && (solver_names = ["FIB", "BIB", "EBIB", "SARSOP"])
 discount = parsed_args["discount"]
-discount_str = string(discount)[2:end]
+discount_str = string(discount)[3:end]
 
 ##################################################################
 #                       Defining Solvers 
@@ -51,16 +51,15 @@ discount_str = string(discount)[2:end]
 
 solvers, solverargs = [], []
 SARSOPprecision = 1e-2
-heuristicprecision, heuristicsteps = 1e-5, 1_000
-discount == 0.95 && (heuristicprecision = 1e-5;  heuristicsteps = 250)
-discount == 0.99 && (heuristicprecision = 1e-5;  heuristicsteps = 1_000)
+heuristicprecision, heuristicsteps = 1e-4, 1_000
+discount == 0.95 && (heuristicprecision = 1e-4;  heuristicsteps = 250)
+discount == 0.99 && (heuristicprecision = 1e-4;  heuristicsteps = 1_000)
 
 timeout = 300.0
 
 if "FIB" in solver_names
-    using FIB
-    push!(solvers, FIB.FIBSolver)
-    push!(solverargs, (name="FIB", sargs=(max_iterations=heuristicsteps,tolerance=heuristicprecision), pargs=(), get_Q0=true))
+    push!(solvers, FIBSolver_alt)
+    push!(solverargs, (name="FIB", sargs=(max_iterations=heuristicsteps,precision=heuristicprecision), pargs=(), get_Q0=true))
 end
 if "BIB" in solver_names
     push!(solvers, SBIBSolver)
@@ -76,16 +75,17 @@ if "WBIB" in solver_names
 end
 if "SARSOP" in solver_names
     push!(solvers, NativeSARSOP_alt.SARSOPSolver)
-    push!(solverargs, (name="SARSOP", sargs=(precision=SARSOPprecision, max_time=timeout, verbose=false), pargs=()))
+    h_solver = NativeSARSOP_alt.FIBSolver_alt(max_iterations=heuristicsteps, precision=heuristicprecision)
+    push!(solverargs, (name="SARSOP", sargs=(precision=SARSOPprecision, max_time=timeout, verbose=false, heuristic_solver=h_solver), pargs=()))
 end
 if "BIBSARSOP" in solver_names
     push!(solvers, NativeSARSOP_alt.SARSOPSolver)
-    h_solver = SBIBSolver(max_iterations=250, precision=1e-5)
+    h_solver = NativeSARSOP_alt.SBIBSolver(max_iterations=250, precision=1e-5)
     push!(solverargs, (name="BIB-SARSOP", sargs=( precision=SARSOPprecision, max_time=timeout, verbose=false, heuristic_solver=h_solver), pargs=()))
 end
 if "EBIBSARSOP" in solver_names
     push!(solvers, NativeSARSOP_alt.SARSOPSolver)
-    h_solver = EBIBSolver(max_iterations=250, precision=1e-5)
+    h_solver = NativeSARSOP_alt.EBIBSolver(max_iterations=250, precision=1e-5)
     push!(solverargs, (name="EBIB-SARSOP", sargs=( precision=precision, max_time=timeout, verbose=false, heuristic_solver=h_solver), pargs=()))
 end
 
@@ -269,7 +269,7 @@ for (m_idx,(model, modelargs)) in enumerate(zip(envs, envargs))
         )
         json_str = JSON.json(data_dict)
         if filename == ""
-		thisfilename =  path * "UpperBoundTest_$(env_name)_$(solver_names[s_idx])_d$(discount).json"
+		thisfilename =  path * "UpperBoundTest_$(env_name)_$(solver_names[s_idx])_d$(discount_str).json"
         else
             thisfilename = path * filename * solverarg.name
         end

@@ -1,1 +1,0 @@
-{"env_full":"Frozen Lake (10)","timeout":true,"ubs":[0.8725928445024229],"runtime":17.356088876724243,"solver":"EBIB-SARSOP","final_ub":0.8725928445024229,"lbs":[0.0],"env":"FrozenLake10","times":[17.356088876724243],"final_lw":0.0}

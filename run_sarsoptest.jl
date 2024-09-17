@@ -1,7 +1,7 @@
 import POMDPs, POMDPTools
 using POMDPs
 using POMDPTools, POMDPFiles, ArgParse, JSON
-include("BIB.jl")
+include("BIB/BIB.jl")
 using .BIB
 using Statistics, POMDPModels
 
@@ -48,7 +48,7 @@ discount = parsed_args["discount"]
 discount_str = string(discount)[3:end]
 
 if timeout == -1.0
-	discount == 0.95 && (timeout = 1800.0)
+	discount == 0.95 && (timeout = 3200.0)
 	discount == 0.99 && (timeout = 3200.0)
 end
 
@@ -60,22 +60,23 @@ solvers, solverargs = [], []
 include("Sarsop_altered/NativeSARSOP.jl")
 import .NativeSARSOP_alt
 
-h_iterations, h_precision = 250, 1e-5
-discount == 0.95 && (h_iterations = 250; h_precision = 1e-5)
-discount == 0.99 && (h_iterations = 1000; h_precision = 1e-5)
+h_iterations, h_precision = 250, 1e-4
+discount == 0.95 && (h_iterations = 250; h_precision = 1e-4)
+discount == 0.99 && (h_iterations = 1500; h_precision = 1e-4)
 
 if solver_name in  ["standard", ""]
     push!(solvers, NativeSARSOP_alt.SARSOPSolver)
-    push!(solverargs, (name="SARSOP", sargs=(precision=precision, max_time=timeout, verbose=false), pargs=()))
+    h_solver = NativeSARSOP_alt.FIBSolver_alt(max_iterations=h_iterations, precision=h_precision)
+    push!(solverargs, (name="SARSOP", sargs=(precision=precision, max_time=timeout, verbose=false, heuristic_solver=h_solver), pargs=()))
 end
 if solver_name in  ["BIB", ""]
     push!(solvers, NativeSARSOP_alt.SARSOPSolver)
-    h_solver = SBIBSolver(max_iterations=h_iterations, precision=h_precision)
+    h_solver = NativeSARSOP_alt.SBIBSolver(max_iterations=h_iterations, precision=h_precision)
     push!(solverargs, (name="BIB-SARSOP", sargs=( precision=precision, max_time=timeout, verbose=false, heuristic_solver=h_solver), pargs=()))
 end
 if solver_name in  ["EBIB", ""]
     push!(solvers, NativeSARSOP_alt.SARSOPSolver)
-    h_solver = EBIBSolver(max_iterations=h_iterations, precision=h_precision)
+    h_solver = NativeSARSOP_alt.EBIBSolver(max_iterations=h_iterations, precision=h_precision)
     push!(solverargs, (name="EBIB-SARSOP", sargs=( precision=precision, max_time=timeout, verbose=false, heuristic_solver=h_solver), pargs=()))
 end
 

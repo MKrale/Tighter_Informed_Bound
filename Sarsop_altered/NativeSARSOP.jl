@@ -6,7 +6,7 @@ using SparseArrays
 using LinearAlgebra
 using Printf
 ####
-include("../BIB.jl")
+include("../BIB/BIB.jl")
 using .BIB
 ####
 
