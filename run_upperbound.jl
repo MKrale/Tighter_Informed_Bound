@@ -229,7 +229,7 @@ time_online = zeros( nr_envs, nr_pols)
 for (m_idx,(model, modelargs)) in enumerate(zip(envs, envargs))
     for (s_idx,(solver, solverarg)) in enumerate(zip(solvers, solverargs))
         # Calculate & print model size
-        model = SparseTabularPOMDP(model)
+        # model = SparseTabularPOMDP(model) #breaks RockSample...
         constants = BIB.get_constants(model)
         SAO_probs, SAOs = BIB.get_all_obs_probs(model; constants)
         B, B_idx = BIB.get_belief_set(model, SAOs; constants)

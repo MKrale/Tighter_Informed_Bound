@@ -238,7 +238,7 @@ env, env_arg = envs[1], envargs[1]
 
 
 ubs, lbs = Tuple{Vector{Float64}, Vector{Float64}}[], Tuple{Vector{Float64}, Vector{Float64}}[]
-env = SparseTabularPOMDP(env)
+# env = SparseTabularPOMDP(env) #breaks RockSample...
 
 for (i, (solver, solverarg)) in enumerate(zip(solvers, solverargs))
     

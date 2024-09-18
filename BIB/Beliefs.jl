@@ -60,21 +60,23 @@ Base.length(d::DiscreteHashedBelief) = length(d.state_list)
 mean(d::DiscreteHashedBelief) = throw("Function not implemented")
 mode(d::DiscreteHashedBelief) = throw("Function not implemented")
 
-function POMDPTools.beliefvec(model::POMDP,b::DiscreteHashedBelief)
-    bv = zeros(length(states(model)))
-    for (s, ps) in weighted_iterator(b)
-        bv[s] = ps
-    end
-    return bv
-end
 
-function to_sparse_vector(model::POMDP, b::DiscreteHashedBelief)
-    spv = spzeros(length(states(model)))
-    for (si, s) in enumerate(b.state_list)
-        spv[POMDPs.stateindex(model, s)] = b.probs[si]
-    end
-    return spv
-end
+# function POMDPTools.beliefvec(m::POMDP, b)
+# function beliefvec(S,b::DiscreteHashedBelief)
+#     bv = zeros(length(S))
+#     for (s, ps) in weighted_iterator(b)
+#         bv[s] = ps
+#     end
+#     return bv
+# end
+
+# function to_sparse_vector(model::POMDP, b::DiscreteHashedBelief)
+#     spv = spzeros(length(states(model)))
+#     for (si, s) in enumerate(b.state_list)
+#         spv[POMDPs.stateindex(model, s)] = b.probs[si]
+#     end
+#     return spv
+# end
 
 #########################################
 #          Hashing & stuff

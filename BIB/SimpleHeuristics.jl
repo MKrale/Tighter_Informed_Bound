@@ -16,10 +16,11 @@ struct QMDPPlanner_alt <: QS_table_policy
     V::Vector{AbstractFloat}
 end
 
-function get_max_r(m::POMDP)
+get_max_r(m::POMDP) = get_max_r(states(m), actions(m))
+function get_max_r(m,S, A)
     maxr = 0
-    for s in states(m)
-        for a in actions(m)
+    for s in S
+        for a in A
             maxr = max(maxr, reward(m,s,a))
         end
     end
@@ -37,9 +38,9 @@ function solve(sol::QMDPSolver_alt, m::POMDP; Data=nothing)
         C, S_dict = Data.constants, Data.S_dict
     end
 
-    Q = zeros((length(states(m)),length(actions(m))))
-    Qmax = zeros(length(states(m)))
-    max_r = get_max_r(m)
+    Q = zeros(C.ns,C.na)
+    Qmax = zeros(C.ns)
+    max_r = get_max_r(m,C.S, C.A)
     maxQ = max_r / (1-discount(m))
     Q[:,:] .= maxQ
     Qmax[:] .= maxQ

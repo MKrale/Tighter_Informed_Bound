@@ -94,7 +94,7 @@ end
 const NO_CHILDREN = 1:0
 
 POMDPs.states(tree::SARSOPTree) = ordered_states(tree)
-POMDPTools.ordered_states(tree::SARSOPTree) = states(tree.pomdp)
+POMDPTools.ordered_states(tree::SARSOPTree) = tree.S # lets at least cache these...
 POMDPs.actions(tree::SARSOPTree) = ordered_actions(tree)
 POMDPTools.ordered_actions(tree::SARSOPTree) = actions(tree.pomdp)
 POMDPs.observations(tree::SARSOPTree) = ordered_observations(tree)
