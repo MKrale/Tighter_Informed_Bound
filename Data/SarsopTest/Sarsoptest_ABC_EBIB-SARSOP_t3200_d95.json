@@ -1,0 +1,1 @@
+{"env_full":"ABCModel","timeout":false,"ubs":[0.47500000000004394],"runtime":7.535064935684204,"solver":"EBIB-SARSOP","final_ub":0.47500000000004394,"lbs":[0.475],"env":"ABC","times":[7.535064935684204],"final_lw":0.475}
