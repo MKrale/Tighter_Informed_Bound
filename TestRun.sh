@@ -3,19 +3,14 @@
 # ... description ...
 folder_path="Data/SarsopTest/"
 echo -e "\n\n============= Manual Test  =============\n\n"
-for env in "RockSample5" # QUICK
+for env in "FrozenLake4" # QUICK
 do
-   # julia --project=. run_sarsoptest.jl --env $env --path $folder_path --discount 0.95 &
-   julia --project=. run_upperbound.jl --env $env --path $folder_path --discount 0.95 &
+   julia --project=. run_sarsoptest.jl --env $env --path $folder_path --discount 0.99 &
+   # julia --project=. run_upperbound.jl --env $env --path $folder_path --discount 0.99 &
 done
 wait
 
 echo -e "\n\n============= RUNS COMPLETED =============\n\n"
-
-
-
-
-
 
 ##################
 

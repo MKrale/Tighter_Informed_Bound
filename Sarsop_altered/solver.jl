@@ -24,8 +24,8 @@ function POMDPTools.solve_info(solver::SARSOPSolver, pomdp::POMDP)
     iter = 0
     times, ubs, lbs = [], [], []
     push!(times, time()-t0)
-    # push!(ubs, tree.V_upper[1])
-    # push!(lbs, tree.V_lower[1])
+    push!(ubs, tree.V_upper[1])
+    push!(lbs, tree.V_lower[1])
     while time()-t0 < solver.max_time && root_diff_normalized(tree) > solver.precision
         sample!(solver, tree)
         backup!(tree)

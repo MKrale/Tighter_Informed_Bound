@@ -108,6 +108,7 @@ Base.@kwdef mutable struct LocationGridWorld <: GridWorld{Location, Action, Loca
     discount::Float64                   = 0.95
     initial_state::Any                  = Deterministic(Location(0,0))
     measuring_effect::Observation_Type  = Observation_Type(FullState(), 0.0, EmptyObs())
+    measuring_cost::Float64             = 0.0
 end
 
 Base.@kwdef mutable struct PositionGridWorld <: GridWorld{Position, Action, Relative_Observation}
@@ -122,6 +123,7 @@ Base.@kwdef mutable struct PositionGridWorld <: GridWorld{Position, Action, Rela
     discount::Float64                   = 0.95
     initial_state::Any                  = Deterministic(Location(0,0))
     measuring_effect::Observation_Type  = Observation_Type(FullState(), 1, EmptyObs())
+    measuring_cost::Float64             = 0.0
 end
 
 
@@ -129,24 +131,34 @@ end
 #               Defaults:
 #########################################
 
+movement_lake = Dict{Action, Any}(
+    GoForward   => SparseCat([ [GoForward], [GoLeft], [GoRight] ], [0.8, 0.1, 0.1] ),
+    GoLeft      => SparseCat([ [GoRight], [GoForward], [GoBack] ], [0.8, 0.1, 0.1]),
+    GoRight     => SparseCat([ [GoBack], [GoRight], [GoLeft] ], [0.8, 0.1, 0.1]),
+    GoBack      => SparseCat([ [GoLeft], [GoBack], [GoForward] ], [0.8, 0.1, 0.1]),
+    NoOp        => Deterministic([NoOp]),
+    Measure      => Deterministic([Measure])
+)
+
 FrozenLakeSmall = LocationGridWorld(
     size                = (4,4),
-    observation_type    = Observation_Type(FullState(), 0.5, EmptyObs()),
-    transition_type     = Transition_Type(0.5, DoubleAction()),
+    observation_type    = Observation_Type(FullState(), 0.0, EmptyObs()),
+    transition_type     = Transition_Type(0.0, CustomActionEffect(movement_lake)),
     rewards             = Dict(Location(4,4)=>1),
     holes               = Set([Location(2,2), Location(1,4), Location(4,2), Location(4,3), Location(4,4)]),
     walls               = Set([]),
     marks               = Set([]),
     hole_effect         = Terminate(),
     discount            = 0.95,
-    initial_state       = Deterministic(Location(1,1))
+    initial_state       = Deterministic(Location(1,1)),
+    measuring_effect    = Observation_Type(FullState(), 1, EmptyObs()),
+    measuring_cost      = 0.01
     )
 
 FrozenLakeLarge = LocationGridWorld(
     size                = (10,10),
-    observation_type    = Observation_Type(FullState(), 0.5, EmptyObs()),
-    transition_type     = Transition_Type(0.5, DoubleAction()),
-    rewards             = Dict(Location(10,10)=>1),
+    observation_type    = Observation_Type(FullState(), 0.0, EmptyObs()),
+    transition_type     = Transition_Type(0.0, CustomActionEffect(movement_lake)),    rewards             = Dict(Location(10,10)=>1),
     holes               = Set([   Location(1,4), Location(2,4), Location(3,7), Location(5,4), Location(5,8),
             Location(6,2), Location(6,5), Location(7,1), Location(7,3), Location(8,9),
             Location(9,3), Location(9,6), Location(10,8), Location(10,10)]),
@@ -154,7 +166,9 @@ FrozenLakeLarge = LocationGridWorld(
     marks               = Set([]),
     hole_effect         = Terminate(),
     discount            = 0.95,
-    initial_state       = Deterministic(Location(1,1))
+    initial_state       = Deterministic(Location(1,1)),
+    measuring_effect    = Observation_Type(FullState(), 1, EmptyObs()),
+    measuring_cost      = 1.01
     )
 
 movement_hallway = Dict{Action, Any}(
@@ -345,7 +359,8 @@ POMDPs.isterminal(m::X, s) where X <: GridWorld = m.hole_effect == Sink() ? fals
 # end
 
 function POMDPs.actions(m::X) where X<:GridWorld
-    if m.measuring_effect.effect isa EmptyObs
+    if ( ( (m.measuring_effect.effect isa EmptyObs) && (m.measuring_effect.probability == 0.0) ) # Default value for non-AM envs
+            || (m.measuring_effect == m.observation_type) ) # no point in measuring
         return [GoRight, GoBack, GoLeft, GoForward, NoOp]
     end
     return [GoRight, GoBack, GoLeft, GoForward, NoOp, Measure]
@@ -420,7 +435,7 @@ function POMDPs.transition(m::X, s, a) where X<:GridWorld
         s_double = transition_normal(m, s_normal, a)
         snext = SparseCat([s_normal, s_double], [p, 1-p])
     elseif T.effect == Deviate()
-        printdb("Not Implemented")
+        println("Error: not implemented!")
         snext = Deterministic(s_normal)
     elseif T.effect == NoAction()
         snext = SparseCat([s, s_normal], [1-p, p])
@@ -451,7 +466,7 @@ end
 #########################################
 
 function observation_normal(m::X, a, sp) where X<:GridWorld
-    O = m.observation_type
+    a == Measure ? (O=m.measuring_effect) : (O = m.observation_type)
 
     if O.observedinfo == FullState()
         return sp
@@ -482,7 +497,7 @@ function POMDPs.observation(m::X, a, sp) where X<:GridWorld
     m_id = objectid(m)
     haskey(obs_dict, (m_id,a,sp)) && return obs_dict[(m_id,a,sp)]
     sp == SinkState(m) && return Deterministic(NullObs(m))
-    O = m.observation_type
+    a == Measure ? (O=m.measuring_effect) : (O = m.observation_type)
 
     o_normal = observation_normal(m,a,sp)
     p = O.probability
@@ -508,8 +523,14 @@ end
 
 # Rewards
 
-POMDPs.reward(m::X, s::Location, a) where X<:GridWorld = get(m.rewards, s, 0.0) 
-POMDPs.reward(m::X, s::Position, a) where X<:GridWorld = get(m.rewards, s.location, 0.0)
+function POMDPs.reward(m::X, s::Location, a) where X<:GridWorld
+    r_pos = get(m.rewards, s, 0.0)
+    a == Measure ? (return r_pos - m.measuring_cost) : (return r_pos)
+end
+function POMDPs.reward(m::X, s::Position, a) where X<:GridWorld
+    r_pos = get(m.rewards, s.location, 0.0)
+    a == Measure ? (return r_pos - m.measuring_cost) : (return r_pos)
+end
 
 # discount
 

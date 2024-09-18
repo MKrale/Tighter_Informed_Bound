@@ -46,13 +46,13 @@ timeout = parsed_args["timeout"]
 path = parsed_args["path"]
 filename = parsed_args["filename"]
 solver_names = [parsed_args["solvers"]]
-solver_names == ["All"] && (solver_names = ["FIB", "BIB", "EBIB", "SARSOP"])
+solver_names == ["All"] && (solver_names = ["FIB", "BIB", "EBIB", "WBIB", "SARSOP"])
 discount = parsed_args["discount"]
 discount_str = string(discount)[3:end]
 
 if timeout == -1.0
-	discount == 0.95 && (timeout = 3200.0)
-	discount == 0.99 && (timeout = 3200.0)
+	discount == 0.95 && (timeout = 1200.0)
+	discount == 0.99 && (timeout = 1200.0)
 end
 
 ##################################################################
@@ -65,7 +65,7 @@ heuristicprecision, heuristicsteps = 1e-4, 1_000
 discount == 0.95 && (heuristicprecision = 1e-4;  heuristicsteps = 250)
 discount == 0.99 && (heuristicprecision = 1e-4;  heuristicsteps = 1_000)
 
-timeout_sarsop = 300.0
+timeout_sarsop = 1200.0
 
 if "FIB" in solver_names
     push!(solvers, FIBSolver_alt)
