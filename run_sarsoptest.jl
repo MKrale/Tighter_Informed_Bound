@@ -61,8 +61,8 @@ include("Sarsop_altered/NativeSARSOP.jl")
 import .NativeSARSOP_alt
 
 h_iterations, h_precision = 250, 1e-4
-discount == 0.95 && (h_iterations = 250; h_precision = 1e-4)
-discount == 0.99 && (h_iterations = 1500; h_precision = 1e-4)
+discount == 0.95 && (h_iterations = 250; h_precision = 1e-4; h_timeout = 1200.0)
+discount == 0.99 && (h_iterations = 1000; h_precision = 1e-4; h_timeout = 1200.0)
 
 if solver_name in  ["standard", ""]
     push!(solvers, NativeSARSOP_alt.SARSOPSolver)
@@ -238,6 +238,7 @@ env, env_arg = envs[1], envargs[1]
 
 
 ubs, lbs = Tuple{Vector{Float64}, Vector{Float64}}[], Tuple{Vector{Float64}, Vector{Float64}}[]
+env = SparseTabularPOMDP(env)
 
 for (i, (solver, solverarg)) in enumerate(zip(solvers, solverargs))
     

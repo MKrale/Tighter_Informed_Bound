@@ -4,23 +4,22 @@
 
 abstract type BIBSolver <: Solver end
 
-struct SBIBSolver <: BIBSolver
-    max_iterations::Int64       # maximum iterations taken by solver
-    precision::Float64          # precision at which iterations is stopped
+@kwdef struct SBIBSolver <: BIBSolver
+    max_iterations::Int64   = 250       # maximum iterations taken by solver
+    max_time::Float64       = 3600      # maximum time spent solving
+    precision::Float64      = 1e-4      # precision at which iterations is stopped
 end
-SBIBSolver(;max_iterations::Int64=25, precision::Float64=1e-5) = SBIBSolver(max_iterations, precision)
-
-struct WBIBSolver <: BIBSolver
-    max_iterations::Int64
-    precision::Float64
+@kwdef struct WBIBSolver <: BIBSolver
+    max_iterations::Int64   = 250
+    max_time::Float64       = 3600
+    precision::Float64      = 1e-4
  end
-WBIBSolver(;max_iterations::Int64=10, precision::Float64=1e-5) = WBIBSolver(max_iterations, precision)
 
-struct EBIBSolver <: BIBSolver
-    max_iterations::Int64
-    precision::Float64
+@kwdef struct EBIBSolver <: BIBSolver
+    max_iterations::Int64   = 250
+    max_time::Float64       = 3600
+    precision::Float64      = 1e-4
  end
-EBIBSolver(;max_iterations::Int64=25, precision::Float64=1e-5) = EBIBSolver(max_iterations, precision)
 
 
 verbose = false
@@ -79,7 +78,9 @@ function POMDPs.solve(solver::X, model::POMDP) where X<:BIBSolver
         # printdb(i)
         Qs, max_dif = get_Q(model, Qs, args...)
         # max_dif < solver.precision && (printdb("breaking after $i iterations:"); break)
-        max_dif < solver.precision && break
+        if max_dif < solver.precision || time()-t0 > solver.max_time
+            break
+        end
         it = i
     end
     t_it = time()- t0 - t_init - t_w

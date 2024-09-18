@@ -1,4 +1,3 @@
-import POMDPs, POMDPTools
 using POMDPs
 using POMDPTools, POMDPFiles
 include("BIB/BIB.jl")

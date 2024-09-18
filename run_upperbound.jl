@@ -21,6 +21,10 @@ s = ArgParseSettings()
         help = "Precision parameter of SARSOP."
         arg_type = Float64
         default = 1e-2
+    "--timeout", "-t"
+        help = "Time untill timeout."
+        arg_type = Float64
+        default = -1.0
     "--path"
         help = "File path for data output."
         default = "./Data/UpperBounds"
@@ -38,12 +42,18 @@ end
 
 parsed_args = parse_args(ARGS, s)
 env_name = parsed_args["env"]
+timeout = parsed_args["timeout"]
 path = parsed_args["path"]
 filename = parsed_args["filename"]
 solver_names = [parsed_args["solvers"]]
 solver_names == ["All"] && (solver_names = ["FIB", "BIB", "EBIB", "SARSOP"])
 discount = parsed_args["discount"]
 discount_str = string(discount)[3:end]
+
+if timeout == -1.0
+	discount == 0.95 && (timeout = 3200.0)
+	discount == 0.99 && (timeout = 3200.0)
+end
 
 ##################################################################
 #                       Defining Solvers 
@@ -55,38 +65,38 @@ heuristicprecision, heuristicsteps = 1e-4, 1_000
 discount == 0.95 && (heuristicprecision = 1e-4;  heuristicsteps = 250)
 discount == 0.99 && (heuristicprecision = 1e-4;  heuristicsteps = 1_000)
 
-timeout = 300.0
+timeout_sarsop = 300.0
 
 if "FIB" in solver_names
     push!(solvers, FIBSolver_alt)
-    push!(solverargs, (name="FIB", sargs=(max_iterations=heuristicsteps,precision=heuristicprecision), pargs=(), get_Q0=true))
+    push!(solverargs, (name="FIB", sargs=(max_iterations=heuristicsteps,precision=heuristicprecision, max_time=timeout), pargs=(), get_Q0=true))
 end
 if "BIB" in solver_names
     push!(solvers, SBIBSolver)
-    push!(solverargs, (name="BIBSolver (standard)", sargs=(max_iterations=heuristicsteps, precision=heuristicprecision), pargs=(), get_Q0=true))
+    push!(solverargs, (name="BIBSolver (standard)", sargs=(max_iterations=heuristicsteps, precision=heuristicprecision, max_time=timeout), pargs=(), get_Q0=true))
 end
 if "EBIB" in solver_names
     push!(solvers, EBIBSolver)
-    push!(solverargs, (name="BIBSolver (entropy)", sargs=(max_iterations=heuristicsteps, precision=heuristicprecision), pargs=(), get_Q0=true))    
+    push!(solverargs, (name="BIBSolver (entropy)", sargs=(max_iterations=heuristicsteps, precision=heuristicprecision, max_time=timeout), pargs=(), get_Q0=true))    
 end
 if "WBIB" in solver_names
     push!(solvers, WBIBSolver)
-    push!(solverargs, (name="BIBSolver (worst-case)", sargs=(max_iterations=heuristicsteps, precision=heuristicprecision), pargs=(), get_Q0=true))
+    push!(solverargs, (name="BIBSolver (worst-case)", sargs=(max_iterations=heuristicsteps, precision=heuristicprecision, max_time=timeout), pargs=(), get_Q0=true))
 end
 if "SARSOP" in solver_names
     push!(solvers, NativeSARSOP_alt.SARSOPSolver)
     h_solver = NativeSARSOP_alt.FIBSolver_alt(max_iterations=heuristicsteps, precision=heuristicprecision)
-    push!(solverargs, (name="SARSOP", sargs=(precision=SARSOPprecision, max_time=timeout, verbose=false, heuristic_solver=h_solver), pargs=()))
+    push!(solverargs, (name="SARSOP", sargs=(precision=SARSOPprecision, max_time=timeout_sarsop, verbose=false, heuristic_solver=h_solver), pargs=()))
 end
 if "BIBSARSOP" in solver_names
     push!(solvers, NativeSARSOP_alt.SARSOPSolver)
     h_solver = NativeSARSOP_alt.SBIBSolver(max_iterations=250, precision=1e-5)
-    push!(solverargs, (name="BIB-SARSOP", sargs=( precision=SARSOPprecision, max_time=timeout, verbose=false, heuristic_solver=h_solver), pargs=()))
+    push!(solverargs, (name="BIB-SARSOP", sargs=( precision=SARSOPprecision, max_time=timeout_sarsop, verbose=false, heuristic_solver=h_solver), pargs=()))
 end
 if "EBIBSARSOP" in solver_names
     push!(solvers, NativeSARSOP_alt.SARSOPSolver)
     h_solver = NativeSARSOP_alt.EBIBSolver(max_iterations=250, precision=1e-5)
-    push!(solverargs, (name="EBIB-SARSOP", sargs=( precision=precision, max_time=timeout, verbose=false, heuristic_solver=h_solver), pargs=()))
+    push!(solverargs, (name="EBIB-SARSOP", sargs=( precision=precision, max_time=timeout_sarsop, verbose=false, heuristic_solver=h_solver), pargs=()))
 end
 
 ##################################################################
@@ -219,6 +229,7 @@ time_online = zeros( nr_envs, nr_pols)
 for (m_idx,(model, modelargs)) in enumerate(zip(envs, envargs))
     for (s_idx,(solver, solverarg)) in enumerate(zip(solvers, solverargs))
         # Calculate & print model size
+        model = SparseTabularPOMDP(model)
         constants = BIB.get_constants(model)
         SAO_probs, SAOs = BIB.get_all_obs_probs(model; constants)
         B, B_idx = BIB.get_belief_set(model, SAOs; constants)
