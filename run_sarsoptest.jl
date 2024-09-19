@@ -35,6 +35,10 @@ s = ArgParseSettings()
         help = "Discount factor"
         arg_type = Float64
         default = 0.95
+    "--sims"
+        help = "Number of samples to simulate performance"
+        arg_type = Int 
+        default = 0
 end
 
 parsed_args = parse_args(ARGS, s)
@@ -46,6 +50,7 @@ filename = parsed_args["filename"]
 solver_name = parsed_args["solvers"]
 discount = parsed_args["discount"]
 discount_str = string(discount)[3:end]
+sims = parsed_args["sims"]
 
 if timeout == -1.0
 	discount == 0.95 && (timeout = 3200.0)
@@ -230,7 +235,9 @@ env, env_arg = envs[1], envargs[1]
 # push!(envs, lasertag)
 # push!(envargs, (name="LaserTag",))
 
-
+##################################################################
+#                           Sampling 
+##################################################################
 
 ##################################################################
 #                           Run 
@@ -244,6 +251,20 @@ for (i, (solver, solverarg)) in enumerate(zip(solvers, solverargs))
     
     solver = solver(;solverarg.sargs...)
     policy, info = POMDPTools.solve_info(solver, env; solverarg.pargs...)
+
+    rs_avg, rs_sigma = nothing, nothing
+    if sims > 0
+        max_steps = Int(ceil(log(discount, 1e-5)))
+        rs = []
+        for i=1:sims
+            rtot = 0
+            for (t,(s,a,o,r)) in enumerate(stepthrough(env,policy,"s,a,o,r", max_steps=max_steps))
+                rtot += discount^(t-1) * r
+            end
+            push!(rs,rtot)
+        end
+        rs_avg, rs_sigma = mean(rs), std(rs)
+    end
     
     data_dict = Dict(
         "env" => env_name,
@@ -255,7 +276,9 @@ for (i, (solver, solverarg)) in enumerate(zip(solvers, solverargs))
         "final_lw" => last(info.lbs),
         "ubs" => info.ubs,
         "lbs" => info.lbs,
-        "times" => info.times
+        "times" => info.times,
+        "sim_r" => rs_avg,
+        "sim_rsigma" => rs_sigma
     )
 
     json_str = JSON.json(data_dict)

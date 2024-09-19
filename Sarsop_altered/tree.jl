@@ -49,7 +49,6 @@ function SARSOPTree(solver, pomdp::POMDP)
         policy = POMDPs.solve(solver.heuristic_solver, pomdp)
         corner_values, B_heuristic, V_heuristic = get_heuristic_pointset(policy)
     else
-        println("help!")
         upper_policy = solve(solver.init_upper, sparse_pomdp)
         corner_values = map(maximum, zip(upper_policy.alphas...))
         B_heuristic, V_heuristic = [], []
