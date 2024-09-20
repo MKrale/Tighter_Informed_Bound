@@ -68,7 +68,7 @@ function get_obs_prob(model::POMDP, o, b::DiscreteHashedBelief, a)
     return sum
 end
 
-@memoize LRU(maxsize=1000) function get_possible_obs(bi::Tuple{Bool, Int}, ai, Data, Bbao_data)
+function get_possible_obs(bi::Tuple{Bool, Int}, ai, Data, Bbao_data)
     if first(bi)
         b = Data.B[last(bi)]
         possible_os = Set{Int}
@@ -82,7 +82,7 @@ end
     end
 end
 
-@memoize LRU(maxsize=1000) function get_possible_obs(b::DiscreteHashedBelief, ai, SAOs, S_dict)
+function get_possible_obs(b::DiscreteHashedBelief, ai, SAOs, S_dict)
     possible_os = Set{Int}()
     for s in support(b)
         si = S_dict[s]

@@ -5,15 +5,15 @@
 echo -e "\n\n============= Quick Tests (UB & SARSOP)  =============\n\n"
 # 16 tasks, generally takes < 10 min to run
 
-# Upper bounds:
-# folder_path="Data/UpperBounds/"
-# for env in "ABC" "RockSample5" "FrozenLake4" "Tiger" # QUICK
-# ## NOTE: Frozen Lake 10 at d=0.99 does not compile correctly...
-# do
-#    julia --project=. run_upperbound.jl --env $env --path $folder_path --discount 0.95 &
-#    julia --project=. run_upperbound.jl --env $env --path $folder_path --discount 0.99 &
-# done
-# SARSOP tests:
+### Upper bounds:
+folder_path="Data/UpperBounds/"
+for env in "ABC" "RockSample5" "FrozenLake4" "Tiger" # QUICK
+## NOTE: Frozen Lake 10 at d=0.99 does not compile correctly...
+do
+   julia --project=. run_upperbound.jl --env $env --path $folder_path --discount 0.95 &
+   julia --project=. run_upperbound.jl --env $env --path $folder_path --discount 0.99 &
+done
+### SARSOP tests:
 folder_path="Data/SarsopTest/"
 for env in "ABC" "RockSample5" "FrozenLake4" "Tiger" # QUICK
 do

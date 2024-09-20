@@ -1,11 +1,11 @@
 #!/bin/bash
 
 # ... description ...
-folder_path="Data/SarsopTest/"
+folder_path="Data/UpperBounds/"
 echo -e "\n\n============= Manual Test  =============\n\n"
 for env in "FrozenLake4" # QUICK
 do
-   julia --project=. run_sarsoptest.jl --env $env --path $folder_path --discount 0.95 --sims 10000 &
+   julia --project=. run_upperbound.jl --env $env --path $folder_path --discount 0.95 &
    # julia --project=. run_upperbound.jl --env $env --path $folder_path --discount 0.99 &
 done
 wait

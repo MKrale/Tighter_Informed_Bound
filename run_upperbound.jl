@@ -59,7 +59,7 @@ end
 #                       Defining Solvers 
 ##################################################################
 
-solvers, solverargs = [], []
+solvers, solverargs, precomp_solverargs = [], [], []
 SARSOPprecision = 1e-2
 heuristicprecision, heuristicsteps = 1e-4, 1_000
 discount == 0.95 && (heuristicprecision = 1e-4;  heuristicsteps = 250)
@@ -70,18 +70,22 @@ timeout_sarsop = 1200.0
 if "FIB" in solver_names
     push!(solvers, FIBSolver_alt)
     push!(solverargs, (name="FIB", sargs=(max_iterations=heuristicsteps,precision=heuristicprecision, max_time=timeout), pargs=(), get_Q0=true))
+    push!(precomp_solverargs, ( sargs=(max_iterations=1), pargs=()))
 end
 if "BIB" in solver_names
     push!(solvers, SBIBSolver)
     push!(solverargs, (name="BIBSolver (standard)", sargs=(max_iterations=heuristicsteps, precision=heuristicprecision, max_time=timeout), pargs=(), get_Q0=true))
+    push!(precomp_solverargs, ( sargs=(max_iterations=1), pargs=()))
 end
 if "EBIB" in solver_names
     push!(solvers, EBIBSolver)
-    push!(solverargs, (name="BIBSolver (entropy)", sargs=(max_iterations=heuristicsteps, precision=heuristicprecision, max_time=timeout), pargs=(), get_Q0=true))    
+    push!(solverargs, (name="BIBSolver (entropy)", sargs=(max_iterations=heuristicsteps, precision=heuristicprecision, max_time=timeout), pargs=(), get_Q0=true))
+    push!(precomp_solverargs, ( sargs=(max_iterations=1), pargs=()))    
 end
 if "WBIB" in solver_names
     push!(solvers, WBIBSolver)
     push!(solverargs, (name="BIBSolver (worst-case)", sargs=(max_iterations=heuristicsteps, precision=heuristicprecision, max_time=timeout), pargs=(), get_Q0=true))
+    push!(precomp_solverargs, ( sargs=(max_iterations=1), pargs=()))
 end
 if "SARSOP" in solver_names
     push!(solvers, NativeSARSOP_alt.SARSOPSolver)

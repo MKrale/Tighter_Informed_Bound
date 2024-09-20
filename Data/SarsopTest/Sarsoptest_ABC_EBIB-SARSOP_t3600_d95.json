@@ -1,0 +1,1 @@
+{"lbs":[0.475],"times":[3.2519850730895996],"env":"ABC","ubs":[0.47500000000004394],"sim_r":null,"sim_rsigma":null,"solver":"EBIB-SARSOP","env_full":"ABCModel","final_lw":0.475,"timeout":false,"runtime":3.2519850730895996,"final_ub":0.47500000000004394}
