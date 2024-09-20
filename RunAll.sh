@@ -17,8 +17,8 @@ echo -e "\n\n============= Quick Tests (UB & SARSOP)  =============\n\n"
 folder_path="Data/SarsopTest/"
 for env in "ABC" "RockSample5" "FrozenLake4" "Tiger" # QUICK
 do
-   julia --project=. run_sarsoptest.jl --env $env --path $folder_path --discount 0.95 --sims 10000 &
-   julia --project=. run_sarsoptest.jl --env $env --path $folder_path --discount 0.99 --sims 10000 &
+   julia --project=. run_sarsoptest.jl --env $env --path $folder_path --discount 0.95 &
+   julia --project=. run_sarsoptest.jl --env $env --path $folder_path --discount 0.99 &
 done
 
 # wait
@@ -33,12 +33,12 @@ done
 #  julia --project=. run_upperbound.jl --env $env --path $folder_path --discount 0.99 &
 # done
 
-folder_path="Data/SarsopTest/"
-for env in "RockSample10" "K-out-of-N2" "K-out-of-N3" "FrozenLake10" "Tag" "SparseHallway1" "SparseHallway2" "SparseTigerGrid" # LONG
-do
-    julia --project=. run_sarsoptest.jl --env $env --path $folder_path --discount 0.95 --sims 10000 &
-    julia --project=. run_sarsoptest.jl --env $env --path $folder_path --discount 0.99 --sims 10000 &
-done
+# folder_path="Data/SarsopTest/"
+# for env in "RockSample10" "K-out-of-N2" "K-out-of-N3" "FrozenLake10" "Tag" "SparseHallway1" "SparseHallway2" "SparseTigerGrid" # LONG
+# do
+#     julia --project=. run_sarsoptest.jl --env $env --path $folder_path --discount 0.95 --sims 10000 &
+#     julia --project=. run_sarsoptest.jl --env $env --path $folder_path --discount 0.99 --sims 10000 &
+# done
 
 wait
 

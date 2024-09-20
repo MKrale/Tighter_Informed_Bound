@@ -69,21 +69,23 @@ h_iterations, h_precision = 250, 1e-4
 discount == 0.95 && (h_iterations = 250; h_precision = 1e-4; h_timeout = 1200.0)
 discount == 0.99 && (h_iterations = 1000; h_precision = 1e-4; h_timeout = 1200.0)
 
-if solver_name in  ["standard", ""]
+if solver_name in  ["EBIB", ""]
     push!(solvers, NativeSARSOP_alt.SARSOPSolver)
-    h_solver = NativeSARSOP_alt.FIBSolver_alt(max_iterations=h_iterations, precision=h_precision)
-    push!(solverargs, (name="SARSOP", sargs=(precision=precision, max_time=timeout, verbose=false, heuristic_solver=h_solver), pargs=()))
+    h_solver = NativeSARSOP_alt.EBIBSolver(max_iterations=h_iterations, precision=h_precision)
+    push!(solverargs, (name="EBIB-SARSOP", sargs=( precision=precision, max_time=timeout, verbose=false, heuristic_solver=h_solver), pargs=()))
 end
 if solver_name in  ["BIB", ""]
     push!(solvers, NativeSARSOP_alt.SARSOPSolver)
     h_solver = NativeSARSOP_alt.SBIBSolver(max_iterations=h_iterations, precision=h_precision)
     push!(solverargs, (name="BIB-SARSOP", sargs=( precision=precision, max_time=timeout, verbose=false, heuristic_solver=h_solver), pargs=()))
 end
-if solver_name in  ["EBIB", ""]
+if solver_name in  ["standard", ""]
     push!(solvers, NativeSARSOP_alt.SARSOPSolver)
-    h_solver = NativeSARSOP_alt.EBIBSolver(max_iterations=h_iterations, precision=h_precision)
-    push!(solverargs, (name="EBIB-SARSOP", sargs=( precision=precision, max_time=timeout, verbose=false, heuristic_solver=h_solver), pargs=()))
+    h_solver = NativeSARSOP_alt.FIBSolver_alt(max_iterations=h_iterations, precision=h_precision)
+    push!(solverargs, (name="SARSOP", sargs=(precision=precision, max_time=timeout, verbose=false, heuristic_solver=h_solver), pargs=()))
 end
+
+
 
 ##################################################################
 #                       Selecting env 

@@ -1,1 +1,1 @@
-{"lbs":[0.495],"times":[5.72731614112854],"env":"ABC","ubs":[0.4950001826667846],"sim_r":0.4957920000000022,"sim_rsigma":0.49502411822431824,"solver":"EBIB-SARSOP","env_full":"ABCModel","final_lw":0.495,"timeout":false,"runtime":5.72731614112854,"final_ub":0.4950001826667846}
+{"lbs":[0.495],"times":[10.902204990386963],"env":"ABC","ubs":[0.4950001826667846],"sim_r":null,"sim_rsigma":null,"solver":"EBIB-SARSOP","env_full":"ABCModel","final_lw":0.495,"timeout":false,"runtime":10.902204990386963,"final_ub":0.4950001826667846}
