@@ -20,27 +20,37 @@ do
    julia --project=. run_sarsoptest.jl --env $env --path $folder_path --discount 0.95 &
    julia --project=. run_sarsoptest.jl --env $env --path $folder_path --discount 0.99 &
 done
+wait
 
-# wait
+echo -e "\n\n============= Large Tests  =============\n\n"
+### 32 tasks, timing capped by TO ( = max(5xTO ub, 3xTO SARSOP) = 3h default )
 
-# echo -e "\n\n============= Large Tests  =============\n\n"
-# 32 tasks, timing capped by TO ( = max(5xTO ub, 3xTO SARSOP) = 3h default )
-
-# folder_path="Data/UpperBounds/"
-# for env in "RockSample10" "K-out-of-N2" "K-out-of-N3" "FrozenLake10" "Tag" "SparseHallway1" "SparseHallway2" "SparseTigerGrid" # LONG
-# do
-#  julia --project=. run_upperbound.jl --env $env --path $folder_path --discount 0.95 &
-#  julia --project=. run_upperbound.jl --env $env --path $folder_path --discount 0.99 &
-# done
+# Upper bounds:
+folder_path="Data/UpperBounds/"
+for env in "RockSample10" "K-out-of-N2" "K-out-of-N3" "FrozenLake10" "Tag" "SparseHallway1" "SparseHallway2" "SparseTigerGrid" # LONG
+do
+   julia --project=. run_upperbound.jl --env $env --path $folder_path --discount 0.95 &
+   # julia --project=. run_upperbound.jl --env $env --path $folder_path --discount 0.99 &
+done
+### SARSOP tests:
+folder_path="Data/SarsopTest/"
+for env in "RockSample10" "K-out-of-N2" "K-out-of-N3" "FrozenLake10" "Tag" "SparseHallway1" "SparseHallway2" "SparseTigerGrid" # LONG
+do
+   julia --project=. run_sarsoptest.jl --env $env --path $folder_path --discount 0.95 &
+   # julia --project=. run_sarsoptest.jl --env $env --path $folder_path --discount 0.99&
+done
+wait
 
 # folder_path="Data/SarsopTest/"
-# for env in "RockSample10" "K-out-of-N2" "K-out-of-N3" "FrozenLake10" "Tag" "SparseHallway1" "SparseHallway2" "SparseTigerGrid" # LONG
+# for env in "Tiger"
 # do
-#     julia --project=. run_sarsoptest.jl --env $env --path $folder_path --discount 0.95 --sims 10000 &
-#     julia --project=. run_sarsoptest.jl --env $env --path $folder_path --discount 0.99 --sims 10000 &
+#    for factor in {-6..20}
+#       discount=$((1-(0.1*0.9**$factor)))
+#       do
+#          julia --project=. run_sarsoptest.jl --env $env --path $folder_path --discount $discount &
+#       done
 # done
-
-wait
+# wait
 
 echo -e "\n\n============= RUNS COMPLETED =============\n\n"
 
