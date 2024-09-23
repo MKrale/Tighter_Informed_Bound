@@ -1,1 +1,1 @@
-{"env_full":"Frozen Lake (10)","env_data":{"na":6,"ns":101,"discount":0.95,"nbao":1757,"no":101,"nb":445},"solvetime":2.003992976,"simtime":-1.0,"ub":0.16053430970456334,"solver":"FIB","ravg":-1.0,"env":"FrozenLake10"}
+{"env_full":"Frozen Lake (10)","env_data":{"na":6,"ns":101,"discount":0.95,"nbao":1757,"no":101,"nb":445},"solvetime":0.889986019,"simtime":-1.0,"ub":0.16053430970456334,"solver":"FIB","ravg":-1.0,"env":"FrozenLake10"}

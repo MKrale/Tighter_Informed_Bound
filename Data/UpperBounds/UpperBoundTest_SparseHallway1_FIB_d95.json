@@ -1,1 +1,1 @@
-{"env_full":"SparseHallway1","env_data":{"na":5,"ns":60,"discount":0.95,"nbao":146672,"no":21,"nb":2170},"solvetime":5.995787014,"simtime":-1.0,"ub":1.575003780659345,"solver":"FIB","ravg":-1.0,"env":"SparseHallway1"}
+{"env_full":"SparseHallway1","env_data":{"na":5,"ns":60,"discount":0.95,"nbao":146672,"no":21,"nb":2170},"solvetime":5.329662539,"simtime":-1.0,"ub":1.575003780659345,"solver":"FIB","ravg":-1.0,"env":"SparseHallway1"}
