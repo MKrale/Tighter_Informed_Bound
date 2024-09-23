@@ -297,7 +297,7 @@ end
 POMDPs.action(π::X, b) where X<: BIBPolicy = first(action_value(π, b))
 POMDPs.value(π::X, b) where X<: BIBPolicy = last(action_value(π,b))
 
-@memoize LRU(maxsize=100) function action_value(π::SBIBPolicy, b)
+function action_value(π::SBIBPolicy, b)
     b = DiscreteHashedBelief(b)
     model = π.model
     bestQ, bestA = -Inf, nothing
@@ -308,7 +308,7 @@ POMDPs.value(π::X, b) where X<: BIBPolicy = last(action_value(π,b))
     return (bestA, bestQ)
 end
 
-@memoize LRU(maxsize=100) function action_value(π::WBIBPolicy, b)
+function action_value(π::WBIBPolicy, b)
     b = DiscreteHashedBelief(b)
     model = π.model
     bestQ, bestA = -Inf, nothing
@@ -319,7 +319,7 @@ end
     return (bestA, bestQ)
 end
 
-@memoize LRU(maxsize=100) function action_value(π::EBIBPolicy, b)
+function action_value(π::EBIBPolicy, b)
     b = DiscreteHashedBelief(b)
     model = π.model
     bestQ, bestA = -Inf, nothing

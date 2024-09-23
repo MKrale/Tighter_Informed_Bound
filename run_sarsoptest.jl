@@ -29,7 +29,7 @@ s = ArgParseSettings()
         help = "Filename (default: generated automatically)"
         default = ""
     "--solvers"
-        help = "Solver to be run. Availble options: standard, BIB, EBIB. (default: run all)"
+        help = "Solver to be run. Availble options: standard, BIB, EBIB, WBIB. (default: run all except WBIB)"
         default = ""
     "--discount"
         help = "Discount factor"
@@ -90,7 +90,15 @@ if solver_name in  ["EBIB", ""]
     h_solver = NativeSARSOP_alt.EBIBSolver(max_iterations=h_iterations, precision=h_precision)
     push!(solverargs, (name="EBIB-SARSOP", sargs=( precision=precision, max_time=timeout, verbose=false, heuristic_solver=h_solver), pargs=()))
 
-    precomp_h_solver = NativeSARSOP_alt.SBIBSolver(max_iterations=1)
+    precomp_h_solver = NativeSARSOP_alt.EBIBSolver(max_iterations=1)
+    push!(precomp_solvers, (sargs=(max_its = 1, verbose=false, heuristic_solver=precomp_h_solver),pargs=()))
+end
+if solver_name in  ["WBIB"]
+    push!(solvers, NativeSARSOP_alt.SARSOPSolver)
+    h_solver = NativeSARSOP_alt.WBIBSolver(max_iterations=h_iterations, precision=h_precision)
+    push!(solverargs, (name="WBIB-SARSOP", sargs=( precision=precision, max_time=timeout, verbose=false, heuristic_solver=h_solver), pargs=()))
+
+    precomp_h_solver = NativeSARSOP_alt.WBIBSolver(max_iterations=1)
     push!(precomp_solvers, (sargs=(max_its = 1, verbose=false, heuristic_solver=precomp_h_solver),pargs=()))
 end
 
