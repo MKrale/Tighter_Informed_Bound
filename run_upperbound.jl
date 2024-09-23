@@ -70,27 +70,34 @@ timeout_sarsop = 1200.0
 if "FIB" in solver_names
     push!(solvers, FIBSolver_alt)
     push!(solverargs, (name="FIB", sargs=(max_iterations=heuristicsteps,precision=heuristicprecision, max_time=timeout), pargs=(), get_Q0=true))
-    push!(precomp_solverargs, ( sargs=(max_iterations=1), pargs=()))
+    
+    push!(precomp_solverargs, ( sargs=(max_iterations=1,), pargs=()))
 end
 if "BIB" in solver_names
     push!(solvers, SBIBSolver)
     push!(solverargs, (name="BIBSolver (standard)", sargs=(max_iterations=heuristicsteps, precision=heuristicprecision, max_time=timeout), pargs=(), get_Q0=true))
-    push!(precomp_solverargs, ( sargs=(max_iterations=1), pargs=()))
+    
+    push!(precomp_solverargs, ( sargs=(max_iterations=1,), pargs=()))
 end
 if "EBIB" in solver_names
     push!(solvers, EBIBSolver)
     push!(solverargs, (name="BIBSolver (entropy)", sargs=(max_iterations=heuristicsteps, precision=heuristicprecision, max_time=timeout), pargs=(), get_Q0=true))
-    push!(precomp_solverargs, ( sargs=(max_iterations=1), pargs=()))    
+    
+    push!(precomp_solverargs, ( sargs=(max_iterations=1,), pargs=()))    
 end
 if "WBIB" in solver_names
     push!(solvers, WBIBSolver)
     push!(solverargs, (name="BIBSolver (worst-case)", sargs=(max_iterations=heuristicsteps, precision=heuristicprecision, max_time=timeout), pargs=(), get_Q0=true))
-    push!(precomp_solverargs, ( sargs=(max_iterations=1), pargs=()))
+    
+    push!(precomp_solverargs, ( sargs=(max_iterations=1,), pargs=()))
 end
 if "SARSOP" in solver_names
     push!(solvers, NativeSARSOP_alt.SARSOPSolver)
     h_solver = NativeSARSOP_alt.FIBSolver_alt(max_iterations=heuristicsteps, precision=heuristicprecision)
     push!(solverargs, (name="SARSOP", sargs=(precision=SARSOPprecision, max_time=timeout_sarsop, verbose=false, heuristic_solver=h_solver), pargs=()))
+    
+    precomp_h_solver = NativeSARSOP_alt.FIBSolver_alt(max_iterations=1)
+    push!(precomp_solverargs, ( sargs=(max_its=1, verbose=false, heuristic_solver=h_solver), pargs=()))
 end
 if "BIBSARSOP" in solver_names
     push!(solvers, NativeSARSOP_alt.SARSOPSolver)
@@ -247,6 +254,10 @@ for (m_idx,(model, modelargs)) in enumerate(zip(envs, envargs))
             "nbao"=> length(BBao_data.Bbao) + length(B),
             "discount"=> discount
 	    )
+
+        # Precompile
+        precomp_solver = solver(;precomp_solverargs[s_idx].sargs...)
+        _p, _i = POMDPTools.solve_info(precomp_solver, model; precomp_solverargs[s_idx].pargs...) 
 
         # Compute policy & get upper bound
         solver = solver(;solverarg.sargs...)

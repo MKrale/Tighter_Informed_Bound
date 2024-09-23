@@ -1,1 +1,1 @@
-{"env_full":"Frozen Lake (4)","env_data":{"na":6,"ns":17,"discount":0.95,"nbao":249,"no":17,"nb":61},"solvetime":2.743427761,"simtime":-1.0,"ub":0.38974696174933693,"solver":"SARSOP","ravg":-1.0,"env":"FrozenLake4"}
+{"env_full":"Frozen Lake (4)","env_data":{"na":6,"ns":17,"discount":0.95,"nbao":249,"no":17,"nb":61},"solvetime":0.121220887,"simtime":-1.0,"ub":0.38974696174933693,"solver":"SARSOP","ravg":-1.0,"env":"FrozenLake4"}
