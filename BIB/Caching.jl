@@ -69,7 +69,7 @@ function get_obs_prob(model::POMDP, o, b::DiscreteHashedBelief, a)
 end
 
 function get_possible_obs(bi::Tuple{Bool, Int}, ai, Data, Bbao_data)
-    if first(bi)
+    if !first(bi)
         b = Data.B[last(bi)]
         possible_os = Set{Int}
         for s in support(b)
@@ -78,7 +78,7 @@ function get_possible_obs(bi::Tuple{Bool, Int}, ai, Data, Bbao_data)
         end
         return 
     else
-        return collect(keys(Bbao_Data.Bbao_idx[last(bi), ai]))
+        return keys(Bbao_data.Bbao_idx[last(bi), ai])
     end
 end
 
@@ -86,7 +86,9 @@ function get_possible_obs(b::DiscreteHashedBelief, ai, SAOs, S_dict)
     possible_os = Set{Int}()
     for s in support(b)
         si = S_dict[s]
-        union!(possible_os, SAOs[si,ai])
+        for oi in SAOs[si,ai]
+            push!(possible_os, oi)
+        end
     end
     return collect(possible_os)
 end
@@ -282,12 +284,14 @@ get_weights_indexfree(Bbao_data, weights_data,bi,ai,oi) = map(x -> last(x), get_
 
 function get_entropy_weights_all(B, Bbao_data::BBAO_Data)
     #TODO: only use those Bs that we need!
+    # model = direct_generic_model(Float64, HiGHS.Optimizer())
     B_weights = Array{Vector{Tuple{Int,Float64}}}(undef, length(B))
     Bbao_weights = Array{Vector{Tuple{Int,Float64}}}(undef, length(Bbao_data.Bbao))
     for (bi, b) in enumerate(B)
         if Bbao_data.B_in_Bbao[bi]
             # B_weights[bi] = get_entropy_weights(model,b, B; overlap=Bbao_data.B_overlap[bi])
-            B_weights[bi] = get_entropy_weights(b, B; bi=(true,bi), Bbao_data=Bbao_data)
+            # empty!(model)
+            B_weights[bi] = get_entropy_weights(b, B; bi=(true,bi), Bbao_data=Bbao_data, model=nothing)
         end
     end
     for (bi, b) in enumerate(Bbao_data.Bbao)
@@ -297,7 +301,7 @@ function get_entropy_weights_all(B, Bbao_data::BBAO_Data)
     return Weights_Data(B_weights, Bbao_weights)
 end
    
-function get_entropy_weights(b, B; bi=nothing, Bbao_data=nothing )
+function get_entropy_weights(b, B; bi=nothing, Bbao_data=nothing, model=nothing )
     B_relevant = []
     B_start = []
     B_entropies = []
@@ -307,7 +311,7 @@ function get_entropy_weights(b, B; bi=nothing, Bbao_data=nothing )
             overlap=Bbao_data.B_overlap[last(bi)]
             valid_weights = Dict(last(bi) => 1.0)
         else
-            overlap=Bbao_data.Bbao_overlap[last(bi)]
+            overlap = Bbao_data.Bbao_overlap[last(bi)]
             valid_weights = Bbao_data.Valid_weights[last(bi)]
         end
         for bpi in overlap
@@ -321,11 +325,13 @@ function get_entropy_weights(b, B; bi=nothing, Bbao_data=nothing )
         B_idxs = 1:length(B)
         B_entropies = map( b -> get_entropy(b), B)
     end
-    model = direct_generic_model(Float64,Gurobi.Optimizer(GRB_ENV))
-    # model = direct_generic_model(Float64,Tulip.Optimizer())
-    # model = Model(Tulip.Optimizer; add_bridges = false)
-    # model = direct_model(HiGHS.Optimizer())
-    # model = Model(HiGHS.Optimizer)
+
+    if model isa Nothing
+        model = direct_generic_model(Float64, HiGHS.Optimizer())
+        # model = direct_generic_model(Float64,Gurobi.Optimizer(GRB_ENV))
+        # model = direct_generic_model(Float64,Tulip.Optimizer())
+        # model = Model(Tulip.Optimizer; add_bridges = false)
+    end
     set_silent(model)
     set_string_names_on_creation(model, false)
     @variable(model, 0.0 <= b_ps[1:length(B_relevant)] <= 1.0)

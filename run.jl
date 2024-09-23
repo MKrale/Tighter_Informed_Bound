@@ -5,6 +5,7 @@ using .BIB
 using Statistics, POMDPModels
 using SparseArrays
 import RockSample
+using Profile, PProf
 
 ##################################################################
 #                           Set Solvers 
@@ -20,13 +21,13 @@ iters, tol = 250, 1e-5
 # push!(solvers, FIB.FIBSolver)
 # push!(solverargs, (name="FIB", sargs=(max_iterations=iters,precision=tol), pargs=(), get_Q0=true))
 
-### BIB
- push!(solvers, SBIBSolver)
- push!(solverargs, (name="BIBSolver (standard)", sargs=(max_iterations=iters, precision=tol), pargs=(), get_Q0=true))
+# ### BIB
+#  push!(solvers, SBIBSolver)
+#  push!(solverargs, (name="BIBSolver (standard)", sargs=(max_iterations=iters, precision=tol), pargs=(), get_Q0=true))
 
-# ### EBIB
-# push!(solvers, EBIBSolver)
-# push!(solverargs, (name="BIBSolver (entropy)", sargs=(max_iterations=iters, precision=tol), pargs=(), get_Q0=true))
+### EBIB
+push!(solvers, EBIBSolver)
+push!(solverargs, (name="BIBSolver (entropy)", sargs=(max_iterations=iters, precision=tol), pargs=(), get_Q0=true))
 
 # ### WBIBs
 # push!(solvers, WBIBSolver)
@@ -118,9 +119,9 @@ include("Environments/K-out-of-N.jl"); using .K_out_of_Ns
 # push!(envs, k_model2)
 # push!(envargs, (name="K-out-of-N (2)",))
 
-# k_model3 = K_out_of_N(N=3, K=3, discount=discount)
-# push!(envs, k_model3)
-# push!(envargs, (name="K-out-of-N (3)",))
+k_model3 = K_out_of_N(N=3, K=3, discount=discount)
+push!(envs, k_model3)
+push!(envargs, (name="K-out-of-N (3)",))
 
 ### CustomGridWorlds
 include("Environments/CustomGridworld.jl"); using .CustomGridWorlds
@@ -131,10 +132,10 @@ include("Environments/CustomGridworld.jl"); using .CustomGridWorlds
 # push!(envs, lakesmall)
 # push!(envargs, (name="Frozen Lake (4x4)",))
 
-lakelarge = FrozenLakeLarge
-lakelarge.discount = discount
-push!(envs, lakelarge)
-push!(envargs, (name="Frozen Lake (10x10)",))
+# lakelarge = FrozenLakeLarge
+# lakelarge.discount = discount
+# push!(envs, lakelarge)
+# push!(envargs, (name="Frozen Lake (10x10)",))
 
 ### Hallway Envs
 
@@ -270,6 +271,8 @@ for (m_idx,(model, modelargs)) in enumerate(zip(envs, envargs))
         t = @elapsed begin
             policy, info = POMDPTools.solve_info(solver, model; solverarg.pargs...) 
         end
+        @profile (policy, info = POMDPTools.solve_info(solver, model; solverarg.pargs...))
+        pprof(;webport=58699)
         (info isa Nothing) ? val = POMDPs.value(policy, POMDPs.initialstate(model)) : val = info.value        
         verbose && println("Upperbound $val (computed in $t seconds)")
         upperbounds_init[s_idx] = val
@@ -277,18 +280,18 @@ for (m_idx,(model, modelargs)) in enumerate(zip(envs, envargs))
         time_solve[s_idx] = t
 
         # Simulate policy & get avg returns
-        verbose && print("Simulating policy...")
-        rs = []
-        for i=1:sims
-            rtot = 0
-            for (t,(b,s,a,o,r)) in enumerate(stepthrough(model,policy,"b,s,a,o,r";max_steps=steps))
-                rtot += POMDPs.discount(model)^(t-1) * r
-            end
-            push!(rs,rtot)
-        end
-        rs_avg, rs_min, rs_max = mean(rs), minimum(rs), maximum(rs)
-        verbose && println("Returns: mean = $rs_avg, min = $rs_min, max = $rs_max")
-        return_means[s_idx] = rs_avg
+        # verbose && print("Simulating policy...")
+        # rs = []
+        # for i=1:sims
+        #     rtot = 0
+        #     for (t,(b,s,a,o,r)) in enumerate(stepthrough(model,policy,"b,s,a,o,r";max_steps=steps))
+        #         rtot += POMDPs.discount(model)^(t-1) * r
+        #     end
+        #     push!(rs,rtot)
+        # end
+        # rs_avg, rs_min, rs_max = mean(rs), minimum(rs), maximum(rs)
+        # verbose && println("Returns: mean = $rs_avg, min = $rs_min, max = $rs_max")
+        # return_means[s_idx] = rs_avg
 
     end
 

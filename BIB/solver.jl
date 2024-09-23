@@ -22,7 +22,7 @@ end
  end
 
 
-verbose = false
+verbose = true
 function POMDPs.solve(solver::X, model::POMDP) where X<:BIBSolver
     t0 = time()
     constants = get_constants(model)
@@ -40,7 +40,7 @@ function POMDPs.solve(solver::X, model::POMDP) where X<:BIBSolver
 
     # 3 : Compute Q-values bsoa beliefs
     Data = BIB_Data(nothing, B,B_idx,SAO_probs,SAOs, S_dict, constants)
-    Qs = get_FIB_Beliefset(model, Data)    # ∀b∈B, contains QBIB value (initialized using QMDP)
+    Qs = get_FIB_Beliefset(model, Data, solver)    # ∀b∈B, contains QBIB value (initialized using QMDP)
 
     # 4 : If WBIB or EBIB, precompute all beliefs after 2 steps
     Bbao_data = []
@@ -114,9 +114,9 @@ function get_QMDP_Beliefset(model::POMDP, B::Vector; constants::Union{C,Nothing}
     return Qs
 end
 
-function get_FIB_Beliefset(model::POMDP, Data::BIB_Data; getdata=false)
+function get_FIB_Beliefset(model::POMDP, Data::BIB_Data, solver::X ; getdata=false) where X<: BIBSolver
 
-    π = solve(FIBSolver_alt(), model; Data=Data)
+    π = solve(FIBSolver_alt(max_time=solver.max_time, max_iterations=solver.max_iterations), model; Data=Data)
     B, constants = Data.B, Data.constants
     Qs = zeros(Float64, length(B), constants.na)
     for (b_idx, b) in enumerate(B)
@@ -245,7 +245,8 @@ end
 
 function get_QEBIB_ba(model::POMDP, b, a, Qs, B, SAOs, SAO_probs, constants::C; ai=nothing, bi=nothing, Bbao_data=nothing, Weights_data=nothing, S_dict=nothing)
     Q = breward(model,b,a)
-    for oi in get_possible_obs(b,ai,SAOs, S_dict)
+    (bi isa Nothing || Bbao_data isa Nothing) ? (Os = get_possible_obs(b,ai,SAOs,S_dict)) : (Os = get_possible_obs( (true,bi) ,ai,SAOs,Bbao_data))
+    for oi in Os
         o = constants.O[oi]
         Qo = []
         if !(Bbao_data isa Nothing) && !(Weights_data isa Nothing) && !(bi isa Nothing)

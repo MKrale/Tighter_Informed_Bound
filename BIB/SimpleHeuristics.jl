@@ -100,11 +100,11 @@ function solve(sol::FIBSolver_alt, m::POMDP; Data = nothing)
 
         SAO_probs, SAOs = get_all_obs_probs(m; constants=C)
         B, B_idx = get_belief_set(m, SAOs; constants=C)
-        Q = solve(QMDPSolver_alt(precision=1e-2, max_iterations=1_000), m).Q
+        Q = solve(QMDPSolver_alt(precision=sol.precision, max_iterations=sol.max_iterations), m).Q
     else
         C, S_dict, SAO_probs, SAOs = Data.constants, Data.S_dict, Data.SAO_probs, Data.SAOs
         B, B_idx, Q = Data.B, Data.B_idx, Data.Q
-        Q isa Nothing && (Q = solve(QMDPSolver_alt(precision=1e-2, max_iterations=1_000), m; Data).Q)
+        Q isa Nothing && (Q = solve(QMDPSolver_alt(precision=sol.precision, max_iterations=sol.max_iterations), m; Data).Q)
     end
 
     γ = discount(m)
