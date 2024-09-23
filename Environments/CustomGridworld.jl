@@ -128,6 +128,135 @@ end
 
 
 #########################################
+#               Defaults:
+#########################################
+
+movement_lake = Dict{Action, Any}(
+    GoForward   => SparseCat([ [GoForward], [GoLeft], [GoRight] ], [0.8, 0.1, 0.1] ),
+    GoLeft      => SparseCat([ [GoRight], [GoForward], [GoBack] ], [0.8, 0.1, 0.1]),
+    GoRight     => SparseCat([ [GoBack], [GoRight], [GoLeft] ], [0.8, 0.1, 0.1]),
+    GoBack      => SparseCat([ [GoLeft], [GoBack], [GoForward] ], [0.8, 0.1, 0.1]),
+    NoOp        => Deterministic([NoOp]),
+    Measure      => Deterministic([Measure])
+)
+
+FrozenLakeSmall = LocationGridWorld(
+    size                = (4,4),
+    observation_type    = Observation_Type(FullState(), 0.0, EmptyObs()),
+    transition_type     = Transition_Type(0.0, CustomActionEffect(movement_lake)),
+    rewards             = Dict(Location(4,4)=>1),
+    holes               = Set([Location(2,2), Location(1,4), Location(4,2), Location(4,3), Location(4,4)]),
+    walls               = Set([]),
+    marks               = Set([]),
+    hole_effect         = Terminate(),
+    discount            = 0.95,
+    initial_state       = Deterministic(Location(1,1)),
+    measuring_effect    = Observation_Type(FullState(), 1, EmptyObs()),
+    measuring_cost      = 0.01
+    )
+
+FrozenLakeLarge = LocationGridWorld(
+    size                = (10,10),
+    observation_type    = Observation_Type(FullState(), 0.0, EmptyObs()),
+    transition_type     = Transition_Type(0.0, CustomActionEffect(movement_lake)),    rewards             = Dict(Location(10,10)=>1),
+    holes               = Set([   Location(1,4), Location(2,4), Location(3,7), Location(5,4), Location(5,8),
+            Location(6,2), Location(6,5), Location(7,1), Location(7,3), Location(8,9),
+            Location(9,3), Location(9,6), Location(10,8), Location(10,10)]),
+    walls               = Set([]),
+    marks               = Set([]),
+    hole_effect         = Terminate(),
+    discount            = 0.95,
+    initial_state       = Deterministic(Location(1,1)),
+    measuring_effect    = Observation_Type(FullState(), 1, EmptyObs()),
+    measuring_cost      = 1.01
+    )
+
+movement_hallway = Dict{Action, Any}(
+    GoForward   => SparseCat([  [GoForward], [NoOp], [GoLeft, GoForward], [GoRight, GoForward], 
+                                [GoBack, GoForward], [GoBack, GoForward, GoBack] ], 
+                                    [0.8, 0.05, 0.05, 0.05, 0.025, 0.025 ]  ),
+    GoLeft      => SparseCat([ [GoLeft], [NoOp], [GoRight], [GoBack] ], [0.7, 0.1, 0.1, 0.1]),
+    GoRight     => SparseCat([ [GoRight], [NoOp], [GoLeft], [GoBack] ], [0.7, 0.1, 0.1, 0.1]),
+    GoBack      => SparseCat([ [GoBack], [NoOp], [GoLeft], [GoRight] ], [0.6, 0.1, 0.15, 0.15]),
+    NoOp        => Deterministic([NoOp]),
+    Measure      => Deterministic([NoOp])
+)
+
+obs_hallway     = Dict{CellType, Any}(
+    Empty   => SparseCat([Empty, Wall], [0.95, 0.05]),
+    # Empty => Deterministic(Empty),
+    Wall    => SparseCat([Wall, Empty], [0.9, 0.1]),
+    # Wall => Deterministic(Wall),
+    # This is slightly different from the original implementation, where marks are only observable when facing them.
+    # Thats really annoying to implement, though, so we won't.
+    Mark    => Deterministic(Mark), 
+    # No holes exist here.
+    # Hole    => SparseCat([Empty, Wall], [0.95, 0.05]),
+    Hole => SparseCat([Empty, Wall], [0.95, 0.05]),
+    # Hole => Deterministic(Hole)
+)
+
+CustomMiniHallway = PositionGridWorld(
+    size                = (2,3),
+    observation_type    = Observation_Type(RelState(), 0.0, CustomRelState(obs_hallway)),
+    # observation_type    = Observation_Type(RelState(), 1, EmptyObs()),
+    transition_type     = Transition_Type(0.0, CustomActionEffect(movement_hallway)),
+    rewards             = Dict(Location(2,3) => 1),
+    holes               = Set([Location(2,3)]),
+    walls               = Set([Location(1,3), Location(2,1)]),
+    marks               = Set([]),
+    hole_effect         = Reset(),
+    discount            = 0.95,
+    initial_state       = Deterministic(Position(Location(1,1), EAST))
+)
+
+Hallway1 = PositionGridWorld(
+    size                = (11,2),
+    observation_type    = Observation_Type(RelState(), 1, CustomRelState(obs_hallway)),
+    # observation_type    = Observation_Type(RelState(), 1, EmptyObs()),
+    transition_type     = Transition_Type(0.8, CustomActionEffect(movement_hallway)),
+    rewards             = Dict(Location(9,2) => 1),
+    holes               = Set([Location(9,2)]),
+    walls               = Set([Location(1,2), Location(2,2), Location(4,2), Location(6,2), Location(8,2), Location(10,2), Location(11,2)]),
+    marks               = Set([Location(3,2), Location(5,2), Location(7,2)]),
+    hole_effect         = Reset(),
+    discount            = 0.95,
+    initial_state       = :Uniform
+    # initial_state       = Deterministic(Position(Location(1,1), EAST)) # TODO: should be Uniform()
+)
+
+Hallway2 = PositionGridWorld(
+    size                = (7,5),
+    observation_type    = Observation_Type(RelState(), 1, CustomRelState(obs_hallway)),
+    # observation_type    = Observation_Type(RelState(), 1, EmptyObs()),
+    transition_type     = Transition_Type(0.8, CustomActionEffect(movement_hallway)),
+    rewards             = Dict(Location(7,4) => 1),
+    holes               = Set([Location(7,4)]),
+    walls               = Set([Location(1,1), Location(1,3), Location(1,5), Location(3,2), Location(3,3), Location(3,4),
+                                Location(5,2), Location(5,3), Location(5,4), Location(7,1), Location(7,3), Location(7,5)]),
+    marks               = Set([]),
+    hole_effect         = Reset(),
+    discount            = 0.95,
+    initial_state       = :Uniform
+    # initial_state       = Deterministic(Position(Location(1,2), EAST)) # TODO: should be Uniform()
+)
+
+TigerGrid = PositionGridWorld(
+    size                = (5,2),
+    observation_type    = Observation_Type(RelState(), 1, CustomRelState(obs_hallway)),
+    # observation_type    = Observation_Type(RelState(), 1, EmptyObs()),
+    transition_type     = Transition_Type(0.8, CustomActionEffect(movement_hallway)),
+    rewards             = Dict(Location(3,1) => 1, Location(1,1) => -1, Location(5,1) => -1),
+    holes               = Set([Location(3,1), Location(1,1), Location(5,1)]),
+    walls               = Set([Location(3,2)]),
+    marks               = Set([]),
+    hole_effect         = Reset(),
+    discount            = 0.95,
+    initial_state       = SparseCat([Position(Location(2,2), NORTH), Position(Location(4,2), NORTH)], [0.5, 0.5])
+)
+
+
+#########################################
 #      Helper Logic Functions:
 #########################################
 
@@ -447,132 +576,3 @@ function custom_discrete_product(A::Vector{Vector{Tuple{X, Float64}}}; mapfuncti
 end
 
 end
-
-
-#########################################
-#               Defaults:
-#########################################
-
-movement_lake = Dict{Action, Any}(
-    GoForward   => SparseCat([ [GoForward], [GoLeft], [GoRight] ], [0.8, 0.1, 0.1] ),
-    GoLeft      => SparseCat([ [GoRight], [GoForward], [GoBack] ], [0.8, 0.1, 0.1]),
-    GoRight     => SparseCat([ [GoBack], [GoRight], [GoLeft] ], [0.8, 0.1, 0.1]),
-    GoBack      => SparseCat([ [GoLeft], [GoBack], [GoForward] ], [0.8, 0.1, 0.1]),
-    NoOp        => Deterministic([NoOp]),
-    Measure      => Deterministic([Measure])
-)
-
-FrozenLakeSmall = LocationGridWorld(
-    size                = (4,4),
-    observation_type    = Observation_Type(FullState(), 0.0, EmptyObs()),
-    transition_type     = Transition_Type(0.0, CustomActionEffect(movement_lake)),
-    rewards             = Dict(Location(4,4)=>1),
-    holes               = Set([Location(2,2), Location(1,4), Location(4,2), Location(4,3), Location(4,4)]),
-    walls               = Set([]),
-    marks               = Set([]),
-    hole_effect         = Terminate(),
-    discount            = 0.95,
-    initial_state       = Deterministic(Location(1,1)),
-    measuring_effect    = Observation_Type(FullState(), 1, EmptyObs()),
-    measuring_cost      = 0.01
-    )
-
-FrozenLakeLarge = LocationGridWorld(
-    size                = (10,10),
-    observation_type    = Observation_Type(FullState(), 0.0, EmptyObs()),
-    transition_type     = Transition_Type(0.0, CustomActionEffect(movement_lake)),    rewards             = Dict(Location(10,10)=>1),
-    holes               = Set([   Location(1,4), Location(2,4), Location(3,7), Location(5,4), Location(5,8),
-            Location(6,2), Location(6,5), Location(7,1), Location(7,3), Location(8,9),
-            Location(9,3), Location(9,6), Location(10,8), Location(10,10)]),
-    walls               = Set([]),
-    marks               = Set([]),
-    hole_effect         = Terminate(),
-    discount            = 0.95,
-    initial_state       = Deterministic(Location(1,1)),
-    measuring_effect    = Observation_Type(FullState(), 1, EmptyObs()),
-    measuring_cost      = 1.01
-    )
-
-movement_hallway = Dict{Action, Any}(
-    GoForward   => SparseCat([  [GoForward], [NoOp], [GoLeft, GoForward], [GoRight, GoForward], 
-                                [GoBack, GoForward], [GoBack, GoForward, GoBack] ], 
-                                    [0.8, 0.05, 0.05, 0.05, 0.025, 0.025 ]  ),
-    GoLeft      => SparseCat([ [GoLeft], [NoOp], [GoRight], [GoBack] ], [0.7, 0.1, 0.1, 0.1]),
-    GoRight     => SparseCat([ [GoRight], [NoOp], [GoLeft], [GoBack] ], [0.7, 0.1, 0.1, 0.1]),
-    GoBack      => SparseCat([ [GoBack], [NoOp], [GoLeft], [GoRight] ], [0.6, 0.1, 0.15, 0.15]),
-    NoOp        => Deterministic([NoOp]),
-    Measure      => Deterministic([NoOp])
-)
-
-obs_hallway     = Dict{CellType, Any}(
-    Empty   => SparseCat([Empty, Wall], [0.95, 0.05]),
-    # Empty => Deterministic(Empty),
-    Wall    => SparseCat([Wall, Empty], [0.9, 0.1]),
-    # Wall => Deterministic(Wall),
-    # This is slightly different from the original implementation, where marks are only observable when facing them.
-    # Thats really annoying to implement, though, so we won't.
-    Mark    => Deterministic(Mark), 
-    # No holes exist here.
-    # Hole    => SparseCat([Empty, Wall], [0.95, 0.05]),
-    Hole => SparseCat([Empty, Wall], [0.95, 0.05]),
-    # Hole => Deterministic(Hole)
-)
-
-CustomMiniHallway = PositionGridWorld(
-    size                = (2,3),
-    observation_type    = Observation_Type(RelState(), 0.0, CustomRelState(obs_hallway)),
-    # observation_type    = Observation_Type(RelState(), 1, EmptyObs()),
-    transition_type     = Transition_Type(0.0, CustomActionEffect(movement_hallway)),
-    rewards             = Dict(Location(2,3) => 1),
-    holes               = Set([Location(2,3)]),
-    walls               = Set([Location(1,3), Location(2,1)]),
-    marks               = Set([]),
-    hole_effect         = Reset(),
-    discount            = 0.95,
-    initial_state       = Deterministic(Position(Location(1,1), EAST))
-)
-
-Hallway1 = PositionGridWorld(
-    size                = (11,2),
-    observation_type    = Observation_Type(RelState(), 1, CustomRelState(obs_hallway)),
-    # observation_type    = Observation_Type(RelState(), 1, EmptyObs()),
-    transition_type     = Transition_Type(0.8, CustomActionEffect(movement_hallway)),
-    rewards             = Dict(Location(9,2) => 1),
-    holes               = Set([Location(9,2)]),
-    walls               = Set([Location(1,2), Location(2,2), Location(4,2), Location(6,2), Location(8,2), Location(10,2), Location(11,2)]),
-    marks               = Set([Location(3,2), Location(5,2), Location(7,2)]),
-    hole_effect         = Reset(),
-    discount            = 0.95,
-    initial_state       = :Uniform
-    # initial_state       = Deterministic(Position(Location(1,1), EAST)) # TODO: should be Uniform()
-)
-
-Hallway2 = PositionGridWorld(
-    size                = (7,5),
-    observation_type    = Observation_Type(RelState(), 1, CustomRelState(obs_hallway)),
-    # observation_type    = Observation_Type(RelState(), 1, EmptyObs()),
-    transition_type     = Transition_Type(0.8, CustomActionEffect(movement_hallway)),
-    rewards             = Dict(Location(7,4) => 1),
-    holes               = Set([Location(7,4)]),
-    walls               = Set([Location(1,1), Location(1,3), Location(1,5), Location(3,2), Location(3,3), Location(3,4),
-                                Location(5,2), Location(5,3), Location(5,4), Location(7,1), Location(7,3), Location(7,5)]),
-    marks               = Set([]),
-    hole_effect         = Reset(),
-    discount            = 0.95,
-    initial_state       = :Uniform
-    # initial_state       = Deterministic(Position(Location(1,2), EAST)) # TODO: should be Uniform()
-)
-
-TigerGrid = PositionGridWorld(
-    size                = (5,2),
-    observation_type    = Observation_Type(RelState(), 1, CustomRelState(obs_hallway)),
-    # observation_type    = Observation_Type(RelState(), 1, EmptyObs()),
-    transition_type     = Transition_Type(0.8, CustomActionEffect(movement_hallway)),
-    rewards             = Dict(Location(3,1) => 1, Location(1,1) => -1, Location(5,1) => -1),
-    holes               = Set([Location(3,1), Location(1,1), Location(5,1)]),
-    walls               = Set([Location(3,2)]),
-    marks               = Set([]),
-    hole_effect         = Reset(),
-    discount            = 0.95,
-    initial_state       = SparseCat([Position(Location(2,2), NORTH), Position(Location(4,2), NORTH)], [0.5, 0.5])
-)
