@@ -25,13 +25,13 @@ iters, tol = 250, 1e-5
 #  push!(solvers, SBIBSolver)
 #  push!(solverargs, (name="BIBSolver (standard)", sargs=(max_iterations=iters, precision=tol), pargs=(), get_Q0=true))
 
-### EBIB
-push!(solvers, EBIBSolver)
-push!(solverargs, (name="BIBSolver (entropy)", sargs=(max_iterations=iters, precision=tol), pargs=(), get_Q0=true))
+# ### EBIB
+# push!(solvers, EBIBSolver)
+# push!(solverargs, (name="BIBSolver (entropy)", sargs=(max_iterations=iters, precision=tol), pargs=(), get_Q0=true))
 
-# ### WBIBs
-# push!(solvers, WBIBSolver)
-# push!(solverargs, (name="BIBSolver (worst-case)", sargs=(max_iterations=250, precision=1e-5), pargs=(), get_Q0=true))
+### WBIBs
+push!(solvers, WBIBSolver)
+push!(solverargs, (name="BIBSolver (worst-case)", sargs=(max_iterations=250, precision=1e-5), pargs=(), get_Q0=true))
 
 # SARSOP
 # include("Sarsop_altered/NativeSARSOP.jl")
@@ -239,7 +239,7 @@ models_to_skip_WBIB = ["RockSample (10x10)","Frozen Lake (10x10)","2-out-of-2","
 #     write(file, "\n")
 
 for (m_idx,(model, modelargs)) in enumerate(zip(envs, envargs))
-    model = SparseTabularPOMDP(model)
+    # model = SparseTabularPOMDP(model)
     verbose && println("Testing in $(modelargs.name) environment")
     policies = []
     upperbounds_init = zeros(nr_pols)

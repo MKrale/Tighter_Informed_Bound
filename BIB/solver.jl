@@ -22,7 +22,7 @@ end
  end
 
 
-verbose = true
+verbose = false
 function POMDPs.solve(solver::X, model::POMDP) where X<:BIBSolver
     t0 = time()
     constants = get_constants(model)
@@ -41,7 +41,6 @@ function POMDPs.solve(solver::X, model::POMDP) where X<:BIBSolver
     # 3 : Compute Q-values bsoa beliefs
     Data = BIB_Data(nothing, B,B_idx,SAO_probs,SAOs, S_dict, constants)
     Qs = get_FIB_Beliefset(model, Data, solver)    # ∀b∈B, contains QBIB value (initialized using QMDP)
-    println(Qs)
 
     # 4 : If WBIB or EBIB, precompute all beliefs after 2 steps
     Bbao_data = []
@@ -112,9 +111,8 @@ end
 
 function get_FIB_Beliefset(model::POMDP, Data::BIB_Data, solver::X ; getdata=false) where X<: BIBSolver
 
-    π = solve(FIBSolver_alt(max_time=solver.max_time, max_iterations=solver.max_iterations), model; Data=Data)
+    π = solve(FIBSolver_alt(precision=solver.precision, max_time=solver.max_time, max_iterations=solver.max_iterations*5), model; Data=Data)
     B, constants = Data.B, Data.constants
-    println(π.Q)
     Qs = zeros(Float64, length(B), constants.na)
     for (b_idx, b) in enumerate(B)
         for (ai, a) in enumerate(constants.A)
@@ -194,7 +192,6 @@ function get_QWBIB_ba(model::POMDP,b,a,Qs,B, SAOs, SAO_probs, constants::C; ai=n
                 bao = get_bao(Bbao_data, bi, ai, oi, B)
                 overlap_idxs = get_overlap(Bbao_data, bi, ai, oi)
                 thisBs, thisQs = B[overlap_idxs], Qs[overlap_idxs, api]
-                println(thisBs, thisQs)
                 empty!(opt_model)
                 thisQo = get_QLP(bao, thisQs, thisBs, nothing)
             else
