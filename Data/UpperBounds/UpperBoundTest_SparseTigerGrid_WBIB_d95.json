@@ -1,1 +1,1 @@
-{"env_full":"TigerGrid","env_data":{"na":5,"ns":36,"discount":0.95,"nbao":100177,"no":17,"nb":1418},"solvetime":1660.429859512,"simtime":-1.0,"ub":2.6659526838476033,"solver":"BIBSolver (worst-case)","ravg":-1.0,"env":"SparseTigerGrid"}
+{"env_full":"TigerGrid","env_data":{"na":5,"ns":36,"discount":0.95,"nbao":100177,"no":17,"nb":1418},"solvetime":1675.799620039,"simtime":-1.0,"ub":2.66595339677436,"solver":"BIBSolver (worst-case)","ravg":-1.0,"env":"SparseTigerGrid"}

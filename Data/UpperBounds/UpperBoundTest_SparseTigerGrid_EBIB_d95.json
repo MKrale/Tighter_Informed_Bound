@@ -1,1 +1,1 @@
-{"env_full":"TigerGrid","env_data":{"na":5,"ns":36,"discount":0.95,"nbao":100177,"no":17,"nb":1418},"solvetime":500.373060115,"simtime":-1.0,"ub":2.5715783581004863,"solver":"BIBSolver (entropy)","ravg":-1.0,"env":"SparseTigerGrid"}
+{"env_full":"TigerGrid","env_data":{"na":5,"ns":36,"discount":0.95,"nbao":100177,"no":17,"nb":1418},"solvetime":436.906892504,"simtime":-1.0,"ub":2.5715708924338627,"solver":"BIBSolver (entropy)","ravg":-1.0,"env":"SparseTigerGrid"}

@@ -1,1 +1,1 @@
-{"env_full":"Tag","env_data":{"na":5,"ns":842,"discount":0.95,"nbao":6333,"no":30,"nb":2351},"solvetime":125.33092699,"simtime":-1.0,"ub":-5.568820514621075,"solver":"BIBSolver (entropy)","ravg":-1.0,"env":"Tag"}
+{"env_full":"Tag","env_data":{"na":5,"ns":842,"discount":0.95,"nbao":6333,"no":30,"nb":2351},"solvetime":199.014295767,"simtime":-1.0,"ub":-5.568621320255046,"solver":"BIBSolver (entropy)","ravg":-1.0,"env":"Tag"}
