@@ -3,26 +3,27 @@
 # ... description ...
 discount="0.95"
 processes=()
-# Small, UB
+### Small, UB
 for env in "ABC" "RockSample5" "FrozenLake4" "Tiger" # QUICK
 do
    thisrun="julia --project=. run_upperbound.jl --env $env --discount $discount"
    processes+=("$thisrun")
 done
-# Small, Sarsop
-# for env in "ABC" "RockSample5" "FrozenLake4" "Tiger" # QUICK
-# do
-#    processes+=("julia --project=. run_sarsoptest.jl --env $env --discount $discount")
-# done
-# # Large, UB
-# for env in "RockSample10" "K-out-of-N2" "K-out-of-N3" "FrozenLake10" "Tag" "SparseHallway1" "SparseHallway2" "SparseTigerGrid" # LONG
-# do
-#    processes+=("julia --project=. run_upperbound.jl --env $env --discount $discount")
-# done
-# for env in "RockSample10" "K-out-of-N2" "K-out-of-N3" "FrozenLake10" "Tag" "SparseHallway1" "SparseHallway2" "SparseTigerGrid" # LONG
-# do
-#    processes+=("julia --project=. run_sarsoptest.jl --env $env --discount $discount")
-# done
+### Small, Sarsop
+for env in "ABC" "RockSample5" "FrozenLake4" "Tiger" # QUICK
+do
+   processes+=("julia --project=. run_sarsoptest.jl --env $env --discount $discount")
+done
+### Large, UB
+for env in "RockSample10" "K-out-of-N2" "K-out-of-N3" "FrozenLake10" "Tag" "SparseHallway1" "SparseHallway2" "SparseTigerGrid" # LONG
+do
+   processes+=("julia --project=. run_upperbound.jl --env $env --discount $discount")
+done
+### Large, Sarsop
+for env in "RockSample10" "K-out-of-N2" "K-out-of-N3" "FrozenLake10" "Tag" "SparseHallway1" "SparseHallway2" "SparseTigerGrid" # LONG
+do
+   processes+=("julia --project=. run_sarsoptest.jl --env $env --discount $discount")
+done
 
 printf "%s\n" "${processes[@]}" | parallel -j3 # WHY DOES THIS WORK??? I HATE BASH!!!
 wait
