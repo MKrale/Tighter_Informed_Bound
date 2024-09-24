@@ -16,7 +16,7 @@ struct QMDPPlanner_alt <: QS_table_policy
     V::Vector{AbstractFloat}
 end
 
-get_max_r(m::POMDP) = get_max_r(states(m), actions(m))
+get_max_r(m::POMDP) = get_max_r(m,states(m), actions(m))
 function get_max_r(m,S, A)
     maxr = 0
     for s in S
@@ -111,6 +111,7 @@ function solve(sol::FIBSolver_alt, m::POMDP; Data = nothing)
 
     largest_change = Inf
     i=0
+    println(Q)
     while (largest_change > sol.precision) && (i < sol.max_iterations)
         i+=1
         largest_change = 0
@@ -126,12 +127,13 @@ function solve(sol::FIBSolver_alt, m::POMDP; Data = nothing)
                     end
                     thisQ += γ * SAO_probs[oi,si,ai] * maximum(Qo)
                 end
-                largest_change = max(largest_change, abs((thisQ - Q[si,ai]) / (Q[si,ai]+1e-10) ))
+                largest_change = max(largest_change, abs((thisQ - Q[si,ai]) / (Q[si,ai]+1e-5) ))
                 Q[si,ai] = thisQ
             end
         end
         time()-t0 > sol.max_time && break
     end
+    println("FIB:", largest_change, " ", i)
     return FIBPlanner_alt(m,Q, vec(maximum(Q, dims=2)),C,S_dict) ### dim?
 end
 

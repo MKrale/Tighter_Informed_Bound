@@ -24,7 +24,7 @@ s = ArgParseSettings()
         default = 1e-2
     "--path"
         help = "File path for data output."
-        default = "./Data/"
+        default = "Data/SarsopTest/"
     "--filename"
         help = "Filename (default: generated automatically)"
         default = ""

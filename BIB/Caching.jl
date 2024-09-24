@@ -93,6 +93,18 @@ function get_possible_obs(b::DiscreteHashedBelief, ai, SAOs, S_dict)
     return collect(possible_os)
 end
 
+
+function get_possible_obs_probs(b::DiscreteHashedBelief, ai, SAOs,SAO_probs, S_dict)
+    possible_os = Dict{Int, Float64}()
+    for s in support(b)
+        si = S_dict[s]
+        for oi in SAOs[si,ai]
+            add_to_dict!(possible_os, oi, pdf(b,s) * SAO_probs[oi,si,ai])
+        end
+    end
+    return possible_os
+end
+
 function get_belief_set(model, SAOs; constants::Union{C,Nothing}=nothing)
     isnothing(constants) && throw("Not implemented error! (get_obs_probs)")
     S, A, O = constants.S, constants.A, constants.O
@@ -138,6 +150,7 @@ end
 struct BBAO_Data
     Bbao::Vector
     Bbao_idx::Array{Dict{Int,Tuple{Bool,Int}},2}
+    BAO_probs::Array{Float64,3}
     B_in_Bbao::BitVector
     B_overlap::Array{Vector{Int}}
     Bbao_overlap::Array{Vector{Int}}
@@ -162,6 +175,7 @@ function get_Bbao(model, Data, constants)
     nb = length(B)
 
     Bbao = []
+    BAO_probs = zeros(constants.no,nb,constants.na)
     B_in_Bboa = zeros(Bool, length(B))
     Bbao_valid_weights = Dict{Int,Float64}[]
     Bbao_idx = Array{Dict{Int, Tuple{Bool,Int}}}(undef, nb, constants.na)
@@ -182,7 +196,9 @@ function get_Bbao(model, Data, constants)
     for (bi,b) in enumerate(B)
         for (ai, a) in enumerate(constants.A)
             Bbao_idx[bi,ai] = Dict{Int, Tuple{Bool, Int}}()
-            for oi in get_possible_obs(b,ai,Data.SAOs,S_dict)
+            possible_obs = get_possible_obs_probs(b,ai,Data.SAOs, Data.SAO_probs, S_dict)
+            for oi in keys(possible_obs)
+                BAO_probs[oi,bi,ai] = possible_obs[oi]
                 o = constants.O[oi]
                 bao = POMDPs.update(U,b,a,o)
                 if length(support(bao)) > 0
@@ -237,7 +253,7 @@ function get_Bbao(model, Data, constants)
     end
 
     B_entropy = map( b -> get_entropy(b), B)
-    return BBAO_Data(Bbao, Bbao_idx, B_in_Bboa, B_overlap, Bbao_overlap, B_entropy, Bbao_valid_weights)
+    return BBAO_Data(Bbao, Bbao_idx, BAO_probs, B_in_Bboa, B_overlap, Bbao_overlap, B_entropy, Bbao_valid_weights)
 end
 
 function have_overlap(b,bp)
@@ -283,20 +299,23 @@ end
 get_weights_indexfree(Bbao_data, weights_data,bi,ai,oi) = map(x -> last(x), get_weights(Bbao_data,weights_data,bi,ai,oi))
 
 function get_entropy_weights_all(B, Bbao_data::BBAO_Data)
-    #TODO: only use those Bs that we need!
+    
+    model = Model(Clp.Optimizer; add_bridges=false)
     # model = direct_generic_model(Float64, HiGHS.Optimizer())
+    set_silent(model)
+    set_string_names_on_creation(model, false)
+
     B_weights = Array{Vector{Tuple{Int,Float64}}}(undef, length(B))
     Bbao_weights = Array{Vector{Tuple{Int,Float64}}}(undef, length(Bbao_data.Bbao))
     for (bi, b) in enumerate(B)
         if Bbao_data.B_in_Bbao[bi]
-            # B_weights[bi] = get_entropy_weights(model,b, B; overlap=Bbao_data.B_overlap[bi])
-            # empty!(model)
-            B_weights[bi] = get_entropy_weights(b, B; bi=(true,bi), Bbao_data=Bbao_data, model=nothing)
+            empty!(model)
+            B_weights[bi] = get_entropy_weights(b, B; bi=(true,bi), Bbao_data=Bbao_data, model=model)
         end
     end
-    for (bi, b) in enumerate(Bbao_data.Bbao)
-        # Bbao_weights[bi] = get_entropy_weights(model,b, B; overlap=Bbao_data.Bbao_overlap[bi])
-        Bbao_weights[bi] = get_entropy_weights(b, B; bi=(false,bi), Bbao_data=Bbao_data)
+    for (bi, b) in enumerate(Bbao_data.Bbao)        
+        empty!(model)
+        Bbao_weights[bi] = get_entropy_weights(b, B; bi=(false,bi), Bbao_data=Bbao_data, model=model)
     end
     return Weights_Data(B_weights, Bbao_weights)
 end
@@ -327,13 +346,20 @@ function get_entropy_weights(b, B; bi=nothing, Bbao_data=nothing, model=nothing 
     end
 
     if model isa Nothing
-        model = direct_generic_model(Float64, HiGHS.Optimizer())
+        # model = direct_generic_model(Float64, HiGHS.Optimizer())
+        # opt = optimizer_with_attributes(Cbc.Optimizer, Cbc.SetVariableNames() => true)
+        # model = direct_generic_model(Float64, optimizer_with_attributes(Cbc.Optimizer, Cbc.SetVariableNames() => true))
+        # reset_optimizer(model)
+        # model = Model(optimizer_with_attributes(Cbc.Optimizer); add_bridges=false)
+        # set_attribute(model, "slogLevel", 0)
+        # model = direct_generic_model(Float64, Cbc.Optimizer())
         # model = direct_generic_model(Float64,Gurobi.Optimizer(GRB_ENV))
         # model = direct_generic_model(Float64,Tulip.Optimizer())
         # model = Model(Tulip.Optimizer; add_bridges = false)
+        model = Model(Clp.Optimizer; add_bridges=false)
+        set_silent(model)
+        set_string_names_on_creation(model, false)
     end
-    set_silent(model)
-    set_string_names_on_creation(model, false)
     @variable(model, 0.0 <= b_ps[1:length(B_relevant)] <= 1.0)
     # !(B_start == []) && set_start_value.(b_ps, B_start)
     for s in support(b)

@@ -41,6 +41,7 @@ function POMDPs.solve(solver::X, model::POMDP) where X<:BIBSolver
     # 3 : Compute Q-values bsoa beliefs
     Data = BIB_Data(nothing, B,B_idx,SAO_probs,SAOs, S_dict, constants)
     Qs = get_FIB_Beliefset(model, Data, solver)    # ∀b∈B, contains QBIB value (initialized using QMDP)
+    println(Qs)
 
     # 4 : If WBIB or EBIB, precompute all beliefs after 2 steps
     Bbao_data = []
@@ -75,9 +76,7 @@ function POMDPs.solve(solver::X, model::POMDP) where X<:BIBSolver
     # Now iterate:
     it = 0
     for i=1:solver.max_iterations
-        # printdb(i)
         Qs, max_dif = get_Q(model, Qs, args...)
-        # max_dif < solver.precision && (printdb("breaking after $i iterations:"); break)
         if max_dif < solver.precision || time()-t0 > solver.max_time
             break
         end
@@ -85,9 +84,6 @@ function POMDPs.solve(solver::X, model::POMDP) where X<:BIBSolver
     end
     t_it = time()- t0 - t_init - t_w
     verbose && printdb("iteration time $t_it (avg over $it iterations: $(t_it/it))")
-    # if solver isa EBIBSolver
-    #     return pol(model, BIB_Data(Qs,Data),Bbao_data, Weights)
-    # end
     return pol(model, BIB_Data(Qs,Data))
 end
 
@@ -118,6 +114,7 @@ function get_FIB_Beliefset(model::POMDP, Data::BIB_Data, solver::X ; getdata=fal
 
     π = solve(FIBSolver_alt(max_time=solver.max_time, max_iterations=solver.max_iterations), model; Data=Data)
     B, constants = Data.B, Data.constants
+    println(π.Q)
     Qs = zeros(Float64, length(B), constants.na)
     for (b_idx, b) in enumerate(B)
         for (ai, a) in enumerate(constants.A)
@@ -182,6 +179,12 @@ get_QWBIB_ba(model::POMDP, b,a,Q, D::BIB_Data; ai=nothing, Bbao_data=nothing, bi
 get_QWBIB_ba(model::POMDP, b,a,D::BIB_Data; ai=nothing, Bbao_data=nothing, bi=nothing) = get_QWBIB_ba(model, b, a, D.Q, D.B, D.SAOs, D.SAO_probs, D.constants; ai=ai, S_dict=D.S_dict, Bbao_data=Bbao_data, bi=bi)
 
 function get_QWBIB_ba(model::POMDP,b,a,Qs,B, SAOs, SAO_probs, constants::C; ai=nothing, Bbao_data=nothing, bi=nothing, S_dict=nothing)
+    
+    opt_model = Model(Clp.Optimizer; add_bridges=false)
+    # opt_model = direct_generic_model(Float64, HiGHS.Optimizer())
+    set_silent(opt_model)
+    set_string_names_on_creation(opt_model, false)
+    
     Q = breward(model,b,a)
     for oi in get_possible_obs(b,ai,SAOs, S_dict)
         Qo = -Inf
@@ -191,12 +194,15 @@ function get_QWBIB_ba(model::POMDP,b,a,Qs,B, SAOs, SAO_probs, constants::C; ai=n
                 bao = get_bao(Bbao_data, bi, ai, oi, B)
                 overlap_idxs = get_overlap(Bbao_data, bi, ai, oi)
                 thisBs, thisQs = B[overlap_idxs], Qs[overlap_idxs, api]
-                thisQo = get_QLP(bao, thisQs, thisBs)
+                println(thisBs, thisQs)
+                empty!(opt_model)
+                thisQo = get_QLP(bao, thisQs, thisBs, nothing)
             else
                 o = constants.O[oi]
                 bao = update(DiscreteHashedBeliefUpdater(model),b,a,o)
                 B_rel, Bidx_rel = get_overlapping_beliefs(bao,B)
-                thisQo = get_QLP(bao, Qs[Bidx_rel,api],B_rel)
+                empty!(opt_model)
+                thisQo = get_QLP(bao, Qs[Bidx_rel,api],B_rel, nothing)
             end
             Qo = max(Qo, thisQo)
         end
@@ -210,9 +216,11 @@ function get_QWBIB_ba(model::POMDP,b,a,Qs,B, SAOs, SAO_probs, constants::C; ai=n
 end
 
 """ Uses a point-set B with value estimates Qs to estimate the value of a belief b."""
-function get_QLP(b,Qs,B)
-    model = Model(HiGHS.Optimizer)
-    set_silent(model)
+function get_QLP(b,Qs,B, model)
+    if model isa Nothing
+        model = Model(HiGHS.Optimizer)
+        set_silent(model)
+    end
     @variable(model, 0.0 <= b_ps[1:length(B)] <= 1.0)
     for s in support(b)
         Idx, Ps = [], []
@@ -245,27 +253,27 @@ end
 
 function get_QEBIB_ba(model::POMDP, b, a, Qs, B, SAOs, SAO_probs, constants::C; ai=nothing, bi=nothing, Bbao_data=nothing, Weights_data=nothing, S_dict=nothing)
     Q = breward(model,b,a)
-    (bi isa Nothing || Bbao_data isa Nothing) ? (Os = get_possible_obs(b,ai,SAOs,S_dict)) : (Os = get_possible_obs( (true,bi) ,ai,SAOs,Bbao_data))
+    (bi isa Nothing || Bbao_data isa Nothing) ? (Os = collect(keys(get_possible_obs_probs(b,ai,SAOs,SAO_probs,S_dict)))) : (Os = get_possible_obs( (true,bi) ,ai,SAOs,Bbao_data))
     for oi in Os
         o = constants.O[oi]
         Qo = []
+        p = 0
         if !(Bbao_data isa Nothing) && !(Weights_data isa Nothing) && !(bi isa Nothing)
             bao = get_bao(Bbao_data, bi, ai, oi, B)
             weights = get_weights_indexfree(Bbao_data, Weights_data,bi,ai,oi)
             this_Qs = Qs[get_overlap(Bbao_data, bi, ai, oi), :]
             Qo = sum(weights .* this_Qs, dims=1)
+            p = Bbao_data.BAO_probs[oi,bi,ai]
         else
             bao = update(DiscreteHashedBeliefUpdater(model),b,a,o)
             relevant_Bs, relevant_Bis = get_overlapping_beliefs(bao, B)
             weights = map(x -> last(x), get_entropy_weights(bao,relevant_Bs))
             this_Qs = Qs[relevant_Bis,:]
             Qo = sum(weights .* this_Qs, dims=1)
+            for s in support(b)
+                p += pdf(b,s) * SAO_probs[oi,S_dict[s],ai]
+            end
         end
-        p = 0
-        for s in support(b)
-            p += pdf(b,s) * SAO_probs[oi,S_dict[s],ai]
-        end
-        # printdb(p, discount(model), maximum(Qo))
         Q += p * discount(model) * maximum(Qo)
     end
     return Q

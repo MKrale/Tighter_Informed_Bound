@@ -27,7 +27,7 @@ s = ArgParseSettings()
         default = -1.0
     "--path"
         help = "File path for data output."
-        default = "./Data/UpperBounds"
+        default = "Data/UpperBounds/"
     "--filename"
         help = "Filename (default: generated automatically)"
         default = ""

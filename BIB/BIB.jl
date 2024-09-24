@@ -1,5 +1,5 @@
 module BIB
-    using POMDPs, POMDPTools, Random, Distributions, SparseArrays, Optimization, JuMP, Gurobi, HiGHS, Tulip, Memoization, LRUCache
+    using POMDPs, POMDPTools, Random, Distributions, SparseArrays, Optimization, JuMP, Gurobi, HiGHS, Tulip, Cbc, Clp, Memoization, LRUCache
 
     # Surpressing Gurobis printing...
     oldstd = stdout
