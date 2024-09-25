@@ -71,7 +71,7 @@ discount == 0.99 && (h_iterations = 1000; h_precision = 1e-4; h_timeout = 1200.0
 
 if solver_name in  ["standard", ""]
     push!(solvers, NativeSARSOP_alt.SARSOPSolver)
-    h_solver = NativeSARSOP_alt.FIBSolver_alt(max_iterations=h_iterations, precision=h_precision)
+    h_solver = NativeSARSOP_alt.FIBSolver_alt(max_iterations=h_iterations*4, precision=h_precision)
     push!(solverargs, (name="SARSOP", sargs=(precision=precision, max_time=timeout, verbose=false, heuristic_solver=h_solver), pargs=()))
 
     precomp_h_solver = NativeSARSOP_alt.FIBSolver_alt(max_iterations=1)
