@@ -1,1 +1,1 @@
-{"env_full":"Tag","env_data":{"na":5,"ns":842,"discount":0.95,"nbao":6333,"no":30,"nb":2351},"solvetime":34.258022999,"simtime":-1.0,"ub":-5.578085509777583,"solver":"BIBSolver (standard)","ravg":-1.0,"env":"Tag"}
+{"env_full":"Tag","env_data":{"na":5,"ns":842,"discount":0.95,"nbao":6333,"no":30,"nb":2351},"solvetime":22.081009006,"simtime":-1.0,"ub":-5.57808283432686,"solver":"BIBSolver (standard)","ravg":-1.0,"env":"Tag"}
