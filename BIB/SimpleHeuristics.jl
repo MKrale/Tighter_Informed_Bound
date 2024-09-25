@@ -29,14 +29,10 @@ end
 
 
 """Computes the QMDP table using value iteration"""
-function solve(sol::QMDPSolver_alt, m::POMDP; Data=nothing)
+function solve(sol::QMDPSolver_alt, m::POMDP; C=nothing, S_dict=nothing)
     t0 = time()
-    if Data isa Nothing
-        C = get_constants(m)
-        S_dict = Dict( zip(C.S, 1:C.ns))
-    else
-        C, S_dict = Data.constants, Data.S_dict
-    end
+    C isa Nothing && (C = get_constants(m))
+    S_dict isa Nothing && (S_dict = Dict( zip(C.S, 1:C.ns)))
 
     Q = zeros(C.ns,C.na)
     Qmax = zeros(C.ns)
@@ -78,7 +74,7 @@ end
 @kwdef struct FIBSolver_alt <: Solver
     precision::AbstractFloat    = 1e-4
     max_time::Float64           = 600
-    max_iterations::Int         = 1000
+    max_iterations::Int         = 250
 end
 
 struct FIBPlanner_alt <: QS_table_policy
@@ -100,19 +96,20 @@ function solve(sol::FIBSolver_alt, m::POMDP; Data = nothing)
         S_dict = Dict( zip(C.S, 1:C.ns))
 
         SAO_probs, SAOs = get_all_obs_probs(m; constants=C)
+
         B, B_idx = get_belief_set(m, SAOs; constants=C)
-        Q = solve(QMDPSolver_alt(precision=sol.precision, max_iterations=sol.max_iterations), m).Q
+        Q = solve(QMDPSolver_alt(precision=sol.precision, max_iterations=sol.max_iterations*5), m; C=C, S_dict=S_dict).Q
     else
         C, S_dict, SAO_probs, SAOs = Data.constants, Data.S_dict, Data.SAO_probs, Data.SAOs
         B, B_idx, Q = Data.B, Data.B_idx, Data.Q
-        Q isa Nothing && (Q = solve(QMDPSolver_alt(precision=sol.precision, max_iterations=sol.max_iterations), m; Data).Q)
+        Q isa Nothing && (Q = solve(QMDPSolver_alt(precision=sol.precision, max_iterations=sol.max_iterations*5), m; C=C, S_dict=S_dict).Q)
     end
 
     γ = discount(m)
 
     largest_change = Inf
     i=0
-    while (largest_change > sol.precision) && (i < sol.max_iterations)
+    while true
         i+=1
         largest_change = 0
         for (si,s) in enumerate(C.S)
@@ -131,9 +128,12 @@ function solve(sol::FIBSolver_alt, m::POMDP; Data = nothing)
                 Q[si,ai] = thisQ
             end
         end
-        time()-t0 > sol.max_time && break
+        if (time()-t0 > sol.max_time) || (largest_change < sol.precision) || (i >= sol.max_iterations)
+            break
+        end
     end
     return FIBPlanner_alt(m,Q, vec(maximum(Q, dims=2)),C,S_dict) ### dim?
+    # return FIBPlanner_alt(m,Q,C,S_dict) ### dim?
 end
 
 #########################################

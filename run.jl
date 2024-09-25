@@ -16,10 +16,10 @@ solvers, solverargs = [], []
 iters, tol = 250, 1e-5
 
 
-# ### FIB
-# using FIB
-# push!(solvers, FIB.FIBSolver)
-# push!(solverargs, (name="FIB", sargs=(max_iterations=iters,precision=tol), pargs=(), get_Q0=true))
+### FIB
+using FIB
+push!(solvers, FIBSolver_alt)
+push!(solverargs, (name="FIB", sargs=(max_iterations=iters,precision=tol), pargs=(), get_Q0=true))
 
 # ### BIB
 #  push!(solvers, SBIBSolver)
@@ -29,9 +29,9 @@ iters, tol = 250, 1e-5
 # push!(solvers, EBIBSolver)
 # push!(solverargs, (name="BIBSolver (entropy)", sargs=(max_iterations=iters, precision=tol), pargs=(), get_Q0=true))
 
-### WBIBs
-push!(solvers, WBIBSolver)
-push!(solverargs, (name="BIBSolver (worst-case)", sargs=(max_iterations=250, precision=1e-5), pargs=(), get_Q0=true))
+# ### WBIBs
+# push!(solvers, WBIBSolver)
+# push!(solverargs, (name="BIBSolver (worst-case)", sargs=(max_iterations=250, precision=1e-5), pargs=(), get_Q0=true))
 
 # SARSOP
 # include("Sarsop_altered/NativeSARSOP.jl")
@@ -271,8 +271,8 @@ for (m_idx,(model, modelargs)) in enumerate(zip(envs, envargs))
         t = @elapsed begin
             policy, info = POMDPTools.solve_info(solver, model; solverarg.pargs...) 
         end
-        # @profile (policy, info = POMDPTools.solve_info(solver, model; solverarg.pargs...))
-        # pprof(;webport=58699)
+        @profile (policy, info = solve_info(solver, model; solverarg.pargs...))
+        pprof(;webport=58699)
         (info isa Nothing) ? val = POMDPs.value(policy, POMDPs.initialstate(model)) : val = info.value        
         verbose && println("Upperbound $val (computed in $t seconds)")
         upperbounds_init[s_idx] = val

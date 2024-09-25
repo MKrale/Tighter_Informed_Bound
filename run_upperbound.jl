@@ -46,7 +46,7 @@ timeout = parsed_args["timeout"]
 path = parsed_args["path"]
 filename = parsed_args["filename"]
 solver_names = [parsed_args["solvers"]]
-solver_names == ["All"] && (solver_names = ["FIB", "BIB", "EBIB", "WBIB", "SARSOP"])
+solver_names == ["All"] && (solver_names = ["Fib", "BIB", "EBIB", "WBIB", "SARSOP"])
 discount = parsed_args["discount"]
 discount_str = string(discount)[3:end]
 
@@ -71,25 +71,25 @@ if "FIB" in solver_names
     push!(solvers, FIBSolver_alt)
     push!(solverargs, (name="FIB", sargs=(max_iterations=heuristicsteps,precision=heuristicprecision, max_time=timeout), pargs=(), get_Q0=true))
     
-    push!(precomp_solverargs, ( sargs=(max_iterations=1,), pargs=()))
+    push!(precomp_solverargs, ( sargs=(max_iterations=2,), pargs=()))
 end
 if "BIB" in solver_names
     push!(solvers, SBIBSolver)
     push!(solverargs, (name="BIBSolver (standard)", sargs=(max_iterations=heuristicsteps, precision=heuristicprecision, max_time=timeout), pargs=(), get_Q0=true))
     
-    push!(precomp_solverargs, ( sargs=(max_iterations=1,), pargs=()))
+    push!(precomp_solverargs, ( sargs=(max_iterations=2,), pargs=()))
 end
 if "EBIB" in solver_names
     push!(solvers, EBIBSolver)
     push!(solverargs, (name="BIBSolver (entropy)", sargs=(max_iterations=heuristicsteps, precision=heuristicprecision, max_time=timeout), pargs=(), get_Q0=true))
     
-    push!(precomp_solverargs, ( sargs=(max_iterations=1,), pargs=()))    
+    push!(precomp_solverargs, ( sargs=(max_iterations=2,), pargs=()))    
 end
 if "WBIB" in solver_names
     push!(solvers, WBIBSolver)
     push!(solverargs, (name="BIBSolver (worst-case)", sargs=(max_iterations=heuristicsteps, precision=heuristicprecision, max_time=timeout), pargs=(), get_Q0=true))
     
-    push!(precomp_solverargs, ( sargs=(max_iterations=1,), pargs=()))
+    push!(precomp_solverargs, ( sargs=(max_iterations=2,), pargs=()))
 end
 if "SARSOP" in solver_names
     push!(solvers, NativeSARSOP_alt.SARSOPSolver)
@@ -257,14 +257,17 @@ for (m_idx,(model, modelargs)) in enumerate(zip(envs, envargs))
 
         # Precompile
         precomp_solver = solver(;precomp_solverargs[s_idx].sargs...)
-        _p, _i = POMDPTools.solve_info(precomp_solver, model; precomp_solverargs[s_idx].pargs...) 
+        _t = @elapsed begin
+            _p, _i = POMDPTools.solve_info(precomp_solver, model; precomp_solverargs[s_idx].pargs...) 
+        end
 
         # Compute policy & get upper bound
         solver = solver(;solverarg.sargs...)
         t = @elapsed begin
-            policy, info = POMDPTools.solve_info(solver, model; solverarg.pargs...) 
+            policy = solve(solver, model; solverarg.pargs...) 
         end
-        (info isa Nothing) ? val = POMDPs.value(policy, POMDPs.initialstate(model)) : val = info.value        
+        val = POMDPs.value(policy, POMDPs.initialstate(model))
+        # (info isa Nothing) ? val = POMDPs.value(policy, POMDPs.initialstate(model)) : val = info.value        
 
         # Simulate policy & get avg returns
         #rs = []

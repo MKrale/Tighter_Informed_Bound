@@ -1,9 +1,9 @@
 #!/bin/bash
 
 # ... description ...
-folder_path="Data/UpperBounds/"
+folder_path="Data/"
 echo -e "\n\n============= Manual Test  =============\n\n"
-for env in "FrozenLake4" # QUICK
+for env in "RockSample5" # QUICK
 do
    julia --project=. run_upperbound.jl --env $env --path $folder_path --discount 0.95 &
    # julia --project=. run_upperbound.jl --env $env --path $folder_path --discount 0.99 &

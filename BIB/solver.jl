@@ -111,7 +111,7 @@ end
 
 function get_FIB_Beliefset(model::POMDP, Data::BIB_Data, solver::X ; getdata=false) where X<: BIBSolver
 
-    π = solve(FIBSolver_alt(precision=solver.precision, max_time=solver.max_time, max_iterations=solver.max_iterations*5), model; Data=Data)
+    π = solve(FIBSolver_alt(precision=solver.precision, max_time=solver.max_time, max_iterations=solver.max_iterations*4), model)#; Data=Data)
     B, constants = Data.B, Data.constants
     Qs = zeros(Float64, length(B), constants.na)
     for (b_idx, b) in enumerate(B)
