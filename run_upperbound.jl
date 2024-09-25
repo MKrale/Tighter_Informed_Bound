@@ -46,7 +46,7 @@ timeout = parsed_args["timeout"]
 path = parsed_args["path"]
 filename = parsed_args["filename"]
 solver_names = [parsed_args["solvers"]]
-solver_names == ["All"] && (solver_names = ["Fib", "BIB", "EBIB", "WBIB", "SARSOP"])
+solver_names == ["All"] && (solver_names = ["FIB", "BIB", "EBIB", "WBIB", "SARSOP"])
 discount = parsed_args["discount"]
 discount_str = string(discount)[3:end]
 
@@ -60,7 +60,7 @@ end
 ##################################################################
 
 solvers, solverargs, precomp_solverargs = [], [], []
-SARSOPprecision = 1e-2
+SARSOPprecision = 1e-3
 heuristicprecision, heuristicsteps = 1e-4, 1_000
 discount == 0.95 && (heuristicprecision = 1e-4;  heuristicsteps = 250)
 discount == 0.99 && (heuristicprecision = 1e-4;  heuristicsteps = 1_000)
@@ -69,7 +69,7 @@ timeout_sarsop = 1200.0
 
 if "FIB" in solver_names
     push!(solvers, FIBSolver_alt)
-    push!(solverargs, (name="FIB", sargs=(max_iterations=heuristicsteps,precision=heuristicprecision, max_time=timeout), pargs=(), get_Q0=true))
+    push!(solverargs, (name="FIB", sargs=(max_iterations=heuristicsteps*4,precision=heuristicprecision, max_time=timeout), pargs=(), get_Q0=true))
     
     push!(precomp_solverargs, ( sargs=(max_iterations=2,), pargs=()))
 end
