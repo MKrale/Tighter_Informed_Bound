@@ -28,7 +28,8 @@ processes=()
 #done
 
 folder_path="Data/DiscountTest/"
-for env in "Tiger" "FrozenLake4"
+#for env in "Tiger" "FrozenLake4"
+for env in "RockSample5"
 do
    for discount in $(seq 0.95 0.001 0.998);
    do
