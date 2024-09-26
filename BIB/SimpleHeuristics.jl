@@ -43,7 +43,7 @@ function solve(sol::QMDPSolver_alt, m::POMDP; C=nothing, S_dict=nothing)
 
     i=0
     # Lets iterate!
-    factor = discount(model) / (1-discount(model))
+    factor = discount(m) / (1-discount(m))
     largest_change = Inf
     i=0
 
@@ -110,7 +110,7 @@ function solve(sol::FIBSolver_alt, m::POMDP; Data = nothing)
 
     largest_change = Inf
     i=0
-    factor = discount(model) / (1-discount(model))
+    factor = discount(m) / (1-discount(m))
     while true
         i+=1
         largest_change = 0
