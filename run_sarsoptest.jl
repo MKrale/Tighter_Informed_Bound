@@ -53,6 +53,7 @@ discount_str = string(discount)[3:end]
 sims = parsed_args["sims"]
 
 if timeout == -1.0
+    timeout = 3600.0
 	discount == 0.95 && (timeout = 3600.0)
 	discount == 0.99 && (timeout = 3600.0)
 end
@@ -65,41 +66,41 @@ solvers, precomp_solvers, solverargs = [], [], []
 include("Sarsop_altered/NativeSARSOP.jl")
 import .NativeSARSOP_alt
 
-h_iterations, h_precision = 250, 1e-4
-discount == 0.95 && (h_iterations = 250; h_precision = 1e-4; h_timeout = 1200.0)
-discount == 0.99 && (h_iterations = 1000; h_precision = 1e-4; h_timeout = 1200.0)
+h_iterations, h_precision = 10_000, 1e-3
+discount == 0.95 && (h_iterations = 250; h_precision = 1e-3; h_timeout = 1200.0)
+discount == 0.99 && (h_iterations = 1000; h_precision = 1e-3; h_timeout = 1200.0)
 
 if solver_name in  ["standard", ""]
     push!(solvers, NativeSARSOP_alt.SARSOPSolver)
-    h_solver = NativeSARSOP_alt.FIBSolver_alt(max_iterations=h_iterations*4, precision=h_precision)
+    h_solver = NativeSARSOP_alt.FIBSolver_alt(max_iterations=(h_iterations*4), precision=h_precision)
     push!(solverargs, (name="SARSOP", sargs=(precision=precision, max_time=timeout, verbose=false, heuristic_solver=h_solver), pargs=()))
 
-    precomp_h_solver = NativeSARSOP_alt.FIBSolver_alt(max_iterations=1)
-    push!(precomp_solvers, (sargs=(max_its = 1, verbose=false, heuristic_solver=precomp_h_solver),pargs=()))
+    precomp_h_solver = NativeSARSOP_alt.FIBSolver_alt(max_iterations=2)
+    push!(precomp_solvers, (sargs=(max_its = 2, verbose=false, heuristic_solver=precomp_h_solver),pargs=()))
 end
 if solver_name in  ["BIB", ""]
     push!(solvers, NativeSARSOP_alt.SARSOPSolver)
     h_solver = NativeSARSOP_alt.SBIBSolver(max_iterations=h_iterations, precision=h_precision)
     push!(solverargs, (name="BIB-SARSOP", sargs=( precision=precision, max_time=timeout, verbose=false, heuristic_solver=h_solver), pargs=()))
 
-    precomp_h_solver = NativeSARSOP_alt.SBIBSolver(max_iterations=1)
-    push!(precomp_solvers, (sargs=(max_its = 1, verbose=false, heuristic_solver=precomp_h_solver),pargs=()))
+    precomp_h_solver = NativeSARSOP_alt.SBIBSolver(max_iterations=2)
+    push!(precomp_solvers, (sargs=(max_its = 2, verbose=false, heuristic_solver=precomp_h_solver),pargs=()))
 end
 if solver_name in  ["EBIB", ""]
     push!(solvers, NativeSARSOP_alt.SARSOPSolver)
     h_solver = NativeSARSOP_alt.EBIBSolver(max_iterations=h_iterations, precision=h_precision)
     push!(solverargs, (name="EBIB-SARSOP", sargs=( precision=precision, max_time=timeout, verbose=false, heuristic_solver=h_solver), pargs=()))
 
-    precomp_h_solver = NativeSARSOP_alt.EBIBSolver(max_iterations=1)
-    push!(precomp_solvers, (sargs=(max_its = 1, verbose=false, heuristic_solver=precomp_h_solver),pargs=()))
+    precomp_h_solver = NativeSARSOP_alt.EBIBSolver(max_iterations=2)
+    push!(precomp_solvers, (sargs=(max_its = 2, verbose=false, heuristic_solver=precomp_h_solver),pargs=()))
 end
 if solver_name in  ["WBIB"]
     push!(solvers, NativeSARSOP_alt.SARSOPSolver)
     h_solver = NativeSARSOP_alt.WBIBSolver(max_iterations=h_iterations, precision=h_precision)
     push!(solverargs, (name="WBIB-SARSOP", sargs=( precision=precision, max_time=timeout, verbose=false, heuristic_solver=h_solver), pargs=()))
 
-    precomp_h_solver = NativeSARSOP_alt.WBIBSolver(max_iterations=1)
-    push!(precomp_solvers, (sargs=(max_its = 1, verbose=false, heuristic_solver=precomp_h_solver),pargs=()))
+    precomp_h_solver = NativeSARSOP_alt.WBIBSolver(max_iterations=2)
+    push!(precomp_solvers, (sargs=(max_its = 2, verbose=false, heuristic_solver=precomp_h_solver),pargs=()))
 end
 
 

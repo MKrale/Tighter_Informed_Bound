@@ -1,19 +1,21 @@
 #!/bin/bash
 
-# ... description ...
-discount="0.95"
 processes=()
+
+# ... description ...
+# discount="0.95"
+
 ### Small, UB
-for env in "ABC" "RockSample5" "FrozenLake4" "Tiger" # QUICK
-do
-   thisrun="julia --project=. run_upperbound.jl --env $env --discount $discount"
-   processes+=("$thisrun")
-done
-### Small, Sarsop
-for env in "ABC" "RockSample5" "FrozenLake4" "Tiger" # QUICK
-do
-   processes+=("julia --project=. run_sarsoptest.jl --env $env --discount $discount")
-done
+# for env in "ABC" "RockSample5" "FrozenLake4" "Tiger" # QUICK
+# do
+#    thisrun="julia --project=. run_upperbound.jl --env $env --discount $discount"
+#    processes+=("$thisrun")
+# done
+# ### Small, Sarsop
+# for env in "ABC" "RockSample5" "FrozenLake4" "Tiger" # QUICK
+# do
+#    processes+=("julia --project=. run_sarsoptest.jl --env $env --discount $discount")
+# done
 ### Large, UB
 #for env in "RockSample10" "K-out-of-N2" "K-out-of-N3" "FrozenLake10" "Tag" "SparseHallway1" "SparseHallway2" "SparseTigerGrid" # LONG
 #do
@@ -24,6 +26,18 @@ done
 #do
 #   processes+=("julia --project=. run_sarsoptest.jl --env $env --discount $discount")
 #done
+
+folder_path="Data/DiscountTest/"
+for env in "Tiger" "FrozenLake4"
+do
+   for discount in $(seq 0.95 0.001 0.998);
+   do
+      processes+=("julia --project=. run_sarsoptest.jl --env $env --path $folder_path --discount $discount")
+   done
+done
+wait
+
+
 
 printf "%s\n" "${processes[@]}" | parallel -j3 # WHY DOES THIS WORK??? I HATE BASH!!!
 wait

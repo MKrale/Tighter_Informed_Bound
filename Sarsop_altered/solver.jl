@@ -18,10 +18,6 @@ function POMDPTools.solve_info(solver::SARSOPSolver, pomdp::POMDP)
     t0 = time()
     tree = SARSOPTree(solver, pomdp)
     
-    if solver.verbose
-        initialize_verbose_output()
-    end
-    
     iter = 0
     times, ubs, lbs = [], [], []
     push!(times, time()-t0)

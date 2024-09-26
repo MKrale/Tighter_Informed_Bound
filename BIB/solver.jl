@@ -74,9 +74,10 @@ function POMDPs.solve(solver::X, model::POMDP) where X<:BIBSolver
     
     # Now iterate:
     it = 0
+    factor = discount(model) / (1-discount(model))
     for i=1:solver.max_iterations
         Qs, max_dif = get_Q(model, Qs, args...)
-        if max_dif < solver.precision || time()-t0 > solver.max_time
+        if factor * max_dif < solver.precision || time()-t0 > solver.max_time
             break
         end
         it = i

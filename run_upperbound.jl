@@ -62,14 +62,14 @@ end
 solvers, solverargs, precomp_solverargs = [], [], []
 SARSOPprecision = 1e-3
 heuristicprecision, heuristicsteps = 1e-4, 1_000
-discount == 0.95 && (heuristicprecision = 1e-4;  heuristicsteps = 250)
+discount == 0.95 && (heuristicprecision = 1e-3;  heuristicsteps = 250)
 discount == 0.99 && (heuristicprecision = 1e-4;  heuristicsteps = 1_000)
 
 timeout_sarsop = 1200.0
 
 if "FIB" in solver_names
     push!(solvers, FIBSolver_alt)
-    push!(solverargs, (name="FIB", sargs=(max_iterations=heuristicsteps*4,precision=heuristicprecision, max_time=timeout), pargs=(), get_Q0=true))
+    push!(solverargs, (name="FIB", sargs=(max_iterations=heuristicsteps*4, precision=heuristicprecision, max_time=timeout), pargs=(), get_Q0=true))
     
     push!(precomp_solverargs, ( sargs=(max_iterations=2,), pargs=()))
 end
@@ -93,10 +93,10 @@ if "WBIB" in solver_names
 end
 if "SARSOP" in solver_names
     push!(solvers, NativeSARSOP_alt.SARSOPSolver)
-    h_solver = NativeSARSOP_alt.FIBSolver_alt(max_iterations=heuristicsteps, precision=heuristicprecision)
+    h_solver = NativeSARSOP_alt.FIBSolver_alt(max_iterations=heuristicsteps*4, precision=heuristicprecision)
     push!(solverargs, (name="SARSOP", sargs=(precision=SARSOPprecision, max_time=timeout_sarsop, verbose=false, heuristic_solver=h_solver), pargs=()))
     
-    precomp_h_solver = NativeSARSOP_alt.FIBSolver_alt(max_iterations=1)
+    precomp_h_solver = NativeSARSOP_alt.FIBSolver_alt(max_iterations=2)
     push!(precomp_solverargs, ( sargs=(max_its=1, verbose=false, heuristic_solver=h_solver), pargs=()))
 end
 if "BIBSARSOP" in solver_names

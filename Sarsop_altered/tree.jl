@@ -44,18 +44,18 @@ end
 function SARSOPTree(solver, pomdp::POMDP)
     sparse_pomdp = ModifiedSparseTabular(pomdp)
     cache = TreeCache(sparse_pomdp)
-
     if !(solver.heuristic_solver isa Nothing)
         policy = POMDPs.solve(solver.heuristic_solver, pomdp)
         corner_values, B_heuristic, V_heuristic = get_heuristic_pointset(policy)
     else
+        println("help!")
         upper_policy = solve(solver.init_upper, sparse_pomdp)
         corner_values = map(maximum, zip(upper_policy.alphas...))
         B_heuristic, V_heuristic = [], []
     end
     ######
     
-
+    
     tree = SARSOPTree(
         sparse_pomdp,
 
@@ -86,7 +86,6 @@ function SARSOPTree(solver, pomdp::POMDP)
         # policy
         ####
     )
-
     return insert_root!(solver, tree, _initialize_belief(pomdp, initialstate(pomdp)))
 end
 

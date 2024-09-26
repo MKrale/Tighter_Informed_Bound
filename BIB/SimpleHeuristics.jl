@@ -43,10 +43,11 @@ function solve(sol::QMDPSolver_alt, m::POMDP; C=nothing, S_dict=nothing)
 
     i=0
     # Lets iterate!
+    factor = discount(model) / (1-discount(model))
     largest_change = Inf
     i=0
 
-    while (largest_change > sol.precision) && (i < sol.max_iterations)
+    while (factor * largest_change > sol.precision) && (i < sol.max_iterations)
         i+=1
         largest_change = 0
         for (si,s) in enumerate(C.S)
@@ -79,8 +80,8 @@ end
 
 struct FIBPlanner_alt <: QS_table_policy
     Model::POMDP 
-    Q::Matrix{AbstractFloat}
-    V::Vector{AbstractFloat}
+    Q::Matrix{Float64}
+    V::Vector{Float64}
     constants::C
     S_dict
 end
@@ -98,17 +99,18 @@ function solve(sol::FIBSolver_alt, m::POMDP; Data = nothing)
         SAO_probs, SAOs = get_all_obs_probs(m; constants=C)
 
         B, B_idx = get_belief_set(m, SAOs; constants=C)
-        Q = solve(QMDPSolver_alt(precision=sol.precision, max_iterations=sol.max_iterations*5), m; C=C, S_dict=S_dict).Q
+        Q = solve(QMDPSolver_alt(precision=sol.precision, max_iterations=sol.max_iterations*10), m; C=C, S_dict=S_dict).Q
     else
         C, S_dict, SAO_probs, SAOs = Data.constants, Data.S_dict, Data.SAO_probs, Data.SAOs
         B, B_idx, Q = Data.B, Data.B_idx, Data.Q
-        Q isa Nothing && (Q = solve(QMDPSolver_alt(precision=sol.precision, max_iterations=sol.max_iterations*5), m; C=C, S_dict=S_dict).Q)
+        Q isa Nothing && (Q = solve(QMDPSolver_alt(precision=sol.precision, max_iterations=sol.max_iterations*10), m; C=C, S_dict=S_dict).Q)
     end
 
     γ = discount(m)
 
     largest_change = Inf
     i=0
+    factor = discount(model) / (1-discount(model))
     while true
         i+=1
         largest_change = 0
@@ -128,7 +130,7 @@ function solve(sol::FIBSolver_alt, m::POMDP; Data = nothing)
                 Q[si,ai] = thisQ
             end
         end
-        if (time()-t0 > sol.max_time) || (largest_change < sol.precision) || (i >= sol.max_iterations)
+        if (time()-t0 > sol.max_time) || (factor * largest_change < sol.precision) || (i >= sol.max_iterations)
             break
         end
     end
