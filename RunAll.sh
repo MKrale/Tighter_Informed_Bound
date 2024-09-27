@@ -29,9 +29,9 @@ processes=()
 
 folder_path="Data/DiscountTest/"
 #for env in "Tiger" "FrozenLake4"
-for env in "RockSample5"
+for env in "K-out-of-N2"
 do
-   for discount in $(seq 0.95 0.001 0.998);
+   for discount in $(seq 0.95 0.001 0.99);
    do
       processes+=("julia --project=. run_sarsoptest.jl --env $env --path $folder_path --discount $discount")
    done
