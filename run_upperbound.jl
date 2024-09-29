@@ -213,6 +213,51 @@ if env_name == "SparseTigerGrid"
     push!(envs, tigergrid)
     push!(envargs, (name="TigerGrid",))
 end
+if env_name == "aloha10"
+    aloha10 = Sparse_aloha10(discount=discount)
+    push!(envs, aloha10)
+    push!(envargs, (name="aloha10",))
+end
+if env_name == "aloha30"
+    aloha30 = Sparse_aloha30(discount=discount)
+    push!(envs, aloha30)
+    push!(envargs, (name="aloha30",))
+end
+if env_name == "baseball"
+    baseball = Sparse_baseball(discount=discount)
+    push!(envs, baseball)
+    push!(envargs, (name="baseball",))
+end
+if env_name == "cit"
+    cit = Sparse_cit(discount=discount)
+    push!(envs, cit)
+    push!(envargs, (name="cit",))
+end
+if env_name == "fourth"
+    fourth = Sparse_fourth(discount=discount)
+    push!(envs, fourth)
+    push!(envargs, (name="fourth",))
+end
+if env_name == "mit"
+    mit = Sparse_mit(discount=discount)
+    push!(envs, mit)
+    push!(envargs, (name="mit",))
+end
+if env_name == "pentagon"
+    pentagon = Sparse_pentagon(discount=discount)
+    push!(envs, pentagon)
+    push!(envargs, (name="pentagon",))
+end
+if env_name == "sunysb"
+    sunysb = Sparse_sunysb(discount=discount)
+    push!(envs, sunysb)
+    push!(envargs, (name="sunysb",))
+end
+if env_name == "grid"
+    Grid = Sparse_Grid(discount=discount)
+    push!(envs, Grid)
+    push!(envargs, (name="Grid",))
+end
 if env_name == "Tag"
     ### Tag
     using TagPOMDPProblem
@@ -297,6 +342,7 @@ for (m_idx,(model, modelargs)) in enumerate(zip(envs, envargs))
             "ravg" => rs_avg
         )
         json_str = JSON.json(data_dict)
+        println(env_name, " ", t, " ", val)
         if filename == ""
 		thisfilename =  path * "UpperBoundTest_$(env_name)_$(solver_names[s_idx])_d$(discount_str).json"
         else
