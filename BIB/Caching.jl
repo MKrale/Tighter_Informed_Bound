@@ -14,12 +14,13 @@ struct BIB_Data
     Q::Union{Array{Float64,2}, Nothing}
     B::Vector
     B_idx::Array{Int,3}
+    Br::Array{Float64,2}
     SAO_probs::Array{Float64,3}
     SAOs::Array{Vector{Int},2}
     S_dict::Dict{Any, Int}
     constants::C
 end
-BIB_Data(Q::Array{Float64,2}, D::BIB_Data) = BIB_Data(Q,D.B, D.B_idx, D.SAO_probs, D.SAOs, D.S_dict, D.constants)
+BIB_Data(Q::Array{Float64,2}, D::BIB_Data) = BIB_Data(Q,D.B, D.B_idx, D.Br, D.SAO_probs, D.SAOs, D.S_dict, D.constants)
 
 """
 Computes the probabilities of each observation for each state-action pair. \n 
@@ -141,6 +142,17 @@ function get_belief_set(model, SAOs; constants::Union{C,Nothing}=nothing)
     end
 
     return B, B_idx
+end
+
+function get_Br(model, B, constants::C)
+    A, na = constants.A, constants.na
+    Br = zeros(Float64, length(B), na)
+    for (bi, b) in enumerate(B)
+        for (ai, a) in enumerate(A)
+            Br[bi,ai] = breward(model,b,a)
+        end
+    end
+    return Br
 end
 
 #########################################

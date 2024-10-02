@@ -20,7 +20,7 @@ R(s,a) = ( (s=="A" && a=="a") || (s=="B" && a=="b")) ? 1 : 0
 O(a,sp) = SparseCat(["nothing"],[1])
 
 ABC(;discount=0.95) = QuickPOMDP(
-    states = ["init","A","B","Ap","Bp","terminal"],
+    states = ["init","A","B","terminal"],
     # states = ["init","A","B","terminal"],
     actions=["a","b","c"],
     observations=["nothing"],
@@ -29,7 +29,7 @@ ABC(;discount=0.95) = QuickPOMDP(
     transition = T,
     observation = O,
     reward = R,
-    initialstate = SparseCat(["init"], [1]),
+    initialstate = SparseCat(["A", "B"], [0.5, 0.5]),
     isterminal = s -> s=="terminal"
 )
 

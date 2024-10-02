@@ -22,24 +22,26 @@ end
  end
 
 
-verbose = false
+verbose = true
 function POMDPs.solve(solver::X, model::POMDP) where X<:BIBSolver
     t0 = time()
     constants = get_constants(model)
 
     # 1: Precompute observation probabilities
-    SAO_probs = []                                  # ∀s,a,o, gives probability of o given (s,a)
-    SAOs = []                                       # ∀s,a, gives os with p>0
+    # SAO_probs = []                                  # ∀s,a,o, gives probability of o given (s,a)
+    # SAOs = []                                       # ∀s,a, gives os with p>0
     SAO_probs, SAOs = get_all_obs_probs(model; constants)
     S_dict = Dict( zip(constants.S, 1:constants.ns))
 
     # 2 : Pre-compute all beliefs after 1 step
-    B = []                                          # Our set of beliefs
-    B_idx = []                                      # ∀s,a,o, gives index of b_sao in B
+    # B = []                                          # Our set of beliefs
+    # B_idx = []                                      # ∀s,a,o, gives index of b_sao in B
+    # Br = []                                         # ∀b∈B,a, gives expected reward                                      
     B, B_idx = get_belief_set(model, SAOs; constants)
+    Br = get_Br(model, B, constants)
 
     # 3 : Compute Q-values bsoa beliefs
-    Data = BIB_Data(nothing, B,B_idx,SAO_probs,SAOs, S_dict, constants)
+    Data = BIB_Data(nothing, B,B_idx, Br, SAO_probs,SAOs, S_dict, constants)
     Qs = get_FIB_Beliefset(model, Data, solver)    # ∀b∈B, contains QBIB value (initialized using QMDP)
 
     # 4 : If WBIB or EBIB, precompute all beliefs after 2 steps
@@ -112,7 +114,7 @@ end
 
 function get_FIB_Beliefset(model::POMDP, Data::BIB_Data, solver::X ; getdata=false) where X<: BIBSolver
 
-	π = solve(FIBSolver_alt(precision=solver.precision, max_time=solver.max_time, max_iterations=solver.max_iterations*4), model) #; Data=Data)
+	π = solve(FIBSolver_alt(precision=solver.precision, max_time=solver.max_time, max_iterations=solver.max_iterations*4), model; Data=Data)
     B, constants = Data.B, Data.constants
     Qs = zeros(Float64, length(B), constants.na)
     for (b_idx, b) in enumerate(B)
@@ -133,16 +135,16 @@ function get_QBIB_Beliefset(model::POMDP, Q, Data::BIB_Data)
     Qs_new = zero(Q) # TODO: this may be inefficient?
     for (b_idx,b) in enumerate(Data.B)
         for (ai, a) in enumerate(Data.constants.A)
-            Qs_new[b_idx,ai] = get_QBIB_ba(model,b,a, Q, Data; ai=ai)
+            Qs_new[b_idx,ai] = get_QBIB_ba(model,b,a, Q, Data; bi=bi, ai=ai)
         end
     end
     max_dif = maximum(map(abs, (Qs_new .- Q) ./ (Q.+1e-10)))
     return Qs_new, max_dif
 end
 
-function get_QBIB_ba(model::POMDP,b,a,Qs,B_idx,SAO_probs, SAOs, constants::C; ai=nothing, S_dict=nothing)
+function get_QBIB_ba(model::POMDP,b,a,Qs,B_idx,Br,SAO_probs, SAOs, constants::C; ai=nothing, bi=nothing, S_dict=nothing)
     isnothing(ai) && ( ai=findfirst(==(a), constants.A) )
-    Q = breward(model,b,a)
+    isnothing(bi) ? (Q = breward(model,b,a)) : (Q = Br[bi,ai])
     for oi in get_possible_obs(b,ai,SAOs, S_dict)
         o = constants.O[oi]
         Qo = zeros(constants.na)
@@ -158,8 +160,8 @@ function get_QBIB_ba(model::POMDP,b,a,Qs,B_idx,SAO_probs, SAOs, constants::C; ai
     end
     return Q
 end
-get_QBIB_ba(model::POMDP,b,a,Q,D::BIB_Data; ai=nothing) = get_QBIB_ba(model,b,a, Q, D.B_idx, D.SAO_probs, D.SAOs, D.constants; ai=ai, S_dict=D.S_dict)
-get_QBIB_ba(model::POMDP,b,a,D::BIB_Data; ai=nothing) = get_QBIB_ba(model,b,a, D.Q, D.B_idx, D.SAO_probs, D.SAOs, D.constants; ai=ai, S_dict=D.S_dict)
+get_QBIB_ba(model::POMDP,b,a,Q,D::BIB_Data; bi=nothing, ai=nothing) = get_QBIB_ba(model,b,a, Q, D.B_idx, D.Br, D.SAO_probs, D.SAOs, D.constants; bi=bi, ai=ai, S_dict=D.S_dict)
+get_QBIB_ba(model::POMDP,b,a,D::BIB_Data; bi=nothing, ai=nothing) = get_QBIB_ba(model,b,a, D.Q, D.B_idx, D.Br, D.SAO_probs, D.SAOs, D.constants; bi=bi, ai=ai, S_dict=D.S_dict)
 
 ############ WBIB ###################
 
@@ -174,17 +176,17 @@ function get_QWBIB_Beliefset(model::POMDP, Q, Data::BIB_Data, Bbao_data::BBAO_Da
     return Qs_new, max_dif
 end
 
-get_QWBIB_ba(model::POMDP, b,a,Q, D::BIB_Data; ai=nothing, Bbao_data=nothing, bi=nothing) = get_QWBIB_ba(model, b, a, Q, D.B, D.SAOs, D.SAO_probs, D.constants; ai=ai, S_dict=D.S_dict, Bbao_data=Bbao_data, bi=bi)
-get_QWBIB_ba(model::POMDP, b,a,D::BIB_Data; ai=nothing, Bbao_data=nothing, bi=nothing) = get_QWBIB_ba(model, b, a, D.Q, D.B, D.SAOs, D.SAO_probs, D.constants; ai=ai, S_dict=D.S_dict, Bbao_data=Bbao_data, bi=bi)
+get_QWBIB_ba(model::POMDP, b,a,Q, D::BIB_Data; ai=nothing, Bbao_data=nothing, bi=nothing) = get_QWBIB_ba(model, b, a, Q, D.B, D.Br, D.SAOs, D.SAO_probs, D.constants; ai=ai, S_dict=D.S_dict, Bbao_data=Bbao_data, bi=bi)
+get_QWBIB_ba(model::POMDP, b,a,D::BIB_Data; ai=nothing, Bbao_data=nothing, bi=nothing) = get_QWBIB_ba(model, b, a, D.Q, D.B, D.Br, D.SAOs, D.SAO_probs, D.constants; ai=ai, S_dict=D.S_dict, Bbao_data=Bbao_data, bi=bi)
 
-function get_QWBIB_ba(model::POMDP,b,a,Qs,B, SAOs, SAO_probs, constants::C; ai=nothing, Bbao_data=nothing, bi=nothing, S_dict=nothing)
+function get_QWBIB_ba(model::POMDP,b,a,Qs,B,Br, SAOs, SAO_probs, constants::C; ai=nothing, Bbao_data=nothing, bi=nothing, S_dict=nothing)
     
     opt_model = Model(Clp.Optimizer; add_bridges=false)
     # opt_model = direct_generic_model(Float64, HiGHS.Optimizer())
     set_silent(opt_model)
     set_string_names_on_creation(opt_model, false)
     
-    Q = breward(model,b,a)
+    isnothing(bi) ? (Q = breward(model,b,a)) : (Q = Br[bi,ai])
     for oi in get_possible_obs(b,ai,SAOs, S_dict)
         Qo = -Inf
         for (api, ap) in enumerate(constants.A) #TODO: would it be quicker to let the solver also find the best action?
@@ -249,8 +251,8 @@ function get_QEBIB_Beliefset(model::POMDP,Q, Data::BIB_Data, Bbao_data, Weights)
     return Qs_new, max_dif
 end
 
-function get_QEBIB_ba(model::POMDP, b, a, Qs, B, SAOs, SAO_probs, constants::C; ai=nothing, bi=nothing, Bbao_data=nothing, Weights_data=nothing, S_dict=nothing)
-    Q = breward(model,b,a)
+function get_QEBIB_ba(model::POMDP, b, a, Qs, B, Br, SAOs, SAO_probs, constants::C; ai=nothing, bi=nothing, Bbao_data=nothing, Weights_data=nothing, S_dict=nothing)
+    isnothing(bi) ? (Q = breward(model,b,a)) : (Q = Br[bi,ai])
     (bi isa Nothing || Bbao_data isa Nothing) ? (Os = collect(keys(get_possible_obs_probs(b,ai,SAOs,SAO_probs,S_dict)))) : (Os = get_possible_obs( (true,bi) ,ai,SAOs,Bbao_data))
     for oi in Os
         o = constants.O[oi]
@@ -258,10 +260,13 @@ function get_QEBIB_ba(model::POMDP, b, a, Qs, B, SAOs, SAO_probs, constants::C; 
         p = 0
         if !(Bbao_data isa Nothing) && !(Weights_data isa Nothing) && !(bi isa Nothing)
             bao = get_bao(Bbao_data, bi, ai, oi, B)
-            weights = get_weights_indexfree(Bbao_data, Weights_data,bi,ai,oi)
-            this_Qs = Qs[get_overlap(Bbao_data, bi, ai, oi), :]
-            Qo = sum(weights .* this_Qs, dims=1)
-            p = Bbao_data.BAO_probs[oi,bi,ai]
+            w = discount(model) * Bbao_data.BAO_probs[oi,bi,ai]
+            Q += w * maximum( sum(get_weights_indexfree(Bbao_data, Weights_data,bi,ai,oi) .* Qs[get_overlap(Bbao_data, bi, ai, oi), :], dims=1))
+            ### Or written out:
+            # weights = get_weights_indexfree(Bbao_data, Weights_data,bi,ai,oi)
+            # this_Qs = Qs[get_overlap(Bbao_data, bi, ai, oi), :]
+            # Qo = sum(weights .* this_Qs, dims=1)
+            # p = Bbao_data.BAO_probs[oi,bi,ai]
         else
             bao = update(DiscreteHashedBeliefUpdater(model),b,a,o)
             relevant_Bs, relevant_Bis = get_overlapping_beliefs(bao, B)
@@ -271,13 +276,13 @@ function get_QEBIB_ba(model::POMDP, b, a, Qs, B, SAOs, SAO_probs, constants::C; 
             for s in support(b)
                 p += pdf(b,s) * SAO_probs[oi,S_dict[s],ai]
             end
+            Q += p * discount(model) * maximum(Qo)
         end
-        Q += p * discount(model) * maximum(Qo)
     end
     return Q
 end
-get_QEBIB_ba(model::POMDP, b,a, D::BIB_Data; ai=nothing, bi=nothing, Bbao_data=nothing, Weights_data=nothing) = get_QEBIB_ba(model,b,a,D.Q,D.B, D.SAOs,D.SAO_probs, D.constants; ai=ai,bi=bi,Bbao_data=Bbao_data,Weights_data=Weights_data, S_dict=D.S_dict)
-get_QEBIB_ba(model::POMDP, b,a, Q, D::BIB_Data; ai=nothing, bi=nothing, Bbao_data=nothing, Weights_data=nothing) = get_QEBIB_ba(model,b,a,Q,D.B, D.SAOs,D.SAO_probs, D.constants; ai=ai,bi=bi,Bbao_data=Bbao_data,Weights_data=Weights_data, S_dict=D.S_dict)
+get_QEBIB_ba(model::POMDP, b,a, D::BIB_Data; ai=nothing, bi=nothing, Bbao_data=nothing, Weights_data=nothing) = get_QEBIB_ba(model,b,a,D.Q,D.B, D.Br, D.SAOs,D.SAO_probs, D.constants; ai=ai,bi=bi,Bbao_data=Bbao_data,Weights_data=Weights_data, S_dict=D.S_dict)
+get_QEBIB_ba(model::POMDP, b,a, Q, D::BIB_Data; ai=nothing, bi=nothing, Bbao_data=nothing, Weights_data=nothing) = get_QEBIB_ba(model,b,a,Q,D.B, D.Br, D.SAOs,D.SAO_probs, D.constants; ai=ai,bi=bi,Bbao_data=Bbao_data,Weights_data=Weights_data, S_dict=D.S_dict)
 
 #########################################
 #               Policy:

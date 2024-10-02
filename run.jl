@@ -16,18 +16,18 @@ solvers, solverargs = [], []
 iters, tol = 250, 1e-5
 
 
-### FIB
-using FIB
-push!(solvers, FIBSolver_alt)
-push!(solverargs, (name="FIB", sargs=(max_iterations=iters,precision=tol), pargs=(), get_Q0=true))
+# ## FIB
+# using FIB
+# push!(solvers, FIBSolver_alt)
+# push!(solverargs, (name="FIB", sargs=(max_iterations=iters,precision=tol), pargs=(), get_Q0=true))
 
 # ### BIB
 #  push!(solvers, SBIBSolver)
 #  push!(solverargs, (name="BIBSolver (standard)", sargs=(max_iterations=iters, precision=tol), pargs=(), get_Q0=true))
 
-# ### EBIB
-# push!(solvers, EBIBSolver)
-# push!(solverargs, (name="BIBSolver (entropy)", sargs=(max_iterations=iters, precision=tol), pargs=(), get_Q0=true))
+### EBIB
+push!(solvers, EBIBSolver)
+push!(solverargs, (name="BIBSolver (entropy)", sargs=(max_iterations=iters, precision=tol), pargs=(), get_Q0=true))
 
 # ### WBIBs
 # push!(solvers, WBIBSolver)
@@ -99,13 +99,13 @@ discount = 0.95
 # # ### RockSample
 import RockSample
 # # This env is very difficult to work with for some reason...
-POMDPs.states(M::RockSample.RockSamplePOMDP) = map(si -> RockSample.state_from_index(M,si), 1:length(M))
-POMDPs.discount(M::RockSample.RockSamplePOMDP) = discount
+# POMDPs.states(M::RockSample.RockSamplePOMDP) = map(si -> RockSample.state_from_index(M,si), 1:length(M))
+# POMDPs.discount(M::RockSample.RockSamplePOMDP) = discount
 
-map_size, rock_pos = (5,5), [(1,1), (3,3), (4,4)] # Default
-rocksamplesmall = RockSample.RockSamplePOMDP(map_size, rock_pos)
-push!(envargs, (name="RockSample (5x5)",))
-push!(envs, rocksamplesmall)
+# map_size, rock_pos = (5,5), [(1,1), (3,3), (4,4)] # Default
+# rocksamplesmall = RockSample.RockSamplePOMDP(map_size, rock_pos)
+# push!(envargs, (name="RockSample (5x5)",))
+# push!(envs, rocksamplesmall)
 
 # map_size, rock_pos = (10,10), [(2,3), (4,6), (7,4), (8,9) ] # Big Boy!
 # rocksamplelarge = RockSample.RockSamplePOMDP(map_size, rock_pos)
@@ -119,9 +119,9 @@ include("Environments/K-out-of-N.jl"); using .K_out_of_Ns
 # push!(envs, k_model2)
 # push!(envargs, (name="K-out-of-N (2)",))
 
-# k_model3 = K_out_of_N(N=3, K=3, discount=discount)
-# push!(envs, k_model3)
-# push!(envargs, (name="K-out-of-N (3)",))
+k_model3 = K_out_of_N(N=3, K=3, discount=discount)
+push!(envs, k_model3)
+push!(envargs, (name="K-out-of-N (3)",))
 
 ### CustomGridWorlds
 include("Environments/CustomGridworld.jl"); using .CustomGridWorlds
@@ -252,7 +252,8 @@ for (m_idx,(model, modelargs)) in enumerate(zip(envs, envargs))
     constants = BIB.get_constants(model)
     SAO_probs, SAOs = BIB.get_all_obs_probs(model; constants)
     B, B_idx = BIB.get_belief_set(model, SAOs; constants)
-    Data = BIB.BIB_Data(zeros(2,2), B, B_idx, SAO_probs, SAOs, Dict(zip(constants.S, 1:constants.ns)), constants)
+    Br = BIB.get_Br(model, B, constants)
+    Data = BIB.BIB_Data(zeros(2,2), B, B_idx, Br, SAO_probs, SAOs, Dict(zip(constants.S, 1:constants.ns)), constants)
     BBao_data = BIB.get_Bbao(model, Data, constants)
     ns, na, no, nb = constants.ns, constants.na, constants.no, length(B)
     nbao = length(BBao_data.Bbao) + length(B)
@@ -271,8 +272,9 @@ for (m_idx,(model, modelargs)) in enumerate(zip(envs, envargs))
         t = @elapsed begin
             policy, info = POMDPTools.solve_info(solver, model; solverarg.pargs...) 
         end
-        @profile (policy, info = solve_info(solver, model; solverarg.pargs...))
-        pprof(;webport=58699)
+        policy, info = solve_info(solver, model; solverarg.pargs...)
+        # @profile (policy, info = solve_info(solver, model; solverarg.pargs...))
+        # pprof(;webport=58699)
         (info isa Nothing) ? val = POMDPs.value(policy, POMDPs.initialstate(model)) : val = info.value        
         verbose && println("Upperbound $val (computed in $t seconds)")
         upperbounds_init[s_idx] = val

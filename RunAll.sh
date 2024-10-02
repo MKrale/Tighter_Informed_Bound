@@ -3,7 +3,7 @@
 processes=()
 
 # ... description ...
-# discount="0.95"
+discount="0.95"
 
 ### Small, UB
 # for env in "ABC" "RockSample5" "FrozenLake4" "Tiger" # QUICK
@@ -27,15 +27,27 @@ processes=()
 #   processes+=("julia --project=. run_sarsoptest.jl --env $env --discount $discount")
 #done
 
-folder_path="Data/DiscountTest/"
-#for env in "Tiger" "FrozenLake4"
-for env in "K-out-of-N2"
+### New envs Wietze:
+
+for env in "aloha10" "aloha30" "cit" "fourth" "mit" "pentagon" "sunsyb" "grid" # LONG
 do
-   for discount in $(seq 0.95 0.001 0.99);
-   do
-      processes+=("julia --project=. run_sarsoptest.jl --env $env --path $folder_path --discount $discount")
-   done
+  processes+=("julia --project=. run_upperbound.jl --env $env --discount $discount")
 done
+for env in "aloha10" "aloha30" "cit" "fourth" "mit" "pentagon" "sunsyb" "grid" # LONG
+do
+  processes+=("julia --project=. run_sarsoptest.jl --env $env --discount $discount")
+done
+
+
+# folder_path="Data/DiscountTest/"
+# #for env in "Tiger" "FrozenLake4"
+# for env in "K-out-of-N2"
+# do
+#    for discount in $(seq 0.95 0.001 0.99);
+#    do
+#       processes+=("julia --project=. run_sarsoptest.jl --env $env --path $folder_path --discount $discount")
+#    done
+# done
 wait
 
 

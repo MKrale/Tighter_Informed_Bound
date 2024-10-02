@@ -102,7 +102,7 @@ function solve(sol::FIBSolver_alt, m::POMDP; Data = nothing)
         Q = solve(QMDPSolver_alt(precision=sol.precision, max_iterations=sol.max_iterations*10), m; C=C, S_dict=S_dict).Q
     else
         C, S_dict, SAO_probs, SAOs = Data.constants, Data.S_dict, Data.SAO_probs, Data.SAOs
-        B, B_idx, Q = Data.B, Data.B_idx, Data.Q
+        B, B_idx, Q = Data.B, Data.B_idx,  Data.Q
         Q isa Nothing && (Q = solve(QMDPSolver_alt(precision=sol.precision, max_iterations=sol.max_iterations*10), m; C=C, S_dict=S_dict).Q)
     end
 
