@@ -46,7 +46,7 @@ timeout = parsed_args["timeout"]
 path = parsed_args["path"]
 filename = parsed_args["filename"]
 solver_names = [parsed_args["solvers"]]
-solver_names == ["All"] && (solver_names = ["FIB", "BIB", "EBIB", "WBIB", "SARSOP"])
+solver_names == ["All"] && (solver_names = ["FIB", "BIB", "EBIB", "SARSOP"])
 discount = parsed_args["discount"]
 discount_str = string(discount)[3:end]
 
@@ -295,7 +295,8 @@ for (m_idx,(model, modelargs)) in enumerate(zip(envs, envargs))
         constants = BIB.get_constants(model)
         SAO_probs, SAOs = BIB.get_all_obs_probs(model; constants)
         B, B_idx = BIB.get_belief_set(model, SAOs; constants)
-        Data = BIB.BIB_Data(zeros(2,2), B, B_idx, SAO_probs, SAOs, Dict(zip(constants.S, 1:constants.ns)), constants)
+	Br = BIB.get_Br(model, B, constants)
+	Data = BIB.BIB_Data(zeros(2,2), B, B_idx,Br, SAO_probs, SAOs, Dict(zip(constants.S, 1:constants.ns)), constants)
         BBao_data = BIB.get_Bbao(model, Data, constants)
         env_data = Dict(
             "ns" => constants.ns,

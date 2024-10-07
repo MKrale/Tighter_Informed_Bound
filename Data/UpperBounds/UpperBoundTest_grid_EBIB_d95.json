@@ -1,0 +1,1 @@
+{"env_full":"Grid","env_data":{"na":5,"ns":36,"discount":0.95,"nbao":722,"no":36,"nb":152},"solvetime":0.497965718,"simtime":-1.0,"ub":7.252746894412835,"solver":"BIBSolver (entropy)","ravg":-1.0,"env":"grid"}

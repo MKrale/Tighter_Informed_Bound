@@ -135,7 +135,7 @@ function get_QBIB_Beliefset(model::POMDP, Q, Data::BIB_Data)
     Qs_new = zero(Q) # TODO: this may be inefficient?
     for (b_idx,b) in enumerate(Data.B)
         for (ai, a) in enumerate(Data.constants.A)
-            Qs_new[b_idx,ai] = get_QBIB_ba(model,b,a, Q, Data; bi=bi, ai=ai)
+            Qs_new[b_idx,ai] = get_QBIB_ba(model,b,a, Q, Data; bi=b_idx, ai=ai)
         end
     end
     max_dif = maximum(map(abs, (Qs_new .- Q) ./ (Q.+1e-10)))
