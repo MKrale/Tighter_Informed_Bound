@@ -1,5 +1,6 @@
-Base.@kwdef struct SARSOPSolver{LOW,UP} <: Solver
-    epsilon::Float64        = 0.5
+Base.@kwdef mutable struct SARSOPSolver{LOW,UP} <: Solver
+    epsilon::Float64        = 1e-3
+    epsilon_rate::Int       = 1000
     precision::Float64      = 1e-3
     kappa::Float64          = 0.1
     delta::Float64          = 1e-1
@@ -11,7 +12,7 @@ Base.@kwdef struct SARSOPSolver{LOW,UP} <: Solver
     init_upper::UP          = FastInformedBound(bel_res=1e-2)
     prunethresh::Float64    = 0.10
     heuristic_solver::Union{Nothing,Solver} = nothing
-    add_to_pointset::Bool   = false
+    use_only_Bs::Bool       = false
 end
 
 function POMDPTools.solve_info(solver::SARSOPSolver, pomdp::POMDP)
@@ -24,6 +25,10 @@ function POMDPTools.solve_info(solver::SARSOPSolver, pomdp::POMDP)
     push!(ubs, tree.V_upper[1])
     push!(lbs, tree.V_lower[1])
     while time()-t0 < solver.max_time && root_diff_normalized(tree) > solver.precision && iter < solver.max_its
+        # solver.epsilon_rate <=0 || (solver.epsilon = max(solver.precision,  1 - (log10(1+iter) / log10(1+solver.epsilon_rate))))
+        solver.epsilon_rate <= 0 || (solver.epsilon = max(solver.precision,  1 - ((1+iter) / (1+solver.epsilon_rate))))
+        # println(solver.epsilon, "-", solver.precision)
+        iter==0 ? (max_steps = 250) : (max_steps = solver.max_steps)
         sample!(solver, tree)
         backup!(tree)
         prune!(solver, tree)

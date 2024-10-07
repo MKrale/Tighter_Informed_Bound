@@ -39,6 +39,10 @@ s = ArgParseSettings()
         help = "Number of samples to simulate performance"
         arg_type = Int 
         default = 0
+    "--onlyBs"
+        help = "Option to only use heuristic to initialize Bs"
+        arg_type = Bool 
+        default = false
 end
 
 parsed_args = parse_args(ARGS, s)
@@ -51,6 +55,8 @@ solver_name = parsed_args["solvers"]
 discount = parsed_args["discount"]
 discount_str = string(discount)[3:end]
 sims = parsed_args["sims"]
+onlyBs = parsed_args["onlyBs"]
+onlyBs in [true, "true"] ? (onlyBs = true) : (onlyBs = false)
 
 if timeout == -1.0
     timeout = 3600.0
@@ -81,7 +87,7 @@ end
 if solver_name in  ["BIB", ""]
     push!(solvers, NativeSARSOP_alt.SARSOPSolver)
     h_solver = NativeSARSOP_alt.SBIBSolver(max_iterations=h_iterations, precision=h_precision)
-    push!(solverargs, (name="BIB-SARSOP", sargs=( precision=precision, max_time=timeout, verbose=false, heuristic_solver=h_solver), pargs=()))
+    push!(solverargs, (name="BIB-SARSOP", sargs=( precision=precision, max_time=timeout, verbose=false, heuristic_solver=h_solver, use_only_Bs=onlyBs), pargs=()))
 
     precomp_h_solver = NativeSARSOP_alt.SBIBSolver(max_iterations=2)
     push!(precomp_solvers, (sargs=(max_its = 2, verbose=false, heuristic_solver=precomp_h_solver),pargs=()))
@@ -89,7 +95,7 @@ end
 if solver_name in  ["EBIB", ""]
     push!(solvers, NativeSARSOP_alt.SARSOPSolver)
     h_solver = NativeSARSOP_alt.EBIBSolver(max_iterations=h_iterations, precision=h_precision)
-    push!(solverargs, (name="EBIB-SARSOP", sargs=( precision=precision, max_time=timeout, verbose=false, heuristic_solver=h_solver), pargs=()))
+    push!(solverargs, (name="EBIB-SARSOP", sargs=( precision=precision, max_time=timeout, verbose=false, heuristic_solver=h_solver, use_only_Bs=onlyBs), pargs=()))
 
     precomp_h_solver = NativeSARSOP_alt.EBIBSolver(max_iterations=2)
     push!(precomp_solvers, (sargs=(max_its = 2, verbose=false, heuristic_solver=precomp_h_solver),pargs=()))
@@ -97,7 +103,7 @@ end
 if solver_name in  ["WBIB"]
     push!(solvers, NativeSARSOP_alt.SARSOPSolver)
     h_solver = NativeSARSOP_alt.WBIBSolver(max_iterations=h_iterations, precision=h_precision)
-    push!(solverargs, (name="WBIB-SARSOP", sargs=( precision=precision, max_time=timeout, verbose=false, heuristic_solver=h_solver), pargs=()))
+    push!(solverargs, (name="WBIB-SARSOP", sargs=( precision=precision, max_time=timeout, verbose=false, heuristic_solver=h_solver, use_only_Bs=onlyBs), pargs=()))
 
     precomp_h_solver = NativeSARSOP_alt.WBIBSolver(max_iterations=2)
     push!(precomp_solvers, (sargs=(max_its = 2, verbose=false, heuristic_solver=precomp_h_solver),pargs=()))
@@ -353,7 +359,8 @@ for (i, (solver, solverarg)) in enumerate(zip(solvers, solverargs))
 
     json_str = JSON.json(data_dict)
     if filename == ""
-        thisfilename =  path * "Sarsoptest_$(env_name)_$(solverarg.name)_t$(Int(ceil(timeout)))_d$discount_str.json"
+        onlyBs && (thisfilename =  path * "Sarsoptest_$(env_name)_$(solverarg.name)_t$(Int(ceil(timeout)))_d$(discount_str)_OnlyBs.json")
+        !onlyBs && (thisfilename =  path * "Sarsoptest_$(env_name)_$(solverarg.name)_t$(Int(ceil(timeout)))_d$discount_str.json")
     else
         thisfilename = path * filename * solverarg.name
     end

@@ -53,6 +53,7 @@ function SARSOPTree(solver, pomdp::POMDP)
         corner_values = map(maximum, zip(upper_policy.alphas...))
         B_heuristic, V_heuristic = [], []
     end
+    (solver.use_only_Bs) && (B_heuristic = []; V_heuristic = [])
     ######
     
     

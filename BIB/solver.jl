@@ -22,7 +22,7 @@ end
  end
 
 
-verbose = true
+verbose = false
 function POMDPs.solve(solver::X, model::POMDP) where X<:BIBSolver
     t0 = time()
     constants = get_constants(model)
@@ -346,7 +346,7 @@ function action_value(π::EBIBPolicy, b)
     return (bestA, bestQ)
 end
 
-function get_heuristic_pointset(policy::X) where X<:BIBPolicy
+function get_heuristic_pointset(policy::X; get_only_Bs=false) where X<:BIBPolicy
     B_heuristic, V_heuristic = Vector{Float64}[], Float64[]
     ns = policy.Data.constants.ns
     S_dict = policy.Data.S_dict
@@ -362,5 +362,6 @@ function get_heuristic_pointset(policy::X) where X<:BIBPolicy
         push!(V_heuristic, maximum(policy.Data.Q[b_idx,:]))
     end
     corner_values = V_heuristic[1:ns]
+    # get_only_Bs && return corner_values
     return corner_values, B_heuristic[ns:end], V_heuristic[ns:end]
 end

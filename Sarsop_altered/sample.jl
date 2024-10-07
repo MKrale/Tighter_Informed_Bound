@@ -1,11 +1,11 @@
-function sample!(sol, tree)
+function sample!(sol, tree; max_steps = typemax(Int))
     empty!(tree.sampled)
     L = tree.V_lower[1]
     U = L + sol.epsilon*root_diff(tree)
-    sample_points(sol, tree, 1, L, U, 0, sol.epsilon*root_diff(tree))
+    sample_points(sol, tree, 1, L, U, 0, sol.epsilon*root_diff(tree); max_steps = max_steps)
 end
 
-function sample_points(sol::SARSOPSolver, tree::SARSOPTree, b_idx::Int, L, U, t, ϵ)
+function sample_points(sol::SARSOPSolver, tree::SARSOPTree, b_idx::Int, L, U, t, ϵ; max_steps = typemax(Int))
     # println(tree.b[b_idx])
     # println("---")
     tree.b_pruned[b_idx] = false
@@ -14,7 +14,7 @@ function sample_points(sol::SARSOPSolver, tree::SARSOPTree, b_idx::Int, L, U, t,
         push!(tree.real, b_idx)
     end
 
-    tree.is_terminal[b_idx] && return
+    (tree.is_terminal[b_idx] || max_steps <=0) && return
 
     fill_belief!(tree, b_idx)
     V̲, V̄ = tree.V_lower[b_idx], tree.V_upper[b_idx]
@@ -38,7 +38,7 @@ function sample_points(sol::SARSOPSolver, tree::SARSOPTree, b_idx::Int, L, U, t,
 
         bp_idx = tree.ba_children[ba_idx][op_idx]
         push!(tree.sampled, b_idx)
-        sample_points(sol, tree, bp_idx, Lt, Ut, t+1, ϵ)
+        sample_points(sol, tree, bp_idx, Lt, Ut, t+1, ϵ; max_steps = max_steps-1)
     end
 end
 
