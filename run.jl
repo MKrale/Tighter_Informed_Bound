@@ -13,25 +13,25 @@ using Profile, PProf
 
 solvers, solverargs = [], []
 
-iters, tol = 250, 1e-5
+iters, tol = 250, 10^-5
 
 
-# ## FIB
-# using FIB
-# push!(solvers, FIBSolver_alt)
-# push!(solverargs, (name="FIB", sargs=(max_iterations=iters,precision=tol), pargs=(), get_Q0=true))
+## FIB
+using FIB
+push!(solvers, FIBSolver_alt)
+push!(solverargs, (name="FIB", sargs=(max_iterations=iters,precision=tol), pargs=(), get_Q0=true))
 
-# ### BIB
-#  push!(solvers, SBIBSolver)
-#  push!(solverargs, (name="BIBSolver (standard)", sargs=(max_iterations=iters, precision=tol), pargs=(), get_Q0=true))
+### BIB
+ push!(solvers, SBIBSolver)
+ push!(solverargs, (name="BIBSolver (standard)", sargs=(max_iterations=iters, precision=tol), pargs=(), get_Q0=true))
 
 ### EBIB
 push!(solvers, EBIBSolver)
 push!(solverargs, (name="BIBSolver (entropy)", sargs=(max_iterations=iters, precision=tol), pargs=(), get_Q0=true))
 
-# ### WBIBs
-# push!(solvers, WBIBSolver)
-# push!(solverargs, (name="BIBSolver (worst-case)", sargs=(max_iterations=250, precision=1e-5), pargs=(), get_Q0=true))
+### WBIBs
+push!(solvers, WBIBSolver)
+push!(solverargs, (name="BIBSolver (worst-case)", sargs=(max_iterations=250, precision=1e-5), pargs=(), get_Q0=true))
 
 # SARSOP
 # include("Sarsop_altered/NativeSARSOP.jl")
@@ -82,11 +82,11 @@ push!(solverargs, (name="BIBSolver (entropy)", sargs=(max_iterations=iters, prec
 envs, envargs = [], []
 discount = 0.95
 
-# # # ### ABC
-# include("Environments/ABCModel.jl"); using .ABCModel
-# abcmodel = ABC(discount=discount)
-# push!(envs, abcmodel)
-# push!(envargs, (name="ABCModel",))
+# # ### ABC
+include("Environments/ABCModel.jl"); using .ABCModel
+abcmodel = ABC(discount=discount)
+push!(envs, abcmodel)
+push!(envargs, (name="ABCModel",))
 
  
 #  # ### Tiger
@@ -119,9 +119,9 @@ include("Environments/K-out-of-N.jl"); using .K_out_of_Ns
 # push!(envs, k_model2)
 # push!(envargs, (name="K-out-of-N (2)",))
 
-k_model3 = K_out_of_N(N=3, K=3, discount=discount)
-push!(envs, k_model3)
-push!(envargs, (name="K-out-of-N (3)",))
+# k_model3 = K_out_of_N(N=3, K=3, discount=discount)
+# push!(envs, k_model3)
+# push!(envargs, (name="K-out-of-N (3)",))
 
 ### CustomGridWorlds
 include("Environments/CustomGridworld.jl"); using .CustomGridWorlds
@@ -269,10 +269,10 @@ for (m_idx,(model, modelargs)) in enumerate(zip(envs, envargs))
         solver = solver(;solverarg.sargs...)
 
         # Compute policy & get upper bound
+        policy, info = solve_info(solver, model; solverarg.pargs...)
         t = @elapsed begin
             policy, info = POMDPTools.solve_info(solver, model; solverarg.pargs...) 
         end
-        policy, info = solve_info(solver, model; solverarg.pargs...)
         # @profile (policy, info = solve_info(solver, model; solverarg.pargs...))
         # pprof(;webport=58699)
         (info isa Nothing) ? val = POMDPs.value(policy, POMDPs.initialstate(model)) : val = info.value        
