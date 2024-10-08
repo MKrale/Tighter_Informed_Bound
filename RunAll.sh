@@ -5,6 +5,12 @@ processes=()
 # ... description ...
 discount="0.95"
 
+for env in "SparseHallway1" "SparseHallway2" # LONG
+do
+  processes+=("julia --project=. run_sarsoptest.jl --env $env --discount $discount --onlyBs true")
+done
+
+
 ### Small, UB
 # for env in "ABC" "RockSample5" "FrozenLake4" "Tiger" # QUICK
 # do
@@ -12,20 +18,20 @@ discount="0.95"
 #    processes+=("$thisrun")
 # done
 ### Small, Sarsop
-for env in "ABC" "RockSample5" "FrozenLake4" "Tiger" "K-out-of-N2" # QUICK
-do
-   processes+=("julia --project=. run_sarsoptest.jl --env $env --discount $discount --onlyBs true")
-done
+# for env in "ABC" "RockSample5" "Tiger" "K-out-of-N2" # QUICK
+# do
+#    processes+=("julia --project=. run_sarsoptest.jl --env $env --discount $discount --onlyBs true")
+# done
 ### Large, UB
 #for env in "RockSample10" "K-out-of-N2" "K-out-of-N3" "FrozenLake10" "Tag" "SparseHallway1" "SparseHallway2" "SparseTigerGrid" # LONG
 #do
 #   processes+=("julia --project=. run_upperbound.jl --env $env --discount $discount")
 #done
 # Large, Sarsop
-for env in "RockSample10" "K-out-of-N2" "K-out-of-N3" "FrozenLake10" "Tag" "SparseHallway1" "SparseHallway2" "SparseTigerGrid" # LONG
-do
-  processes+=("julia --project=. run_sarsoptest.jl --env $env --discount $discount --onlyBs true")
-done
+# for env in "RockSample10" "K-out-of-N2" "K-out-of-N3" "Tag" "SparseHallway1" "SparseHallway2" "SparseTigerGrid" # LONG
+# do
+#   processes+=("julia --project=. run_sarsoptest.jl --env $env --discount $discount --onlyBs true")
+# done
 
 ### Extra Large (Wietze):
 
@@ -33,10 +39,10 @@ done
 # do
 #   processes+=("julia --project=. run_upperbound.jl --env $env --discount $discount")
 # done
-for env in "aloha10" "aloha30" "cit" "fourth" "mit" "pentagon" "sunsyb" "grid" 
-do
-  processes+=("julia --project=. run_sarsoptest.jl --env $env --discount $discount --onlyBs true")
-done
+# for env in "aloha10" "aloha30" "cit" "fourth" "mit" "pentagon" "sunsyb" "grid" 
+# do
+#   processes+=("julia --project=. run_sarsoptest.jl --env $env --discount $discount --onlyBs true")
+# done
 
 
 # folder_path="Data/DiscountTest/"
