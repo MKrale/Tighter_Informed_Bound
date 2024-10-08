@@ -60,7 +60,7 @@ end
 ##################################################################
 
 solvers, solverargs, precomp_solverargs = [], [], []
-SARSOPprecision = 1e-3
+SARSOPprecision = 1e-2
 heuristicprecision, heuristicsteps = 1e-4, 1_000
 discount == 0.95 && (heuristicprecision = 1e-3;  heuristicsteps = 250)
 discount == 0.99 && (heuristicprecision = 1e-4;  heuristicsteps = 1_000)
