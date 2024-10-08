@@ -17,6 +17,6 @@ include("grid_columns.jl")
 
 
 export 
-SparseHallway1, SparseHallway2, SparseTigerGrid, Sparse_aloha10, Sparse_aloha30, Sparse_baseball, Sparse_cit, Sparse_fourth, Sparse_mit, Sparse_pentagon, Sparse_sunysb, Sparse_Grid
+Sparse_Hallway1, Sparse_Hallway2, SparseTigerGrid, Sparse_aloha10, Sparse_aloha30, Sparse_baseball, Sparse_cit, Sparse_fourth, Sparse_mit, Sparse_pentagon, Sparse_sunysb, Sparse_Grid
 
 end
