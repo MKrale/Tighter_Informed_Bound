@@ -35,7 +35,7 @@ done
 
 ### Extra Large (Wietze):
 
-for env in"aloha30" "fourth" "pentagon""grid" 
+for env in "aloha30" "fourth" "pentagon""grid" 
 do
   processes+=("julia --project=. run_upperbound.jl --env $env --discount $discount --solvers WBIB")
 done
