@@ -11,10 +11,10 @@ discount="0.95"
 # done
 
 
-### Small, UB
+## Small, UB
 for env in "ABC" "RockSample5" "FrozenLake4" "Tiger" # QUICK
 do
-   thisrun="julia --project=. run_upperbound.jl --env $env --discount $discount --solvers WBIB"
+   thisrun="julia --project=. run_upperbound.jl --env $env --discount $discount --solvers SARSOP"
    processes+=("$thisrun")
 done
 ### Small, Sarsop
@@ -22,10 +22,10 @@ done
 # do
 #    processes+=("julia --project=. run_sarsoptest.jl --env $env --discount $discount --onlyBs true")
 # done
-## Large, UB
+# Large, UB
 for env in "RockSample10" "K-out-of-N2" "K-out-of-N3""Tag" "Sparse_Hallway1" "Sparse_Hallway2" "SparseTigerGrid" # LONG
 do
-  processes+=("julia --project=. run_upperbound.jl --env $env --discount $discount --solvers WBIB")
+  processes+=("julia --project=. run_upperbound.jl --env $env --discount $discount --solvers SARSOP")
 done
 # Large, Sarsop
 # for env in "RockSample10" "K-out-of-N2" "K-out-of-N3" "Tag" "Sparse_Hallway1" "Sparse_Hallway2" "SparseTigerGrid" # LONG
@@ -35,9 +35,9 @@ done
 
 ### Extra Large (Wietze):
 
-for env in "aloha30" "fourth" "pentagon""grid" 
+for env in "pentagon" "grid" "aloha30" "fourth" 
 do
-  processes+=("julia --project=. run_upperbound.jl --env $env --discount $discount --solvers WBIB")
+  processes+=("julia --project=. run_upperbound.jl --env $env --discount $discount --solvers SARSOP")
 done
 # for env in "aloha10" "aloha30" "cit" "fourth" "mit" "pentagon" "sunsyb" "grid" 
 # do
