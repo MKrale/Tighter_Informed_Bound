@@ -58,7 +58,7 @@ wait
 
 
 
-printf "%s\n" "${processes[@]}" | parallel -j3 # WHY DOES THIS WORK??? I HATE BASH!!!
+printf "%s\n" "${processes[@]}" | parallel -j1 # WHY DOES THIS WORK??? I HATE BASH!!!
 wait
 echo -e "\n\n============= RUNS COMPLETED =============\n\n"
 

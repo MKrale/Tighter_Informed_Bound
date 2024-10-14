@@ -137,7 +137,7 @@ function get_QBIB_Beliefset(model::POMDP, Q, timeleft, Data::BIB_Data)
     t0 = time()
     Qs_new = zero(Q) # TODO: this may be inefficient?
     for (b_idx,b) in enumerate(Data.B)
-        timeleft+t0-time() < 0 && (return Qs, 0)
+        timeleft+t0-time() < 0 && (return Q, 0)
         for (ai, a) in enumerate(Data.constants.A)
             Qs_new[b_idx,ai] = get_QBIB_ba(model,b,a, Q, Data; bi=b_idx, ai=ai)
         end
@@ -173,7 +173,7 @@ function get_QWBIB_Beliefset(model::POMDP, Q, timeleft, Data::BIB_Data, Bbao_dat
     t0 = time()
     Qs_new = zero(Q) # TODO: this may be inefficient?
     for (bi,b) in enumerate(Data.B)
-        timeleft+t0-time() < 0 && (return Qs, 0)
+        timeleft+t0-time() < 0 && (return Q, 0)
         for (ai, a) in enumerate(Data.constants.A)
             Qs_new[bi,ai] = get_QWBIB_ba(model,b,a, Q, Data; ai=ai, Bbao_data=Bbao_data, bi=bi)
         end
@@ -252,7 +252,7 @@ function get_QEBIB_Beliefset(model::POMDP,Q, timeleft, Data::BIB_Data, Bbao_data
     Qs_new = zero(Q) # TODO: this may be inefficient?
     t0 = time()
     for (b_idx,b) in enumerate(Data.B)
-        timeleft+t0-time() < 0 && (return Qs, 0)
+        timeleft+t0-time() < 0 && (return Q, 0)
         for (ai, a) in enumerate(Data.constants.A)
             Qs_new[b_idx,ai] = get_QEBIB_ba(model,b,a, Q, Data; ai=ai, bi=b_idx, Bbao_data=Bbao_data, Weights_data=Weights)
         end
