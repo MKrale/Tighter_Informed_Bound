@@ -78,7 +78,9 @@ function POMDPs.solve(solver::X, model::POMDP) where X<:BIBSolver
     it = 0
     factor = discount(model) / (1-discount(model))
     for i=1:solver.max_iterations
-        Qs, max_dif = get_Q(model, Qs, args...)
+        time_left = solver.max_time-(time()-t0)
+        verbose && printdb("starting iteration $it")
+        Qs, max_dif = get_Q(model, Qs,time_left, args...)
         if factor * max_dif < solver.precision || time()-t0 > solver.max_time
             break
         end
@@ -131,9 +133,11 @@ end
 
 ############ BIB ###################
 
-function get_QBIB_Beliefset(model::POMDP, Q, Data::BIB_Data)
+function get_QBIB_Beliefset(model::POMDP, Q, timeleft, Data::BIB_Data)
+    t0 = time()
     Qs_new = zero(Q) # TODO: this may be inefficient?
     for (b_idx,b) in enumerate(Data.B)
+        timeleft+t0-time() < 0 && (return Qs, 0)
         for (ai, a) in enumerate(Data.constants.A)
             Qs_new[b_idx,ai] = get_QBIB_ba(model,b,a, Q, Data; bi=b_idx, ai=ai)
         end
@@ -165,9 +169,11 @@ get_QBIB_ba(model::POMDP,b,a,D::BIB_Data; bi=nothing, ai=nothing) = get_QBIB_ba(
 
 ############ WBIB ###################
 
-function get_QWBIB_Beliefset(model::POMDP, Q, Data::BIB_Data, Bbao_data::BBAO_Data)
+function get_QWBIB_Beliefset(model::POMDP, Q, timeleft, Data::BIB_Data, Bbao_data::BBAO_Data)
+    t0 = time()
     Qs_new = zero(Q) # TODO: this may be inefficient?
     for (bi,b) in enumerate(Data.B)
+        timeleft+t0-time() < 0 && (return Qs, 0)
         for (ai, a) in enumerate(Data.constants.A)
             Qs_new[bi,ai] = get_QWBIB_ba(model,b,a, Q, Data; ai=ai, Bbao_data=Bbao_data, bi=bi)
         end
@@ -242,9 +248,11 @@ end
 
 ############ EBIB ###################
 
-function get_QEBIB_Beliefset(model::POMDP,Q, Data::BIB_Data, Bbao_data, Weights)
+function get_QEBIB_Beliefset(model::POMDP,Q, timeleft, Data::BIB_Data, Bbao_data, Weights)
     Qs_new = zero(Q) # TODO: this may be inefficient?
+    t0 = time()
     for (b_idx,b) in enumerate(Data.B)
+        timeleft+t0-time() < 0 && (return Qs, 0)
         for (ai, a) in enumerate(Data.constants.A)
             Qs_new[b_idx,ai] = get_QEBIB_ba(model,b,a, Q, Data; ai=ai, bi=b_idx, Bbao_data=Bbao_data, Weights_data=Weights)
         end

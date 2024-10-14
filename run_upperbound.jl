@@ -38,6 +38,10 @@ s = ArgParseSettings()
         help = "Discount factor"
         arg_type = Float64
         default = 0.95
+    "--precompile"
+        help = "Option to precomile all code by running at low horizon. Particularly relevant for small environments. (default: true)"
+        arg_type = Bool 
+        default = true
 end
 
 parsed_args = parse_args(ARGS, s)
@@ -49,6 +53,7 @@ solver_names = [parsed_args["solvers"]]
 solver_names == ["All"] && (solver_names = ["FIB", "BIB", "EBIB", "WBIB", "SARSOP"])
 discount = parsed_args["discount"]
 discount_str = string(discount)[3:end]
+precompile = parsed_args["precompile"]
 
 if timeout == -1.0
 	discount == 0.95 && (timeout = 1200.0)
@@ -151,7 +156,7 @@ if env_name == "RockSample10"
     push!(envs, rocksamplelarge)
 end
 if env_name == "RockSample11"
-    map_size, rock_pos = (10,10), [(1,2), (2,7), (3,9), (4,2), (5,7), (5,10), (7,4), (8,8), (10) ] # Bigger Boy!
+    map_size, rock_pos = (11,11), [(1,2), (2,7), (3,9), (4,2), (5,7), (5,10), (7,4), (8,8), (10) ] # Bigger Boy!
     rocksample11 = RockSample.RockSamplePOMDP(map_size, rock_pos)
     push!(envargs, (name="RockSample (11)",))
     push!(envs, rocksamplelarge)
@@ -314,9 +319,11 @@ for (m_idx,(model, modelargs)) in enumerate(zip(envs, envargs))
 	    )
 
         # Precompile
-        precomp_solver = solver(;precomp_solverargs[s_idx].sargs...)
-        _t = @elapsed begin
-            _p, _i = POMDPTools.solve_info(precomp_solver, model; precomp_solverargs[s_idx].pargs...) 
+        if precompile
+            precomp_solver = solver(;precomp_solverargs[s_idx].sargs...)
+            _t = @elapsed begin
+                _p, _i = POMDPTools.solve_info(precomp_solver, model; precomp_solverargs[s_idx].pargs...) 
+            end
         end
 
         # Compute policy & get upper bound
