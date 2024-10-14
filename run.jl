@@ -25,22 +25,22 @@ push!(solverargs, (name="FIB", sargs=(max_iterations=iters,precision=tol), pargs
  push!(solvers, SBIBSolver)
  push!(solverargs, (name="BIBSolver (standard)", sargs=(max_iterations=iters, precision=tol), pargs=(), get_Q0=true))
 
-### EBIB
-push!(solvers, EBIBSolver)
-push!(solverargs, (name="BIBSolver (entropy)", sargs=(max_iterations=iters, precision=tol), pargs=(), get_Q0=true))
+# ### EBIB
+# push!(solvers, EBIBSolver)
+# push!(solverargs, (name="BIBSolver (entropy)", sargs=(max_iterations=iters, precision=tol), pargs=(), get_Q0=true))
 
-### WBIBs
-push!(solvers, WBIBSolver)
-push!(solverargs, (name="BIBSolver (worst-case)", sargs=(max_iterations=250, precision=1e-5), pargs=(), get_Q0=true))
+# ### WBIBs
+# push!(solvers, WBIBSolver)
+# push!(solverargs, (name="BIBSolver (worst-case)", sargs=(max_iterations=250, precision=1e-5), pargs=(), get_Q0=true))
 
-# SARSOP
+# ### SARSOP
 # include("Sarsop_altered/NativeSARSOP.jl")
 # import .NativeSARSOP_alt
 # max_time = 120.0
 
 # push!(solvers, NativeSARSOP_alt.SARSOPSolver)
-# solver = SBIBSolver(max_iterations=1_000, precision=1e-5)
-# push!(solverargs, (name="SARSOP+BIB (max $max_time s)", sargs=( epsilon=1e-2, precision=1e-2, max_time=max_time, verbose=false, heuristic_solver=solver), pargs=(), get_Q0=true))
+# solver = FIBSolver_alt(max_iterations=1_000, precision=1e-5)
+# push!(solverargs, (name="SARSOP+FIB (max $max_time s)", sargs=( epsilon=1e-2, precision=1e-2, max_time=max_time, verbose=false, heuristic_solver=solver), pargs=(), get_Q0=true))
 
 
 # push!(solvers, NativeSARSOP_alt.SARSOPSolver)
@@ -82,19 +82,28 @@ push!(solverargs, (name="BIBSolver (worst-case)", sargs=(max_iterations=250, pre
 envs, envargs = [], []
 discount = 0.95
 
-# # ### ABC
+# ### ABC
+include("Environments/ABCModel.jl"); using .ABCModel
+abcmodel = SparseTabularPOMDP(ABC(discount=discount))
+push!(envs, abcmodel)
+push!(envargs, (name="ABCModel",))
+
+# include("Environments/GuessingChain.jl"); using .GuessingChains
+# model = GuessingChain(discount=discount)
+# push!(envs, model)
+# push!(envargs, (name="GuessingChain",))
+
+ # ### Tiger
+ tiger = POMDPModels.TigerPOMDP()
+ tiger.discount_factor = discount
+ push!(envs, tiger)
+ push!(envargs, (name="Tiger",))
+
+# ### ABC
 include("Environments/ABCModel.jl"); using .ABCModel
 abcmodel = ABC(discount=discount)
 push!(envs, abcmodel)
 push!(envargs, (name="ABCModel",))
-
- 
-#  # ### Tiger
-#  tiger = POMDPModels.TigerPOMDP()
-#  tiger.discount_factor = discount
-#  push!(envs, tiger)
-#  push!(envargs, (name="Tiger",))
-
 
 # # ### RockSample
 import RockSample
@@ -102,10 +111,10 @@ import RockSample
 # POMDPs.states(M::RockSample.RockSamplePOMDP) = map(si -> RockSample.state_from_index(M,si), 1:length(M))
 # POMDPs.discount(M::RockSample.RockSamplePOMDP) = discount
 
-# map_size, rock_pos = (5,5), [(1,1), (3,3), (4,4)] # Default
-# rocksamplesmall = RockSample.RockSamplePOMDP(map_size, rock_pos)
-# push!(envargs, (name="RockSample (5x5)",))
-# push!(envs, rocksamplesmall)
+map_size, rock_pos = (5,5), [(1,1), (3,3), (4,4)] # Default
+rocksamplesmall = RockSample.RockSamplePOMDP(map_size, rock_pos)
+push!(envargs, (name="RockSample (5x5)",))
+push!(envs, rocksamplesmall)
 
 # map_size, rock_pos = (10,10), [(2,3), (4,6), (7,4), (8,9) ] # Big Boy!
 # rocksamplelarge = RockSample.RockSamplePOMDP(map_size, rock_pos)
@@ -115,9 +124,9 @@ import RockSample
 # # ### K-out-of-N
 include("Environments/K-out-of-N.jl"); using .K_out_of_Ns
 
-# k_model2 = K_out_of_N(N=2, K=2, discount=discount)
-# push!(envs, k_model2)
-# push!(envargs, (name="K-out-of-N (2)",))
+k_model2 = K_out_of_N(N=2, K=2, discount=discount)
+push!(envs, k_model2)
+push!(envargs, (name="K-out-of-N (2)",))
 
 # k_model3 = K_out_of_N(N=3, K=3, discount=discount)
 # push!(envs, k_model3)
@@ -173,6 +182,11 @@ include("Environments/Sparse_models/SparseModels.jl"); using .SparseModels
 # tigergrid = SparseTigerGrid(discount=discount)
 # push!(envs, tigergrid)
 # push!(envargs, (name="TigerGrid (Sparse)",))
+
+Grid = Sparse_Grid(discount=discount)
+push!(envs, Grid)
+push!(envargs, (name="grid",))
+
 
 # # ### DroneSurveilance
 # # import DroneSurveillance

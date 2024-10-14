@@ -1,1 +1,1 @@
-{"env_full":"Tiger","env_data":{"na":3,"ns":2,"discount":0.95,"nbao":5,"no":2,"nb":3},"solvetime":0.080510865,"simtime":-1.0,"ub":19.371366840730673,"solver":"SARSOP","ravg":-1.0,"env":"Tiger"}
+{"env_full":"Tiger","env_data":{"na":3,"ns":2,"discount":0.95,"nbao":5,"no":2,"nb":3},"solvetime":0.088636396,"lb":19.37136828689871,"ub":19.558996514680924,"solver":"SARSOP","simtime":-1.0,"ravg":-1.0,"env":"Tiger"}

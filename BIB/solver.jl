@@ -196,13 +196,13 @@ function get_QWBIB_ba(model::POMDP,b,a,Qs,B,Br, SAOs, SAO_probs, constants::C; a
                 overlap_idxs = get_overlap(Bbao_data, bi, ai, oi)
                 thisBs, thisQs = B[overlap_idxs], Qs[overlap_idxs, api]
                 empty!(opt_model)
-                thisQo = get_QLP(bao, thisQs, thisBs, nothing)
+                thisQo = get_QLP(bao, thisQs, thisBs, opt_model)
             else
                 o = constants.O[oi]
                 bao = update(DiscreteHashedBeliefUpdater(model),b,a,o)
                 B_rel, Bidx_rel = get_overlapping_beliefs(bao,B)
                 empty!(opt_model)
-                thisQo = get_QLP(bao, Qs[Bidx_rel,api],B_rel, nothing)
+                thisQo = get_QLP(bao, Qs[Bidx_rel,api],B_rel, opt_model)
             end
             Qo = max(Qo, thisQo)
         end
@@ -218,8 +218,10 @@ end
 """ Uses a point-set B with value estimates Qs to estimate the value of a belief b."""
 function get_QLP(b,Qs,B, model)
     if model isa Nothing
-        model = Model(HiGHS.Optimizer)
+        # model = Model(HiGHS.Optimizer)
+        model = Model(Clp.Optimizer; add_bridges=false)
         set_silent(model)
+        set_string_names_on_creation(opt_model, false)
     end
     @variable(model, 0.0 <= b_ps[1:length(B)] <= 1.0)
     for s in support(b)

@@ -46,7 +46,7 @@ timeout = parsed_args["timeout"]
 path = parsed_args["path"]
 filename = parsed_args["filename"]
 solver_names = [parsed_args["solvers"]]
-solver_names == ["All"] && (solver_names = ["FIB", "BIB", "EBIB", "SARSOP"])
+solver_names == ["All"] && (solver_names = ["FIB", "BIB", "EBIB", "WBIB", "SARSOP"])
 discount = parsed_args["discount"]
 discount_str = string(discount)[3:end]
 
@@ -67,15 +67,15 @@ discount == 0.99 && (heuristicprecision = 1e-4;  heuristicsteps = 1_000)
 
 timeout_sarsop = 1200.0
 
-if "FIB" in solver_names
-    push!(solvers, FIBSolver_alt)
-    push!(solverargs, (name="FIB", sargs=(max_iterations=heuristicsteps*4, precision=heuristicprecision, max_time=timeout), pargs=(), get_Q0=true))
-    
-    push!(precomp_solverargs, ( sargs=(max_iterations=2,), pargs=()))
-end
 if "BIB" in solver_names
     push!(solvers, SBIBSolver)
     push!(solverargs, (name="BIBSolver (standard)", sargs=(max_iterations=heuristicsteps, precision=heuristicprecision, max_time=timeout), pargs=(), get_Q0=true))
+    
+    push!(precomp_solverargs, ( sargs=(max_iterations=2,), pargs=()))
+end
+if "FIB" in solver_names
+    push!(solvers, FIBSolver_alt)
+    push!(solverargs, (name="FIB", sargs=(max_iterations=heuristicsteps*4, precision=heuristicprecision, max_time=timeout), pargs=(), get_Q0=true))
     
     push!(precomp_solverargs, ( sargs=(max_iterations=2,), pargs=()))
 end
@@ -126,13 +126,13 @@ envs, envargs = [], []
 
 if env_name == "ABC"
     include("Environments/ABCModel.jl"); using .ABCModel
-    abcmodel = ABC(discount=discount)
+    abcmodel = SparseTabularPOMDP(ABC(discount=discount))
     push!(envs, abcmodel)
     push!(envargs, (name="ABCModel",))
     ### Tiger
 end
 if env_name == "Tiger"
-    tiger = POMDPModels.TigerPOMDP()
+    tiger = SparseTabularPOMDP(POMDPModels.TigerPOMDP())
     tiger.discount_factor = discount
     push!(envs, tiger)
     push!(envargs, (name="Tiger",))
@@ -150,6 +150,12 @@ if env_name == "RockSample10"
     push!(envargs, (name="RockSample (10)",))
     push!(envs, rocksamplelarge)
 end
+if env_name == "RockSample11"
+    map_size, rock_pos = (10,10), [(1,2), (2,7), (3,9), (4,2), (5,7), (5,10), (7,4), (8,8), (10) ] # Bigger Boy!
+    rocksamplelarge = RockSample.RockSamplePOMDP(map_size, rock_pos)
+    push!(envargs, (name="RockSample (11)",))
+    push!(envs, rocksamplelarge)
+end
 if env_name == "RockSample7"
     map_size, rock_pos = (7,7), [(1,2), (2,7), (3,1), (3,5), (6,6),(7,4) ] # HSVI setting!
     rocksamplelarge = RockSample.RockSamplePOMDP(map_size, rock_pos)
@@ -158,24 +164,24 @@ if env_name == "RockSample7"
 end
 if env_name == "K-out-of-N2"
     # ### K-out-of-N
-    k_model2 = K_out_of_N(N=2, K=2, discount=discount)
+    k_model2 = SparseTabularPOMDP(K_out_of_N(N=2, K=2, discount=discount))
     push!(envs, k_model2)
     push!(envargs, (name="K-out-of-N (2)",))
 end
 if env_name == "K-out-of-N3"
-    k_model3 = K_out_of_N(N=3, K=3, discount=discount)
+    k_model3 = SparseTabularPOMDP(K_out_of_N(N=3, K=3, discount=discount))
     push!(envs, k_model3)
     push!(envargs, (name="K-out-of-N (3)",))
 end
 if env_name == "FrozenLake4"
     # Frozen Lake esque
-    lakesmall = FrozenLakeSmall
+    lakesmall = SparseTabularPOMDP(FrozenLakeSmall)
     lakesmall.discount = discount
     push!(envs, lakesmall)
     push!(envargs, (name="Frozen Lake (4)",))
 end
 if env_name == "FrozenLake10"
-    lakelarge = FrozenLakeLarge
+    lakelarge = SparseTabularPOMDP(FrozenLakeLarge)
     lakelarge.discount = discount
     push!(envs, lakelarge)
     push!(envargs, (name="Frozen Lake (10)",))
@@ -316,10 +322,15 @@ for (m_idx,(model, modelargs)) in enumerate(zip(envs, envargs))
         # Compute policy & get upper bound
         solver = solver(;solverarg.sargs...)
         t = @elapsed begin
-            policy = solve(solver, model; solverarg.pargs...) 
+            policy, info = POMDPTools.solve_info(solver, model; solverarg.pargs...) 
         end
-        val = POMDPs.value(policy, POMDPs.initialstate(model))
-        # (info isa Nothing) ? val = POMDPs.value(policy, POMDPs.initialstate(model)) : val = info.value        
+        if (info isa Nothing)
+            ub = POMDPs.value(policy, POMDPs.initialstate(model))
+            lb = -1
+        else
+            ub = info.ub
+            lb =  info.lb
+        end       
 
         # Simulate policy & get avg returns
         #rs = []
@@ -343,13 +354,14 @@ for (m_idx,(model, modelargs)) in enumerate(zip(envs, envargs))
             "solver" => solverarg.name,
             # Solving data
             "solvetime" => t,
-            "ub" => val,
+            "ub" => ub,
+            "lb" => lb,
             # Simulation data
             "simtime" => t_sims,
             "ravg" => rs_avg
         )
         json_str = JSON.json(data_dict)
-        println(env_name, " ", t, " ", val)
+        println(env_name, " ", t, " ", ub)
         if filename == ""
 		thisfilename =  path * "UpperBoundTest_$(env_name)_$(solver_names[s_idx])_d$(discount_str).json"
         else
