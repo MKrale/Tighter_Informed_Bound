@@ -22,12 +22,12 @@ done
 # do
 #    processes+=("julia --project=. run_sarsoptest.jl --env $env --discount $discount --onlyBs true")
 # done
-Large, UB
+###Large, UB
 for env in "RockSample11" "K-out-of-N2" "K-out-of-N3""Tag" "Sparse_Hallway1" "Sparse_Hallway2" "SparseTigerGrid" # LONG
 do
   processes+=("julia --project=. run_upperbound.jl --env $env --discount $discount --precompile false")
 done
-# Large, Sarsop
+### Large, Sarsop
 # for env in "RockSample10" "K-out-of-N2" "K-out-of-N3" "Tag" "Sparse_Hallway1" "Sparse_Hallway2" "SparseTigerGrid" # LONG
 # do
 #   processes+=("julia --project=. run_sarsoptest.jl --env $env --discount $discount --onlyBs true")
