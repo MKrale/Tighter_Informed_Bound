@@ -132,9 +132,9 @@ if env_name == "ABC"
     ### Tiger
 end
 if env_name == "Tiger"
-    tiger = SparseTabularPOMDP(POMDPModels.TigerPOMDP())
+    tiger = POMDPModels.TigerPOMDP()
     tiger.discount_factor = discount
-    push!(envs, tiger)
+    push!(envs, SparseTabularPOMDP(tiger))
     push!(envargs, (name="Tiger",))
     ### RockSample
 end
@@ -164,13 +164,13 @@ if env_name == "RockSample7"
 end
 if env_name == "K-out-of-N2"
     # ### K-out-of-N
-    k_model2 = SparseTabularPOMDP(K_out_of_N(N=2, K=2, discount=discount))
-    push!(envs, k_model2)
+    k_model2 = K_out_of_N(N=2, K=2, discount=discount)
+    push!(envs, SparseTabularPOMDP(k_model2))
     push!(envargs, (name="K-out-of-N (2)",))
 end
 if env_name == "K-out-of-N3"
-    k_model3 = SparseTabularPOMDP(K_out_of_N(N=3, K=3, discount=discount))
-    push!(envs, k_model3)
+    k_model3 = K_out_of_N(N=3, K=3, discount=discount)
+    push!(envs, SparseTabularPOMDP(k_model3))
     push!(envargs, (name="K-out-of-N (3)",))
 end
 if env_name == "FrozenLake4"
