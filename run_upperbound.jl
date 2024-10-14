@@ -146,22 +146,22 @@ if env_name == "RockSample5"
 end
 if env_name == "RockSample10"
     map_size, rock_pos = (10,10), [(2,3), (4,6), (7,4), (8,9) ] # Big Boy!
-    rocksamplelarge = RockSample.RockSamplePOMDP(map_size, rock_pos)
+    rocksample10 = RockSample.RockSamplePOMDP(map_size, rock_pos)
     push!(envargs, (name="RockSample (10)",))
     push!(envs, rocksamplelarge)
 end
 if env_name == "RockSample11"
     map_size, rock_pos = (10,10), [(1,2), (2,7), (3,9), (4,2), (5,7), (5,10), (7,4), (8,8), (10) ] # Bigger Boy!
-    rocksamplelarge = RockSample.RockSamplePOMDP(map_size, rock_pos)
+    rocksample11 = RockSample.RockSamplePOMDP(map_size, rock_pos)
     push!(envargs, (name="RockSample (11)",))
     push!(envs, rocksamplelarge)
 end
-if env_name == "RockSample7"
-    map_size, rock_pos = (7,7), [(1,2), (2,7), (3,1), (3,5), (6,6),(7,4) ] # HSVI setting!
-    rocksamplelarge = RockSample.RockSamplePOMDP(map_size, rock_pos)
-    push!(envargs, (name="RockSample (10)",))
-    push!(envs, rocksamplelarge)
-end
+# if env_name == "RockSample7"
+#     map_size, rock_pos = (7,7), [(1,2), (2,7), (3,1), (3,5), (6,6),(7,4) ] # HSVI setting!
+#     rocksamplelarge = RockSample.RockSamplePOMDP(map_size, rock_pos)
+#     push!(envargs, (name="RockSample (10)",))
+#     push!(envs, rocksamplelarge)
+# end
 if env_name == "K-out-of-N2"
     # ### K-out-of-N
     k_model2 = K_out_of_N(N=2, K=2, discount=discount)
@@ -175,15 +175,15 @@ if env_name == "K-out-of-N3"
 end
 if env_name == "FrozenLake4"
     # Frozen Lake esque
-    lakesmall = SparseTabularPOMDP(FrozenLakeSmall)
+    lakesmall = FrozenLakeSmall
     lakesmall.discount = discount
-    push!(envs, lakesmall)
+    push!(envs, SparseTabularPOMDP(lakesmall))
     push!(envargs, (name="Frozen Lake (4)",))
 end
 if env_name == "FrozenLake10"
-    lakelarge = SparseTabularPOMDP(FrozenLakeLarge)
+    lakelarge = FrozenLakeLarge
     lakelarge.discount = discount
-    push!(envs, lakelarge)
+    push!(envs, SparseTabularPOMDP(lakelarge))
     push!(envargs, (name="Frozen Lake (10)",))
 end
 if env_name == "Hallway1"
