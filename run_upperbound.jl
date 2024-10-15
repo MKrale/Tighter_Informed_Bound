@@ -154,7 +154,7 @@ if env_name == "RockSample11"
     map_size, rock_pos = (11,11), [(1,2), (2,7), (3,9), (4,2), (5,7), (5,10), (7,4), (8,8), (10,4) ] # Bigger Boy!
     rocksample11 = RockSample.RockSamplePOMDP(map_size, rock_pos)
     push!(envargs, (name="RockSample (11)",))
-    push!(envs, rocksamplelarge)
+    push!(envs, rocksample11)
 end
 # if env_name == "RockSample7"
 #     map_size, rock_pos = (7,7), [(1,2), (2,7), (3,1), (3,5), (6,6),(7,4) ] # HSVI setting!

@@ -12,18 +12,18 @@ discount="0.95"
 
 
 ## Small, UB
-for env in "ABC" "RockSample5" "FrozenLake4" "Tiger" # QUICK
-do
-   thisrun="julia --project=. run_upperbound.jl --env $env --discount $discount --precompile true"
-   processes+=("$thisrun")
-done
+#for env in "ABC" "RockSample5" "FrozenLake4" "Tiger" # QUICK
+#do
+#   thisrun="julia --project=. run_upperbound.jl --env $env --discount $discount --precompile true"
+#   processes+=("$thisrun")
+#done
 ### Small, Sarsop
 # for env in "ABC" "RockSample5" "Tiger" "K-out-of-N2" # QUICK
 # do
 #    processes+=("julia --project=. run_sarsoptest.jl --env $env --discount $discount --onlyBs true")
 # done
 ###Large, UB
-for env in "RockSample11" "K-out-of-N2" "K-out-of-N3""Tag" "Sparse_Hallway1" "Sparse_Hallway2" "SparseTigerGrid" # LONG
+for env in "SparseHallway1" "SparseHallway2" #"K-out-of-N2" "K-out-of-N3" "RockSample11" "Tag"  "SparseTigerGrid" # LONG
 do
   processes+=("julia --project=. run_upperbound.jl --env $env --discount $discount --precompile false")
 done
@@ -35,10 +35,10 @@ done
 
 ### Extra Large (Wietze):
 
-for env in "pentagon" "grid" "aloha30" "fourth" 
-do
-  processes+=("julia --project=. run_upperbound.jl --env $env --discount $discount --precompile false")
-done
+#for env in "pentagon" "grid" "aloha30" "fourth" 
+#do
+#  processes+=("julia --project=. run_upperbound.jl --env $env --discount $discount --precompile false")
+#done
 # for env in "aloha10" "aloha30" "cit" "fourth" "mit" "pentagon" "sunsyb" "grid" 
 # do
 #   processes+=("julia --project=. run_sarsoptest.jl --env $env --discount $discount --onlyBs true")
@@ -58,7 +58,7 @@ wait
 
 
 
-printf "%s\n" "${processes[@]}" | parallel -j1 # WHY DOES THIS WORK??? I HATE BASH!!!
+printf "%s\n" "${processes[@]}" | parallel -j3 # WHY DOES THIS WORK??? I HATE BASH!!!
 wait
 echo -e "\n\n============= RUNS COMPLETED =============\n\n"
 
