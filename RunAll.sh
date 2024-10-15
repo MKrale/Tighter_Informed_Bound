@@ -33,7 +33,7 @@ do
   processes+=("julia --project=. run_sarsoptest.jl --env $env --discount $discount --onlyBs true --precompile false")
 done
 
-### Extra Large (Wietze):
+### Extra Large:
 
 #for env in "pentagon" "grid" "aloha30" "fourth" 
 #do

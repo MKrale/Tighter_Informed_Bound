@@ -167,7 +167,7 @@ include("Environments/CustomGridworld.jl"); using .CustomGridWorlds
 # push!(envs, tigergrid)
 # push!(envargs, (name="TigerGrid",))
 
-# ### Explicit Spares Hallways (Wietze)
+# ### Explicit Sparse Hallways
 include("Environments/Sparse_models/SparseModels.jl"); using .SparseModels
 
 # hallway1 = SparseHallway1(discount=discount)
