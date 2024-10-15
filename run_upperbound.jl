@@ -50,7 +50,7 @@ timeout = parsed_args["timeout"]
 path = parsed_args["path"]
 filename = parsed_args["filename"]
 solver_names = [parsed_args["solvers"]]
-solver_names == ["All"] && (solver_names = ["FIB", "BIB", "EBIB", "WBIB", "SARSOP"])
+solver_names == ["All"] && (solver_names = ["BIB", "EBIB", "WBIB", "FIB", "SARSOP"])
 discount = parsed_args["discount"]
 discount_str = string(discount)[3:end]
 precompile = parsed_args["precompile"]
@@ -75,32 +75,27 @@ timeout_sarsop = 1200.0
 if "BIB" in solver_names
     push!(solvers, SBIBSolver)
     push!(solverargs, (name="BIBSolver (standard)", sargs=(max_iterations=heuristicsteps, precision=heuristicprecision, max_time=timeout), pargs=(), get_Q0=true))
-    
-    push!(precomp_solverargs, ( sargs=(max_iterations=2,), pargs=()))
-end
-if "FIB" in solver_names
-    push!(solvers, FIBSolver_alt)
-    push!(solverargs, (name="FIB", sargs=(max_iterations=heuristicsteps*4, precision=heuristicprecision, max_time=timeout), pargs=(), get_Q0=true))
-    
     push!(precomp_solverargs, ( sargs=(max_iterations=2,), pargs=()))
 end
 if "EBIB" in solver_names
     push!(solvers, EBIBSolver)
     push!(solverargs, (name="BIBSolver (entropy)", sargs=(max_iterations=heuristicsteps, precision=heuristicprecision, max_time=timeout), pargs=(), get_Q0=true))
-    
     push!(precomp_solverargs, ( sargs=(max_iterations=2,), pargs=()))    
 end
 if "WBIB" in solver_names
     push!(solvers, WBIBSolver)
     push!(solverargs, (name="BIBSolver (worst-case)", sargs=(max_iterations=heuristicsteps, precision=heuristicprecision, max_time=timeout), pargs=(), get_Q0=true))
-    
+    push!(precomp_solverargs, ( sargs=(max_iterations=2,), pargs=()))
+end
+if "FIB" in solver_names
+    push!(solvers, FIBSolver_alt)
+    push!(solverargs, (name="FIB", sargs=(max_iterations=heuristicsteps*4, precision=heuristicprecision, max_time=timeout), pargs=(), get_Q0=true))
     push!(precomp_solverargs, ( sargs=(max_iterations=2,), pargs=()))
 end
 if "SARSOP" in solver_names
     push!(solvers, NativeSARSOP_alt.SARSOPSolver)
     h_solver = NativeSARSOP_alt.FIBSolver_alt(max_iterations=heuristicsteps*4, precision=heuristicprecision)
     push!(solverargs, (name="SARSOP", sargs=(precision=SARSOPprecision, max_time=timeout_sarsop, verbose=false, heuristic_solver=h_solver), pargs=()))
-    
     precomp_h_solver = NativeSARSOP_alt.FIBSolver_alt(max_iterations=2)
     push!(precomp_solverargs, ( sargs=(max_its=1, verbose=false, heuristic_solver=h_solver), pargs=()))
 end
@@ -156,7 +151,7 @@ if env_name == "RockSample10"
     push!(envs, rocksamplelarge)
 end
 if env_name == "RockSample11"
-    map_size, rock_pos = (11,11), [(1,2), (2,7), (3,9), (4,2), (5,7), (5,10), (7,4), (8,8), (10) ] # Bigger Boy!
+    map_size, rock_pos = (11,11), [(1,2), (2,7), (3,9), (4,2), (5,7), (5,10), (7,4), (8,8), (10,4) ] # Bigger Boy!
     rocksample11 = RockSample.RockSamplePOMDP(map_size, rock_pos)
     push!(envargs, (name="RockSample (11)",))
     push!(envs, rocksamplelarge)
