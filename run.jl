@@ -21,9 +21,9 @@ using FIB
 push!(solvers, FIBSolver_alt)
 push!(solverargs, (name="FIB", sargs=(max_iterations=iters,precision=tol), pargs=(), get_Q0=true))
 
-### BIB
- push!(solvers, SBIBSolver)
- push!(solverargs, (name="BIBSolver (standard)", sargs=(max_iterations=iters, precision=tol), pargs=(), get_Q0=true))
+# ### BIB
+#  push!(solvers, SBIBSolver)
+#  push!(solverargs, (name="BIBSolver (standard)", sargs=(max_iterations=iters, precision=tol), pargs=(), get_Q0=true))
 
 # ### EBIB
 # push!(solvers, EBIBSolver)
@@ -83,27 +83,21 @@ envs, envargs = [], []
 discount = 0.95
 
 # ### ABC
-include("Environments/ABCModel.jl"); using .ABCModel
-abcmodel = SparseTabularPOMDP(ABC(discount=discount))
-push!(envs, abcmodel)
-push!(envargs, (name="ABCModel",))
+# include("Environments/ABCModel.jl"); using .ABCModel
+# abcmodel = SparseTabularPOMDP(ABC(discount=discount))
+# push!(envs, abcmodel)
+# push!(envargs, (name="ABCModel",))
 
 # include("Environments/GuessingChain.jl"); using .GuessingChains
 # model = GuessingChain(discount=discount)
 # push!(envs, model)
 # push!(envargs, (name="GuessingChain",))
 
- # ### Tiger
- tiger = POMDPModels.TigerPOMDP()
- tiger.discount_factor = discount
- push!(envs, tiger)
- push!(envargs, (name="Tiger",))
-
-# ### ABC
-include("Environments/ABCModel.jl"); using .ABCModel
-abcmodel = ABC(discount=discount)
-push!(envs, abcmodel)
-push!(envargs, (name="ABCModel",))
+#  # ### Tiger
+#  tiger = POMDPModels.TigerPOMDP()
+#  tiger.discount_factor = discount
+#  push!(envs, tiger)
+#  push!(envargs, (name="Tiger",))
 
 # # ### RockSample
 import RockSample
@@ -111,10 +105,15 @@ import RockSample
 # POMDPs.states(M::RockSample.RockSamplePOMDP) = map(si -> RockSample.state_from_index(M,si), 1:length(M))
 # POMDPs.discount(M::RockSample.RockSamplePOMDP) = discount
 
-map_size, rock_pos = (5,5), [(1,1), (3,3), (4,4)] # Default
-rocksamplesmall = RockSample.RockSamplePOMDP(map_size, rock_pos)
-push!(envargs, (name="RockSample (5x5)",))
-push!(envs, rocksamplesmall)
+map_size, rock_pos = (7,7), [(1,2), (2,6), (3,3), (3,4), (4,7),(6,1),(6,4),(7,3)] # HSVI setting!
+rocksamplelarge = SparseTabularPOMDP(RockSample.RockSamplePOMDP(map_size, rock_pos))
+push!(envargs, (name="RockSample (7,8)",))
+push!(envs, rocksamplelarge)
+
+# map_size, rock_pos = (5,5), [(1,1), (3,3), (4,4)] # Default
+# rocksamplesmall = RockSample.RockSamplePOMDP(map_size, rock_pos)
+# push!(envargs, (name="RockSample (5x5)",))
+# push!(envs, rocksamplesmall)
 
 # map_size, rock_pos = (10,10), [(2,3), (4,6), (7,4), (8,9) ] # Big Boy!
 # rocksamplelarge = RockSample.RockSamplePOMDP(map_size, rock_pos)
@@ -124,9 +123,9 @@ push!(envs, rocksamplesmall)
 # # ### K-out-of-N
 include("Environments/K-out-of-N.jl"); using .K_out_of_Ns
 
-k_model2 = K_out_of_N(N=2, K=2, discount=discount)
-push!(envs, k_model2)
-push!(envargs, (name="K-out-of-N (2)",))
+# k_model2 = K_out_of_N(N=2, K=2, discount=discount)
+# push!(envs, k_model2)
+# push!(envargs, (name="K-out-of-N (2)",))
 
 # k_model3 = K_out_of_N(N=3, K=3, discount=discount)
 # push!(envs, k_model3)
@@ -183,9 +182,9 @@ include("Environments/Sparse_models/SparseModels.jl"); using .SparseModels
 # push!(envs, tigergrid)
 # push!(envargs, (name="TigerGrid (Sparse)",))
 
-Grid = Sparse_Grid(discount=discount)
-push!(envs, Grid)
-push!(envargs, (name="grid",))
+# Grid = Sparse_Grid(discount=discount)
+# push!(envs, Grid)
+# push!(envargs, (name="grid",))
 
 
 # # ### DroneSurveilance
@@ -265,10 +264,14 @@ for (m_idx,(model, modelargs)) in enumerate(zip(envs, envargs))
     # Calculate & print model size
     constants = BIB.get_constants(model)
     SAO_probs, SAOs = BIB.get_all_obs_probs(model; constants)
+    print(".")
     B, B_idx = BIB.get_belief_set(model, SAOs; constants)
+    print(".")
     Br = BIB.get_Br(model, B, constants)
+    print(".")
     Data = BIB.BIB_Data(zeros(2,2), B, B_idx, Br, SAO_probs, SAOs, Dict(zip(constants.S, 1:constants.ns)), constants)
     BBao_data = BIB.get_Bbao(model, Data, constants)
+    print(".")
     ns, na, no, nb = constants.ns, constants.na, constants.no, length(B)
     nbao = length(BBao_data.Bbao) + length(B)
     verbose && println("|S| = $ns, |A| = $na, |O| = $no, |B| = $nb, |BAO| = $nbao")
@@ -283,7 +286,7 @@ for (m_idx,(model, modelargs)) in enumerate(zip(envs, envargs))
         solver = solver(;solverarg.sargs...)
 
         # Compute policy & get upper bound
-        policy, info = solve_info(solver, model; solverarg.pargs...)
+        # policy, info = solve_info(solver, model; solverarg.pargs...)
         t = @elapsed begin
             policy, info = POMDPTools.solve_info(solver, model; solverarg.pargs...) 
         end

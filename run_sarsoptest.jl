@@ -147,10 +147,16 @@ if env_name == "RockSample5"
     push!(envargs, (name="RockSample ()",))
     push!(envs, rocksamplesmall)
 end
-if env_name == "RockSample10"
-    map_size, rock_pos = (10,10), [(2,3), (4,6), (7,4), (8,9) ] # Big Boy!
+# if env_name == "RockSample10"
+#     map_size, rock_pos = (10,10), [(2,3), (4,6), (7,4), (8,9) ] # Big Boy!
+#     rocksamplelarge = RockSample.RockSamplePOMDP(map_size, rock_pos)
+#     push!(envargs, (name="RockSample (10)",))
+#     push!(envs, rocksamplelarge)
+# end
+if env_name == "RockSample7"
+    map_size, rock_pos = (7,7), [(1,2), (2,6), (3,3), (3,4), (4,7),(6,1),(6,4),(7,3)] # HSVI setting!
     rocksamplelarge = RockSample.RockSamplePOMDP(map_size, rock_pos)
-    push!(envargs, (name="RockSample (10)",))
+    push!(envargs, (name="RockSample (7,8)",))
     push!(envs, rocksamplelarge)
 end
 if env_name == "K-out-of-N2"

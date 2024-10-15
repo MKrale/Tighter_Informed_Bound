@@ -144,24 +144,24 @@ if env_name == "RockSample5"
     push!(envargs, (name="RockSample ()",))
     push!(envs, rocksamplesmall)
 end
-if env_name == "RockSample10"
-    map_size, rock_pos = (10,10), [(2,3), (4,6), (7,4), (8,9) ] # Big Boy!
-    rocksample10 = RockSample.RockSamplePOMDP(map_size, rock_pos)
-    push!(envargs, (name="RockSample (10)",))
-    push!(envs, rocksamplelarge)
-end
-if env_name == "RockSample11"
-    map_size, rock_pos = (11,11), [(1,2), (2,7), (3,9), (4,2), (5,7), (5,10), (7,4), (8,8), (10,4) ] # Bigger Boy!
-    rocksample11 = RockSample.RockSamplePOMDP(map_size, rock_pos)
-    push!(envargs, (name="RockSample (11)",))
-    push!(envs, rocksample11)
-end
-# if env_name == "RockSample7"
-#     map_size, rock_pos = (7,7), [(1,2), (2,7), (3,1), (3,5), (6,6),(7,4) ] # HSVI setting!
-#     rocksamplelarge = RockSample.RockSamplePOMDP(map_size, rock_pos)
+# if env_name == "RockSample10"
+#     map_size, rock_pos = (10,10), [(2,3), (4,6), (7,4), (8,9) ] # Big Boy!
+#     rocksample10 = RockSample.RockSamplePOMDP(map_size, rock_pos)
 #     push!(envargs, (name="RockSample (10)",))
 #     push!(envs, rocksamplelarge)
 # end
+# if env_name == "RockSample11"
+#     map_size, rock_pos = (11,11), [(1,2), (2,7), (3,9), (4,2), (5,7), (5,10), (7,4), (8,8), (10,4) ] # Bigger Boy!
+#     rocksample11 = RockSample.RockSamplePOMDP(map_size, rock_pos)
+#     push!(envargs, (name="RockSample (11)",))
+#     push!(envs, rocksample11)
+# end
+if env_name == "RockSample7"
+    map_size, rock_pos = (7,7), [(1,2), (2,6), (3,3), (3,4), (4,7),(6,1),(6,4),(7,3)] # HSVI setting!
+    rocksamplelarge = RockSample.RockSamplePOMDP(map_size, rock_pos)
+    push!(envargs, (name="RockSample (7,8)",))
+    push!(envs, rocksamplelarge)
+end
 if env_name == "K-out-of-N2"
     # ### K-out-of-N
     k_model2 = K_out_of_N(N=2, K=2, discount=discount)
