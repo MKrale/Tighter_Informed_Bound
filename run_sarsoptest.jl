@@ -43,6 +43,10 @@ s = ArgParseSettings()
         help = "Option to only use heuristic to initialize Bs"
         arg_type = Bool 
         default = false
+    "--precompile"
+        help = "Option to precomile all code by running at low horizon. Particularly relevant for small environments. (default: true)"
+        arg_type = Bool 
+        default = true
 end
 
 parsed_args = parse_args(ARGS, s)
@@ -57,6 +61,7 @@ discount_str = string(discount)[3:end]
 sims = parsed_args["sims"]
 onlyBs = parsed_args["onlyBs"]
 onlyBs in [true, "true"] ? (onlyBs = true) : (onlyBs = false)
+precompile = parsed_args["precompile"]
 
 if timeout == -1.0
     timeout = 3600.0
@@ -326,11 +331,12 @@ ubs, lbs = Tuple{Vector{Float64}, Vector{Float64}}[], Tuple{Vector{Float64}, Vec
 for (i, (solver, solverarg)) in enumerate(zip(solvers, solverargs))
     
     # Precomputation:
-    precomp_solver = solver(;precomp_solvers[i].sargs...)
-    _p, _i = POMDPTools.solve_info(precomp_solver, env; precomp_solvers[i].pargs...)
+    if precompile
+        precomp_solver = solver(;precomp_solvers[i].sargs...)
+        _p, _i = POMDPTools.solve_info(precomp_solver, env; precomp_solvers[i].pargs...)
+    end
     
     solver = solver(;solverarg.sargs...)
-
     policy, info = POMDPTools.solve_info(solver, env; solverarg.pargs...)
 
     rs_avg, rs_sigma = nothing, nothing

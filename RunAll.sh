@@ -20,7 +20,7 @@ discount="0.95"
 ## Small, Sarsop
 for env in "ABC" "RockSample5" "Tiger" "K-out-of-N2" # QUICK
 do
-   processes+=("julia --project=. run_sarsoptest.jl --env $env --discount $discount --onlyBs true")
+   processes+=("julia --project=. run_sarsoptest.jl --env $env --discount $discount --onlyBs true --precompile false")
 done
 ###Large, UB
 for env in "RockSample7" #"SparseHallway1" "SparseHallway2" #"K-out-of-N2" "K-out-of-N3" "Tag"  "SparseTigerGrid" # LONG
@@ -30,7 +30,7 @@ done
 ## Large, Sarsop
 for env in "RockSample7" "K-out-of-N2" "K-out-of-N3" "Tag" "SparseHallway1" "SparseHallway2" "SparseTigerGrid" # LONG
 do
-  processes+=("julia --project=. run_sarsoptest.jl --env $env --discount $discount --onlyBs true")
+  processes+=("julia --project=. run_sarsoptest.jl --env $env --discount $discount --onlyBs true --precompile false")
 done
 
 ### Extra Large (Wietze):
@@ -41,7 +41,7 @@ done
 #done
 for env in "aloha10" "aloha30" "cit" "fourth" "mit" "pentagon" "sunsyb" "grid" 
 do
-  processes+=("julia --project=. run_sarsoptest.jl --env $env --discount $discount --onlyBs true")
+  processes+=("julia --project=. run_sarsoptest.jl --env $env --discount $discount --onlyBs true --precompile false")
 done
 
 
