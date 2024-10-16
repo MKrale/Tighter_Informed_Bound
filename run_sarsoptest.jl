@@ -124,7 +124,6 @@ import RockSample
 POMDPs.states(M::RockSample.RockSamplePOMDP) = map(si -> RockSample.state_from_index(M,si), 1:length(M))
 POMDPs.discount(M::RockSample.RockSamplePOMDP) = discount
 include("Environments/K-out-of-N.jl"); using .K_out_of_Ns
-include("Environments/CustomGridworld.jl"); using .CustomGridWorlds
 include("Environments/Sparse_models/SparseModels.jl"); using .SparseModels
 
 
@@ -175,43 +174,44 @@ if env_name == "K-out-of-N3"
     push!(envs, k_model3)
     push!(envargs, (name="K-out-of-N (3)",))
 end
-if env_name == "FrozenLake4"
-    # Frozen Lake esque
-    lakesmall = FrozenLakeSmall
-    lakesmall.discount = discount
-    push!(envs, lakesmall)
-    push!(envargs, (name="Frozen Lake (4)",))
-end
-if env_name == "FrozenLake10"
-    lakelarge = FrozenLakeLarge
-    lakelarge.discount = discount
-    push!(envs, lakelarge)
-    push!(envargs, (name="Frozen Lake (10)",))
-end
-if env_name == "Hallway1"
-    hallway1 = Hallway1
-    hallway.discount = discount
-    push!(envs, hallway1)
-    push!(envargs, (name="Hallway1",))
-end
-if env_name == "Hallway2"
-    hallway2 = Hallway2
-    hallway2.discount = discount
-    push!(envs, hallway2)
-    push!(envargs, (name="Hallway2",))
-end
-if env_name == "MiniHallway"
-    minihall = CustomMiniHallway
-    minihall.discount = discount
-    push!(envs, minihall)
-    push!(envargs, (name="MiniHallway",))
-end
-if env_name == "TigerGrid"
-    tigergrid = TigerGrid
-    tigergrid.discount = discount
-    push!(envs, tigergrid)
-    push!(envargs, (name="TigerGrid",))
-end
+# UNUSED:
+# if env_name == "FrozenLake4"
+#     # Frozen Lake esque
+#     lakesmall = FrozenLakeSmall
+#     lakesmall.discount = discount
+#     push!(envs, lakesmall)
+#     push!(envargs, (name="Frozen Lake (4)",))
+# end
+# if env_name == "FrozenLake10"
+#     lakelarge = FrozenLakeLarge
+#     lakelarge.discount = discount
+#     push!(envs, lakelarge)
+#     push!(envargs, (name="Frozen Lake (10)",))
+# end
+# if env_name == "Hallway1"
+#     hallway1 = Hallway1
+#     hallway.discount = discount
+#     push!(envs, hallway1)
+#     push!(envargs, (name="Hallway1",))
+# end
+# if env_name == "Hallway2"
+#     hallway2 = Hallway2
+#     hallway2.discount = discount
+#     push!(envs, hallway2)
+#     push!(envargs, (name="Hallway2",))
+# end
+# if env_name == "MiniHallway"
+#     minihall = CustomMiniHallway
+#     minihall.discount = discount
+#     push!(envs, minihall)
+#     push!(envargs, (name="MiniHallway",))
+# end
+# if env_name == "TigerGrid"
+#     tigergrid = TigerGrid
+#     tigergrid.discount = discount
+#     push!(envs, tigergrid)
+#     push!(envargs, (name="TigerGrid",))
+# end
 if env_name == "SparseHallway1"
     hallway1 = SparseHallway1(discount=discount)
     push!(envs, hallway1)

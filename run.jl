@@ -1,3 +1,5 @@
+# File used for ad-hoc testing: please ignore the mess!
+
 using POMDPs
 using POMDPTools, POMDPFiles
 include("BIB/BIB.jl")
@@ -88,11 +90,6 @@ discount = 0.95
 # push!(envs, abcmodel)
 # push!(envargs, (name="ABCModel",))
 
-# include("Environments/GuessingChain.jl"); using .GuessingChains
-# model = GuessingChain(discount=discount)
-# push!(envs, model)
-# push!(envargs, (name="GuessingChain",))
-
 #  # ### Tiger
 #  tiger = POMDPModels.TigerPOMDP()
 #  tiger.discount_factor = discount
@@ -131,8 +128,6 @@ include("Environments/K-out-of-N.jl"); using .K_out_of_Ns
 # push!(envs, k_model3)
 # push!(envargs, (name="K-out-of-N (3)",))
 
-### CustomGridWorlds
-include("Environments/CustomGridworld.jl"); using .CustomGridWorlds
 # # # Frozen Lake variants
 
 # lakesmall = FrozenLakeSmall
