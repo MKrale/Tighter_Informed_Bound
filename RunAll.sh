@@ -18,20 +18,20 @@ discount="0.95"
 #   processes+=("$thisrun")
 #done
 ## Small, Sarsop
-#for env in "ABC" "RockSample5" "Tiger" "K-out-of-N2" # QUICK
-#do
-#   processes+=("julia --project=. run_sarsoptest.jl --env $env --discount $discount --onlyBs true --precompile false")
-#done
+for env in "ABC" "RockSample5" "Tiger" "K-out-of-N2" # QUICK
+do
+   processes+=("julia --project=. run_sarsoptest.jl --env $env --discount $discount --onlyBs true --precompile true")
+done
 ###Large, UB
 #for env in "RockSample7" #"SparseHallway1" "SparseHallway2" #"K-out-of-N2" "K-out-of-N3" "Tag"  "SparseTigerGrid" # LONG
 #do
 #  processes+=("julia --project=. run_upperbound.jl --env $env --discount $discount --precompile false")
 #done
 ## Large, Sarsop
-for env in "aloha30" # "SparseHallway1" "SparseHallway2"  # "RockSample7" "K-out-of-N2" "K-out-of-N3" "Tag" "SparseHallway1" "SparseHallway2" "SparseTigerGrid" # LONG
-do
-  processes+=("julia --project=. run_sarsoptest.jl --env $env --discount $discount --onlyBs true --precompile false")
-done
+#for env in "aloha30" # "SparseHallway1" "SparseHallway2"  # "RockSample7" "K-out-of-N2" "K-out-of-N3" "Tag" "SparseHallway1" "SparseHallway2" "SparseTigerGrid" # LONG
+#do
+#  processes+=("julia --project=. run_sarsoptest.jl --env $env --discount $discount --onlyBs true --precompile false")
+#done
 
 ### Extra Large:
 
