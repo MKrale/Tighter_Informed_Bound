@@ -13,7 +13,7 @@ This repository contains the following files:
 
 Folders:
 
-  - **BIB**                 : Contains all code related to our novel bounds TIB, ETIB and OTIB (here denoted as BIB, EBIB and OBIB). The most important files within are:
+  - **TIB**                 : Contains all code related to our novel bounds TIB, ETIB and OTIB (here denoted as TIB, ETIB and OTIB). The most important files within are:
     - **solver.jl**         : Contains the algorithms for computing the bounds, implemented using the *POMDPs.jl* framework.
     - **SimpleHeuristics.jl**: Contains a custom implementation of FIB and QMDP.
     - **Caching.jl**        : Contains code for precomputing beliefs and probabilities.

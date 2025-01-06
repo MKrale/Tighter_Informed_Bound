@@ -2,60 +2,70 @@
 #               Solver:
 #########################################
 
-abstract type BIBSolver <: Solver end
+abstract type TIBSolver <: Solver end
 
-@kwdef struct SBIBSolver <: BIBSolver
+@kwdef struct STIBSolver <: TIBSolver
     max_iterations::Int64   = 250       # maximum iterations taken by solver
     max_time::Float64       = 3600      # maximum time spent solving
     precision::Float64      = 1e-4      # precision at which iterations is stopped
+    precomp_solver          = FIBSolver_alt(precision=1e-4, max_iterations=1000, max_time=3600)
 end
-@kwdef struct WBIBSolver <: BIBSolver
+
+@kwdef struct ETIBSolver <: TIBSolver
     max_iterations::Int64   = 250
     max_time::Float64       = 3600
     precision::Float64      = 1e-4
+    precomp_solver          = STIBSolver(precision=1e-4, max_iterations=250, max_time=3600, precomp_solver=FIBSolver_alt(precision=1e-4, max_iterations=1000, max_time=3600))
+    # precomp_solver          = FIBSolver_alt(precision=1e-4, max_iterations=1000, max_time=3600)
  end
 
-@kwdef struct EBIBSolver <: BIBSolver
+ @kwdef struct OTIBSolver <: TIBSolver
     max_iterations::Int64   = 250
     max_time::Float64       = 3600
     precision::Float64      = 1e-4
+    precomp_solver          = STIBSolver(precision=1e-4, max_iterations=250, max_time=3600, precomp_solver=FIBSolver_alt(precision=1e-4, max_iterations=1000, max_time=3600))
+    # precomp_solver          = FIBSolver_alt(precision=1e-4, max_iterations=1000, max_time=3600)
  end
-
 
 verbose = false
-function POMDPs.solve(solver::X, model::POMDP) where X<:BIBSolver
+POMDPs.solve(solver::X, model::POMDP) where X<: TIBSolver = solve(solver, model; Data=nothing)
+function solve(solver::X, model::POMDP; Data::Union{TIB_Data,Nothing}=nothing) where X<:TIBSolver
     t0 = time()
-    constants = get_constants(model)
 
-    # 1: Precompute observation probabilities
-    # SAO_probs = []                                  # ∀s,a,o, gives probability of o given (s,a)
-    # SAOs = []                                       # ∀s,a, gives os with p>0
-    SAO_probs, SAOs = get_all_obs_probs(model; constants)
-    S_dict = Dict( zip(constants.S, 1:constants.ns))
+    if isnothing(Data) # This is the default case: 
+        constants = get_constants(model)
 
-    # 2 : Pre-compute all beliefs after 1 step
-    # B = []                                          # Our set of beliefs
-    # B_idx = []                                      # ∀s,a,o, gives index of b_sao in B
-    # Br = []                                         # ∀b∈B,a, gives expected reward                                      
-    B, B_idx = get_belief_set(model, SAOs; constants)
-    Br = get_Br(model, B, constants)
+        # 1: Precompute observation probabilities
+        # SAO_probs = []                                  # ∀ s,a,o, gives probability of o given (s,a)
+        # SAOs = []                                       # ∀ s,a, gives os with p>0
+        SAO_probs, SAOs = get_all_obs_probs(model; constants)
+        S_dict = Dict( zip(constants.S, 1:constants.ns))
+
+        # 2 : Pre-compute all beliefs after 1 step
+        # B = []                                          # Our set of beliefs
+        # B_idx = []                                      # ∀ s,a,o, gives index of b_sao in B
+        # Br = []                                         # ∀ b∈B,a, gives expected reward                                      
+        B, B_idx = get_belief_set(model, SAOs; constants)
+        Br = get_Br(model, B, constants)
+
+        Data = TIB_Data(nothing, B,B_idx, Br, SAO_probs,SAOs, S_dict, constants)
+    end
 
     # 3 : Compute Q-values bsoa beliefs
-    Data = BIB_Data(nothing, B,B_idx, Br, SAO_probs,SAOs, S_dict, constants)
-    Qs = get_FIB_Beliefset(model, Data, solver)    # ∀b∈B, contains QBIB value (initialized using QMDP)
+    Qs = precompute_Qs(model, Data, solver.precomp_solver)    # ∀ b ∈ B, contains QTIB value (initialized using QMDP)
 
-    # 4 : If WBIB or EBIB, precompute all beliefs after 2 steps
+    # 4 : If OTIB or ETIB, precompute all beliefs after 2 steps
     Bbao_data = []
-    if solver isa WBIBSolver || solver isa EBIBSolver
-        Bbao_data = get_Bbao(model, Data, constants)
+    if solver isa OTIBSolver || solver isa ETIBSolver
+        Bbao_data = get_Bbao(model, Data, Data.constants)
     end
     t_init = time() - t0
     verbose && printdb("general init time:", t_init)
 
-    # 5 : If using EBIB, pre-compute entropy weights
+    # 5 : If using ETIB, pre-compute entropy weights
     
     Weights = []
-    if solver isa EBIBSolver
+    if solver isa ETIBSolver
         Weights = get_entropy_weights_all(Data.B, Bbao_data)
     end
 
@@ -64,12 +74,12 @@ function POMDPs.solve(solver::X, model::POMDP) where X<:BIBSolver
 
     # Lets be overly fancy! Define a function for computing Q, depending on the specific solver
     get_Q, args = identity, []
-    if solver isa SBIBSolver
-        pol, get_Q, args = SBIBPolicy, get_QBIB_Beliefset, (Data,)
-    elseif solver isa WBIBSolver
-        pol, get_Q, args = WBIBPolicy, get_QWBIB_Beliefset, (Data, Bbao_data)
-    elseif solver isa EBIBSolver
-        pol, get_Q, args = EBIBPolicy, get_QEBIB_Beliefset, (Data, Bbao_data, Weights)
+    if solver isa STIBSolver
+        pol, get_Q, args = STIBPolicy, get_QTIB_Beliefset, (Data,)
+    elseif solver isa OTIBSolver
+        pol, get_Q, args = OTIBPolicy, get_QOTIB_Beliefset, (Data, Bbao_data)
+    elseif solver isa ETIBSolver
+        pol, get_Q, args = ETIBPolicy, get_QETIB_Beliefset, (Data, Bbao_data, Weights)
     else
         throw("Solver type not recognized!")
     end
@@ -88,7 +98,7 @@ function POMDPs.solve(solver::X, model::POMDP) where X<:BIBSolver
     end
     t_it = time()- t0 - t_init - t_w
     verbose && printdb("iteration time $t_it (avg over $it iterations: $(t_it/it))")
-    return pol(model, BIB_Data(Qs,Data))
+    return pol(model, TIB_Data(Qs,Data))
 end
 
 #########################################
@@ -106,7 +116,7 @@ function get_QMDP_Beliefset(model::POMDP, B::Vector; constants::Union{C,Nothing}
         for (ai, a) in enumerate(constants.A)
             for (si, s) in enumerate(constants.S)
                 if pdf(b,s) > 0
-                    Qs[b_idx, ai] += pdf(b,s) * π_QMDP.Q[si,ai]
+                    Qs[b_idx, ai] += pdf(b,s) * π_QMDP.Data.Q[si,ai]
                 end
             end
         end
@@ -114,39 +124,39 @@ function get_QMDP_Beliefset(model::POMDP, B::Vector; constants::Union{C,Nothing}
     return Qs
 end
 
-function get_FIB_Beliefset(model::POMDP, Data::BIB_Data, solver::X ; getdata=false) where X<: BIBSolver
+function precompute_Qs(model::POMDP, Data::TIB_Data, solver::X ; getdata=false) where X<: Solver
 
-	π = solve(FIBSolver_alt(precision=solver.precision, max_time=solver.max_time, max_iterations=solver.max_iterations*4), model; Data=Data)
+	π = solve(solver, model; Data=Data)
     B, constants = Data.B, Data.constants
     Qs = zeros(Float64, length(B), constants.na)
     for (b_idx, b) in enumerate(B)
         for (ai, a) in enumerate(constants.A)
             for (si, s) in enumerate(constants.S)
                 if pdf(b,s) > 0
-                    Qs[b_idx, ai] += pdf(b,s) * π.Q[si,ai]
+                    Qs[b_idx, ai] += pdf(b,s) * π.Data.Q[si,ai]
                 end
             end
         end
     end
-    getdata ? (return BIB_Data(Qs, Data)) : (return Qs)
+    getdata ? (return TIB_Data(Qs, Data)) : (return Qs)
 end
 
-############ BIB ###################
+############ TIB ###################
 
-function get_QBIB_Beliefset(model::POMDP, Q, timeleft, Data::BIB_Data)
+function get_QTIB_Beliefset(model::POMDP, Q, timeleft, Data::TIB_Data)
     t0 = time()
     Qs_new = zero(Q) # TODO: this may be inefficient?
     for (b_idx,b) in enumerate(Data.B)
         timeleft+t0-time() < 0 && (return Q, 0)
         for (ai, a) in enumerate(Data.constants.A)
-            Qs_new[b_idx,ai] = get_QBIB_ba(model,b,a, Q, Data; bi=b_idx, ai=ai)
+            Qs_new[b_idx,ai] = get_QTIB_ba(model,b,a, Q, Data; bi=b_idx, ai=ai)
         end
     end
     max_dif = maximum(map(abs, (Qs_new .- Q) ./ (Q.+1e-10)))
     return Qs_new, max_dif
 end
 
-function get_QBIB_ba(model::POMDP,b,a,Qs,B_idx,Br,SAO_probs, SAOs, constants::C; ai=nothing, bi=nothing, S_dict=nothing)
+function get_QTIB_ba(model::POMDP,b,a,Qs,B_idx,Br,SAO_probs, SAOs, constants::C; ai=nothing, bi=nothing, S_dict=nothing)
     isnothing(ai) && ( ai=findfirst(==(a), constants.A) )
     isnothing(bi) ? (Q = breward(model,b,a)) : (Q = Br[bi,ai])
     for oi in get_possible_obs(b,ai,SAOs, S_dict)
@@ -164,28 +174,28 @@ function get_QBIB_ba(model::POMDP,b,a,Qs,B_idx,Br,SAO_probs, SAOs, constants::C;
     end
     return Q
 end
-get_QBIB_ba(model::POMDP,b,a,Q,D::BIB_Data; bi=nothing, ai=nothing) = get_QBIB_ba(model,b,a, Q, D.B_idx, D.Br, D.SAO_probs, D.SAOs, D.constants; bi=bi, ai=ai, S_dict=D.S_dict)
-get_QBIB_ba(model::POMDP,b,a,D::BIB_Data; bi=nothing, ai=nothing) = get_QBIB_ba(model,b,a, D.Q, D.B_idx, D.Br, D.SAO_probs, D.SAOs, D.constants; bi=bi, ai=ai, S_dict=D.S_dict)
+get_QTIB_ba(model::POMDP,b,a,Q,D::TIB_Data; bi=nothing, ai=nothing) = get_QTIB_ba(model,b,a, Q, D.B_idx, D.Br, D.SAO_probs, D.SAOs, D.constants; bi=bi, ai=ai, S_dict=D.S_dict)
+get_QTIB_ba(model::POMDP,b,a,D::TIB_Data; bi=nothing, ai=nothing) = get_QTIB_ba(model,b,a, D.Q, D.B_idx, D.Br, D.SAO_probs, D.SAOs, D.constants; bi=bi, ai=ai, S_dict=D.S_dict)
 
-############ WBIB ###################
+############ OTIB ###################
 
-function get_QWBIB_Beliefset(model::POMDP, Q, timeleft, Data::BIB_Data, Bbao_data::BBAO_Data)
+function get_QOTIB_Beliefset(model::POMDP, Q, timeleft, Data::TIB_Data, Bbao_data::BBAO_Data)
     t0 = time()
     Qs_new = zero(Q) # TODO: this may be inefficient?
     for (bi,b) in enumerate(Data.B)
         timeleft+t0-time() < 0 && (return Q, 0)
         for (ai, a) in enumerate(Data.constants.A)
-            Qs_new[bi,ai] = get_QWBIB_ba(model,b,a, Q, Data; ai=ai, Bbao_data=Bbao_data, bi=bi)
+            Qs_new[bi,ai] = get_QOTIB_ba(model,b,a, Q, Data; ai=ai, Bbao_data=Bbao_data, bi=bi)
         end
     end
     max_dif = maximum(map(abs, (Qs_new .- Q) ./ (Q.+1e-10)))
     return Qs_new, max_dif
 end
 
-get_QWBIB_ba(model::POMDP, b,a,Q, D::BIB_Data; ai=nothing, Bbao_data=nothing, bi=nothing) = get_QWBIB_ba(model, b, a, Q, D.B, D.Br, D.SAOs, D.SAO_probs, D.constants; ai=ai, S_dict=D.S_dict, Bbao_data=Bbao_data, bi=bi)
-get_QWBIB_ba(model::POMDP, b,a,D::BIB_Data; ai=nothing, Bbao_data=nothing, bi=nothing) = get_QWBIB_ba(model, b, a, D.Q, D.B, D.Br, D.SAOs, D.SAO_probs, D.constants; ai=ai, S_dict=D.S_dict, Bbao_data=Bbao_data, bi=bi)
+get_QOTIB_ba(model::POMDP, b,a,Q, D::TIB_Data; ai=nothing, Bbao_data=nothing, bi=nothing) = get_QOTIB_ba(model, b, a, Q, D.B, D.Br, D.SAOs, D.SAO_probs, D.constants; ai=ai, S_dict=D.S_dict, Bbao_data=Bbao_data, bi=bi)
+get_QOTIB_ba(model::POMDP, b,a,D::TIB_Data; ai=nothing, Bbao_data=nothing, bi=nothing) = get_QOTIB_ba(model, b, a, D.Q, D.B, D.Br, D.SAOs, D.SAO_probs, D.constants; ai=ai, S_dict=D.S_dict, Bbao_data=Bbao_data, bi=bi)
 
-function get_QWBIB_ba(model::POMDP,b,a,Qs,B,Br, SAOs, SAO_probs, constants::C; ai=nothing, Bbao_data=nothing, bi=nothing, S_dict=nothing)
+function get_QOTIB_ba(model::POMDP,b,a,Qs,B,Br, SAOs, SAO_probs, constants::C; ai=nothing, Bbao_data=nothing, bi=nothing, S_dict=nothing)
     
     opt_model = Model(Clp.Optimizer; add_bridges=false)
     # opt_model = direct_generic_model(Float64, HiGHS.Optimizer())
@@ -246,22 +256,22 @@ function get_QLP(b,Qs,B, model)
     return(objective_value(model))
 end
 
-############ EBIB ###################
+############ ETIB ###################
 
-function get_QEBIB_Beliefset(model::POMDP,Q, timeleft, Data::BIB_Data, Bbao_data, Weights)
+function get_QETIB_Beliefset(model::POMDP,Q, timeleft, Data::TIB_Data, Bbao_data, Weights)
     Qs_new = zero(Q) # TODO: this may be inefficient?
     t0 = time()
     for (b_idx,b) in enumerate(Data.B)
         timeleft+t0-time() < 0 && (return Q, 0)
         for (ai, a) in enumerate(Data.constants.A)
-            Qs_new[b_idx,ai] = get_QEBIB_ba(model,b,a, Q, Data; ai=ai, bi=b_idx, Bbao_data=Bbao_data, Weights_data=Weights)
+            Qs_new[b_idx,ai] = get_QETIB_ba(model,b,a, Q, Data; ai=ai, bi=b_idx, Bbao_data=Bbao_data, Weights_data=Weights)
         end
     end
     max_dif = maximum(map(abs, (Qs_new .- Q) ./ (Q.+1e-10)))
     return Qs_new, max_dif
 end
 
-function get_QEBIB_ba(model::POMDP, b, a, Qs, B, Br, SAOs, SAO_probs, constants::C; ai=nothing, bi=nothing, Bbao_data=nothing, Weights_data=nothing, S_dict=nothing)
+function get_QETIB_ba(model::POMDP, b, a, Qs, B, Br, SAOs, SAO_probs, constants::C; ai=nothing, bi=nothing, Bbao_data=nothing, Weights_data=nothing, S_dict=nothing)
     isnothing(bi) ? (Q = breward(model,b,a)) : (Q = Br[bi,ai])
     (bi isa Nothing || Bbao_data isa Nothing) ? (Os = collect(keys(get_possible_obs_probs(b,ai,SAOs,SAO_probs,S_dict)))) : (Os = get_possible_obs( (true,bi) ,ai,SAOs,Bbao_data))
     for oi in Os
@@ -291,72 +301,72 @@ function get_QEBIB_ba(model::POMDP, b, a, Qs, B, Br, SAOs, SAO_probs, constants:
     end
     return Q
 end
-get_QEBIB_ba(model::POMDP, b,a, D::BIB_Data; ai=nothing, bi=nothing, Bbao_data=nothing, Weights_data=nothing) = get_QEBIB_ba(model,b,a,D.Q,D.B, D.Br, D.SAOs,D.SAO_probs, D.constants; ai=ai,bi=bi,Bbao_data=Bbao_data,Weights_data=Weights_data, S_dict=D.S_dict)
-get_QEBIB_ba(model::POMDP, b,a, Q, D::BIB_Data; ai=nothing, bi=nothing, Bbao_data=nothing, Weights_data=nothing) = get_QEBIB_ba(model,b,a,Q,D.B, D.Br, D.SAOs,D.SAO_probs, D.constants; ai=ai,bi=bi,Bbao_data=Bbao_data,Weights_data=Weights_data, S_dict=D.S_dict)
+get_QETIB_ba(model::POMDP, b,a, D::TIB_Data; ai=nothing, bi=nothing, Bbao_data=nothing, Weights_data=nothing) = get_QETIB_ba(model,b,a,D.Q,D.B, D.Br, D.SAOs,D.SAO_probs, D.constants; ai=ai,bi=bi,Bbao_data=Bbao_data,Weights_data=Weights_data, S_dict=D.S_dict)
+get_QETIB_ba(model::POMDP, b,a, Q, D::TIB_Data; ai=nothing, bi=nothing, Bbao_data=nothing, Weights_data=nothing) = get_QETIB_ba(model,b,a,Q,D.B, D.Br, D.SAOs,D.SAO_probs, D.constants; ai=ai,bi=bi,Bbao_data=Bbao_data,Weights_data=Weights_data, S_dict=D.S_dict)
 
 #########################################
 #               Policy:
 #########################################
 
-abstract type BIBPolicy <: Policy end
-POMDPs.updater(π::X) where X<:BIBPolicy = DiscreteHashedBeliefUpdater(π.model)
+abstract type TIBPolicy <: Policy end
+POMDPs.updater(π::X) where X<:TIBPolicy = DiscreteHashedBeliefUpdater(π.model)
 
-struct SBIBPolicy <: BIBPolicy
+struct STIBPolicy <: TIBPolicy
     model::POMDP
-    Data::BIB_Data
+    Data::TIB_Data
 end
 
-struct WBIBPolicy <: BIBPolicy
+struct OTIBPolicy <: TIBPolicy
     model::POMDP
-    Data::BIB_Data
+    Data::TIB_Data
 end
 
-struct EBIBPolicy <: BIBPolicy
+struct ETIBPolicy <: TIBPolicy
     model::POMDP
-    Data::BIB_Data
+    Data::TIB_Data
 end
 
-POMDPs.action(π::X, b) where X<: BIBPolicy = first(action_value(π, b))
-POMDPs.value(π::X, b) where X<: BIBPolicy = last(action_value(π,b))
+POMDPs.action(π::X, b) where X<: TIBPolicy = first(action_value(π, b))
+POMDPs.value(π::X, b) where X<: TIBPolicy = last(action_value(π,b))
 
-function action_value(π::SBIBPolicy, b)
+function action_value(π::STIBPolicy, b)
     b = DiscreteHashedBelief(b)
     model = π.model
     bestQ, bestA = -Inf, nothing
     for (ai,a) in enumerate(π.Data.constants.A)
-        Qa = get_QBIB_ba(model, b, a, π.Data; ai=ai)
+        Qa = get_QTIB_ba(model, b, a, π.Data; ai=ai)
         Qa > bestQ && ((bestQ, bestA) = (Qa, a))
     end
     return (bestA, bestQ)
 end
 
-function action_value(π::WBIBPolicy, b)
+function action_value(π::OTIBPolicy, b)
     b = DiscreteHashedBelief(b)
     model = π.model
     bestQ, bestA = -Inf, nothing
     for (ai,a) in enumerate(π.Data.constants.A)
-        Qa = get_QWBIB_ba(model, b, a, π.Data; ai=ai)
+        Qa = get_QOTIB_ba(model, b, a, π.Data; ai=ai)
         Qa > bestQ && ((bestQ, bestA) = (Qa, a))
     end
     return (bestA, bestQ)
 end
 
-function action_value(π::EBIBPolicy, b)
+function action_value(π::ETIBPolicy, b)
     b = DiscreteHashedBelief(b)
     model = π.model
     bestQ, bestA = -Inf, nothing
     for (ai,a) in enumerate(π.Data.constants.A)
         # if π.evaluate_full
-            Qa = get_QEBIB_ba(model, b, a, π.Data; ai=ai)
+            Qa = get_QETIB_ba(model, b, a, π.Data; ai=ai)
         # else
-            # Qa = get_QBIB_ba(model, b, a, π.Data; ai=ai)
+            # Qa = get_QTIB_ba(model, b, a, π.Data; ai=ai)
         # end
         Qa > bestQ && ((bestQ, bestA) = (Qa, a))
     end
     return (bestA, bestQ)
 end
 
-function get_heuristic_pointset(policy::X; get_only_Bs=false) where X<:BIBPolicy
+function get_heuristic_pointset(policy::X; get_only_Bs=false) where X<:TIBPolicy
     B_heuristic, V_heuristic = Vector{Float64}[], Float64[]
     ns = policy.Data.constants.ns
     S_dict = policy.Data.S_dict

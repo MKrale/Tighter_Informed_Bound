@@ -2,8 +2,8 @@
 
 using POMDPs
 using POMDPTools, POMDPFiles
-include("BIB/BIB.jl")
-using .BIB
+include("TIB/TIB.jl")
+using .TIB
 using Statistics, POMDPModels
 using SparseArrays
 import RockSample
@@ -15,25 +15,25 @@ using Profile, PProf
 
 solvers, solverargs = [], []
 
-iters, tol = 250, 10^-5
+iters, tol = 1_000, 10^-4
 
 
-## FIB
-using FIB
-push!(solvers, FIBSolver_alt)
-push!(solverargs, (name="FIB", sargs=(max_iterations=iters,precision=tol), pargs=(), get_Q0=true))
+# ## FIB
+# using FIB
+# push!(solvers, FIBSolver_alt)
+# push!(solverargs, (name="FIB", sargs=(max_iterations=iters,precision=tol), pargs=(), get_Q0=true))
 
-# ### BIB
-#  push!(solvers, SBIBSolver)
-#  push!(solverargs, (name="BIBSolver (standard)", sargs=(max_iterations=iters, precision=tol), pargs=(), get_Q0=true))
+### TIB
+ push!(solvers, STIBSolver)
+ push!(solverargs, (name="TIBSolver (standard)", sargs=(max_iterations=iters, precision=tol), pargs=(), get_Q0=true))
 
-# ### EBIB
-# push!(solvers, EBIBSolver)
-# push!(solverargs, (name="BIBSolver (entropy)", sargs=(max_iterations=iters, precision=tol), pargs=(), get_Q0=true))
+### ETIB
+push!(solvers, ETIBSolver)
+push!(solverargs, (name="TIBSolver (entropy)", sargs=(max_iterations=iters, precision=tol), pargs=(), get_Q0=true))
 
-# ### WBIBs
-# push!(solvers, WBIBSolver)
-# push!(solverargs, (name="BIBSolver (worst-case)", sargs=(max_iterations=250, precision=1e-5), pargs=(), get_Q0=true))
+### OTIBs
+push!(solvers, OTIBSolver)
+push!(solverargs, (name="TIBSolver (worst-case)", sargs=(max_iterations=iters, precision=tol), pargs=(), get_Q0=true))
 
 # ### SARSOP
 # include("Sarsop_altered/NativeSARSOP.jl")
@@ -98,14 +98,14 @@ discount = 0.95
 
 # # ### RockSample
 import RockSample
-# # This env is very difficult to work with for some reason...
-# POMDPs.states(M::RockSample.RockSamplePOMDP) = map(si -> RockSample.state_from_index(M,si), 1:length(M))
-# POMDPs.discount(M::RockSample.RockSamplePOMDP) = discount
+# This env is very difficult to work with for some reason...
+POMDPs.states(M::RockSample.RockSamplePOMDP) = map(si -> RockSample.state_from_index(M,si), 1:length(M))
+POMDPs.discount(M::RockSample.RockSamplePOMDP) = discount
 
-map_size, rock_pos = (7,7), [(1,2), (2,6), (3,3), (3,4), (4,7),(6,1),(6,4),(7,3)] # HSVI setting!
-rocksamplelarge = SparseTabularPOMDP(RockSample.RockSamplePOMDP(map_size, rock_pos))
-push!(envargs, (name="RockSample (7,8)",))
-push!(envs, rocksamplelarge)
+# map_size, rock_pos = (7,7), [(1,2), (2,6), (3,3), (3,4), (4,7),(6,1),(6,4),(7,3)] # HSVI setting!
+# rocksamplelarge = SparseTabularPOMDP(RockSample.RockSamplePOMDP(map_size, rock_pos))
+# push!(envargs, (name="RockSample (7,8)",))
+# push!(envs, rocksamplelarge)
 
 # map_size, rock_pos = (5,5), [(1,1), (3,3), (4,4)] # Default
 # rocksamplesmall = RockSample.RockSamplePOMDP(map_size, rock_pos)
@@ -129,11 +129,12 @@ include("Environments/K-out-of-N.jl"); using .K_out_of_Ns
 # push!(envargs, (name="K-out-of-N (3)",))
 
 # # # Frozen Lake variants
+include("Environments/CustomGridworld.jl"); using .CustomGridWorlds
 
-# lakesmall = FrozenLakeSmall
-# lakesmall.discount = discount
-# push!(envs, lakesmall)
-# push!(envargs, (name="Frozen Lake (4x4)",))
+lakesmall = FrozenLakeSmall
+lakesmall.discount = discount
+push!(envs, lakesmall)
+push!(envargs, (name="Frozen Lake (4x4)",))
 
 # lakelarge = FrozenLakeLarge
 # lakelarge.discount = discount
@@ -236,7 +237,7 @@ nr_pols, nr_envs = length(policy_names), length(env_names)
 # time_solve = zeros( nr_envs, nr_pols)
 # time_online = zeros( nr_envs, nr_pols)
 
-models_to_skip_WBIB = ["RockSample (10x10)","Frozen Lake (10x10)","2-out-of-2","3-out-of-3", "Tag"]
+models_to_skip_OTIB = ["RockSample (10x10)","Frozen Lake (10x10)","2-out-of-2","3-out-of-3", "Tag"]
 
 # t = time()
 # open("run_out_$t.txt", "w") do file
@@ -257,15 +258,15 @@ for (m_idx,(model, modelargs)) in enumerate(zip(envs, envargs))
     time_online = zeros(nr_pols)
     
     # Calculate & print model size
-    constants = BIB.get_constants(model)
-    SAO_probs, SAOs = BIB.get_all_obs_probs(model; constants)
+    constants = TIB.get_constants(model)
+    SAO_probs, SAOs = TIB.get_all_obs_probs(model; constants)
     print(".")
-    B, B_idx = BIB.get_belief_set(model, SAOs; constants)
+    B, B_idx = TIB.get_belief_set(model, SAOs; constants)
     print(".")
-    Br = BIB.get_Br(model, B, constants)
+    Br = TIB.get_Br(model, B, constants)
     print(".")
-    Data = BIB.BIB_Data(zeros(2,2), B, B_idx, Br, SAO_probs, SAOs, Dict(zip(constants.S, 1:constants.ns)), constants)
-    BBao_data = BIB.get_Bbao(model, Data, constants)
+    Data = TIB.TIB_Data(zeros(2,2), B, B_idx, Br, SAO_probs, SAOs, Dict(zip(constants.S, 1:constants.ns)), constants)
+    BBao_data = TIB.get_Bbao(model, Data, constants)
     print(".")
     ns, na, no, nb = constants.ns, constants.na, constants.no, length(B)
     nbao = length(BBao_data.Bbao) + length(B)
@@ -273,7 +274,7 @@ for (m_idx,(model, modelargs)) in enumerate(zip(envs, envargs))
 
 
     for (s_idx,(solver, solverarg)) in enumerate(zip(solvers, solverargs))
-        if solverarg.name == "BIBSolver (worst-case)" && modelargs.name in models_to_skip_WBIB         
+        if solverarg.name == "TIBSolver (worst-case)" && modelargs.name in models_to_skip_OTIB         
             continue
         end 
 
@@ -281,7 +282,7 @@ for (m_idx,(model, modelargs)) in enumerate(zip(envs, envargs))
         solver = solver(;solverarg.sargs...)
 
         # Compute policy & get upper bound
-        # policy, info = solve_info(solver, model; solverarg.pargs...)
+        policy, info = solve_info(solver, model; solverarg.pargs...)
         t = @elapsed begin
             policy, info = POMDPTools.solve_info(solver, model; solverarg.pargs...) 
         end

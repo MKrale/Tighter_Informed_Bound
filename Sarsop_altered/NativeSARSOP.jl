@@ -6,8 +6,8 @@ using SparseArrays
 using LinearAlgebra
 using Printf
 ####
-include("../BIB/BIB.jl")
-using .BIB
+include("../TIB/TIB.jl")
+using .TIB
 ####
 
 export SARSOPSolver, SARSOPTree

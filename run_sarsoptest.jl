@@ -1,8 +1,8 @@
 import POMDPs, POMDPTools
 using POMDPs
 using POMDPTools, POMDPFiles, ArgParse, JSON
-include("BIB/BIB.jl")
-using .BIB
+include("TIB/TIB.jl")
+using .TIB
 using Statistics, POMDPModels
 
 ##################################################################
@@ -29,7 +29,7 @@ s = ArgParseSettings()
         help = "Filename (default: generated automatically)"
         default = ""
     "--solvers"
-        help = "Solver to be run. Availble options: standard, BIB, EBIB, WBIB. (default: run all except WBIB)"
+        help = "Solver to be run. Availble options: standard, TIB, ETIB, OTIB. (default: run all except OTIB)"
         default = ""
     "--discount"
         help = "Discount factor"
@@ -89,28 +89,28 @@ if solver_name in  ["standard", ""]
     precomp_h_solver = NativeSARSOP_alt.FIBSolver_alt(max_iterations=2)
     push!(precomp_solvers, (sargs=(max_its = 2, verbose=false, heuristic_solver=precomp_h_solver),pargs=()))
 end
-if solver_name in  ["BIB", ""]
+if solver_name in  ["TIB", ""]
     push!(solvers, NativeSARSOP_alt.SARSOPSolver)
-    h_solver = NativeSARSOP_alt.SBIBSolver(max_iterations=h_iterations, precision=h_precision)
-    push!(solverargs, (name="BIB-SARSOP", sargs=( precision=precision, max_time=timeout, verbose=false, heuristic_solver=h_solver, use_only_Bs=onlyBs), pargs=()))
+    h_solver = NativeSARSOP_alt.STIBSolver(max_iterations=h_iterations, precision=h_precision)
+    push!(solverargs, (name="TIB-SARSOP", sargs=( precision=precision, max_time=timeout, verbose=false, heuristic_solver=h_solver, use_only_Bs=onlyBs), pargs=()))
 
-    precomp_h_solver = NativeSARSOP_alt.SBIBSolver(max_iterations=2)
+    precomp_h_solver = NativeSARSOP_alt.STIBSolver(max_iterations=2)
     push!(precomp_solvers, (sargs=(max_its = 2, verbose=false, heuristic_solver=precomp_h_solver),pargs=()))
 end
-if solver_name in  ["EBIB", ""]
+if solver_name in  ["ETIB", ""]
     push!(solvers, NativeSARSOP_alt.SARSOPSolver)
-    h_solver = NativeSARSOP_alt.EBIBSolver(max_iterations=h_iterations, precision=h_precision)
-    push!(solverargs, (name="EBIB-SARSOP", sargs=( precision=precision, max_time=timeout, verbose=false, heuristic_solver=h_solver, use_only_Bs=onlyBs), pargs=()))
+    h_solver = NativeSARSOP_alt.ETIBSolver(max_iterations=h_iterations, precision=h_precision)
+    push!(solverargs, (name="ETIB-SARSOP", sargs=( precision=precision, max_time=timeout, verbose=false, heuristic_solver=h_solver, use_only_Bs=onlyBs), pargs=()))
 
-    precomp_h_solver = NativeSARSOP_alt.EBIBSolver(max_iterations=2)
+    precomp_h_solver = NativeSARSOP_alt.ETIBSolver(max_iterations=2)
     push!(precomp_solvers, (sargs=(max_its = 2, verbose=false, heuristic_solver=precomp_h_solver),pargs=()))
 end
-if solver_name in  ["WBIB"]
+if solver_name in  ["OTIB"]
     push!(solvers, NativeSARSOP_alt.SARSOPSolver)
-    h_solver = NativeSARSOP_alt.WBIBSolver(max_iterations=h_iterations, precision=h_precision)
-    push!(solverargs, (name="WBIB-SARSOP", sargs=( precision=precision, max_time=timeout, verbose=false, heuristic_solver=h_solver, use_only_Bs=onlyBs), pargs=()))
+    h_solver = NativeSARSOP_alt.OTIBSolver(max_iterations=h_iterations, precision=h_precision)
+    push!(solverargs, (name="OTIB-SARSOP", sargs=( precision=precision, max_time=timeout, verbose=false, heuristic_solver=h_solver, use_only_Bs=onlyBs), pargs=()))
 
-    precomp_h_solver = NativeSARSOP_alt.WBIBSolver(max_iterations=2)
+    precomp_h_solver = NativeSARSOP_alt.OTIBSolver(max_iterations=2)
     push!(precomp_solvers, (sargs=(max_its = 2, verbose=false, heuristic_solver=precomp_h_solver),pargs=()))
 end
 

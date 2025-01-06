@@ -79,7 +79,7 @@ function upper_value(tree::SARSOPTree, b_idx::Int)
         v̂ < v̂_min && (v̂_min = v̂)
     end
 
-    # ### Method 3) BIB
+    # ### Method 3) TIB
     # if !(tree.pol_heuristic isa Nothing)
     #     idxs, vals = findnz(b)
     #     ss = map(si -> tree.S[si], idxs)

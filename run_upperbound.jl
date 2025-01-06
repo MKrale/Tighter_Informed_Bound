@@ -3,8 +3,8 @@ using POMDPs
 using POMDPTools, POMDPFiles, ArgParse, JSON
 using Statistics, POMDPModels
 
-include("BIB/BIB.jl")
-using .BIB
+include("TIB/TIB.jl")
+using .TIB
 include("Sarsop_altered/NativeSARSOP.jl")
 import .NativeSARSOP_alt
 
@@ -20,7 +20,7 @@ s = ArgParseSettings()
     "--precision"
         help = "Precision parameter of SARSOP."
         arg_type = Float64
-        default = 1e-2
+        default = 0.0
     "--timeout", "-t"
         help = "Time untill timeout."
         arg_type = Float64
@@ -32,7 +32,7 @@ s = ArgParseSettings()
         help = "Filename (default: generated automatically)"
         default = ""
     "--solvers"
-        help = "Solver to be run. Availble options: FIB, BIB, EBIB, WBIB, SARSOP, BIBSARSOP, EBIBSARSOP. (default: run all but BIBSARSOP & EBIBSARSOP)"
+        help = "Solver to be run. Availble options: FIB, TIB, ETIB, OTIB, SARSOP, TIBSARSOP, ETIBSARSOP. (default: run all but TIBSARSOP & ETIBSARSOP)"
         default = "All"
     "--discount"
         help = "Discount factor"
@@ -50,10 +50,11 @@ timeout = parsed_args["timeout"]
 path = parsed_args["path"]
 filename = parsed_args["filename"]
 solver_names = [parsed_args["solvers"]]
-solver_names == ["All"] && (solver_names = ["BIB", "EBIB", "WBIB", "FIB", "SARSOP"])
+solver_names == ["All"] && (solver_names = ["TIB", "ETIB", "OTIB", "FIB", "SARSOP"])
 discount = parsed_args["discount"]
 discount_str = string(discount)[3:end]
 precompile = parsed_args["precompile"]
+heuristicprecision = parsed_args["precision"]
 
 if timeout == -1.0
 	discount == 0.95 && (timeout = 1200.0)
@@ -66,25 +67,28 @@ end
 
 solvers, solverargs, precomp_solverargs = [], [], []
 SARSOPprecision = 1e-2
-heuristicprecision, heuristicsteps = 1e-4, 1_000
-discount == 0.95 && (heuristicprecision = 1e-3;  heuristicsteps = 250)
-discount == 0.99 && (heuristicprecision = 1e-4;  heuristicsteps = 1_000)
+heuristicsteps = 1_000
+if heuristicprecision == 0.0
+    heuristicprecision = 1e-4
+    discount == 0.95 && (heuristicprecision = 1e-3;  heuristicsteps = 250)
+    discount == 0.99 && (heuristicprecision = 1e-4;  heuristicsteps = 1_000)
+end
 
 timeout_sarsop = 1200.0
 
-if "BIB" in solver_names
-    push!(solvers, SBIBSolver)
-    push!(solverargs, (name="BIBSolver (standard)", sargs=(max_iterations=heuristicsteps, precision=heuristicprecision, max_time=timeout), pargs=(), get_Q0=true))
+if "TIB" in solver_names
+    push!(solvers, STIBSolver)
+    push!(solverargs, (name="TIBSolver (standard)", sargs=(max_iterations=heuristicsteps, precision=heuristicprecision, max_time=timeout), pargs=(), get_Q0=true))
     push!(precomp_solverargs, ( sargs=(max_iterations=2,), pargs=()))
 end
-if "EBIB" in solver_names
-    push!(solvers, EBIBSolver)
-    push!(solverargs, (name="BIBSolver (entropy)", sargs=(max_iterations=heuristicsteps, precision=heuristicprecision, max_time=timeout), pargs=(), get_Q0=true))
+if "ETIB" in solver_names
+    push!(solvers, ETIBSolver)
+    push!(solverargs, (name="TIBSolver (entropy)", sargs=(max_iterations=heuristicsteps, precision=heuristicprecision, max_time=timeout), pargs=(), get_Q0=true))
     push!(precomp_solverargs, ( sargs=(max_iterations=2,), pargs=()))    
 end
-if "WBIB" in solver_names
-    push!(solvers, WBIBSolver)
-    push!(solverargs, (name="BIBSolver (worst-case)", sargs=(max_iterations=heuristicsteps, precision=heuristicprecision, max_time=timeout), pargs=(), get_Q0=true))
+if "OTIB" in solver_names
+    push!(solvers, OTIBSolver)
+    push!(solverargs, (name="TIBSolver (worst-case)", sargs=(max_iterations=heuristicsteps, precision=heuristicprecision, max_time=timeout), pargs=(), get_Q0=true))
     push!(precomp_solverargs, ( sargs=(max_iterations=2,), pargs=()))
 end
 if "FIB" in solver_names
@@ -99,16 +103,23 @@ if "SARSOP" in solver_names
     precomp_h_solver = NativeSARSOP_alt.FIBSolver_alt(max_iterations=2)
     push!(precomp_solverargs, ( sargs=(max_its=1, verbose=false, heuristic_solver=h_solver), pargs=()))
 end
-if "BIBSARSOP" in solver_names
+if "TIBSARSOP" in solver_names
     push!(solvers, NativeSARSOP_alt.SARSOPSolver)
-    h_solver = NativeSARSOP_alt.SBIBSolver(max_iterations=250, precision=1e-5)
-    push!(solverargs, (name="BIB-SARSOP", sargs=( precision=SARSOPprecision, max_time=timeout_sarsop, verbose=false, heuristic_solver=h_solver), pargs=()))
+    h_solver = NativeSARSOP_alt.STIBSolver(max_iterations=250, precision=1e-5)
+    push!(solverargs, (name="TIB-SARSOP", sargs=( precision=SARSOPprecision, max_time=timeout_sarsop, verbose=false, heuristic_solver=h_solver), pargs=()))
 end
-if "EBIBSARSOP" in solver_names
+if "ETIBSARSOP" in solver_names
     push!(solvers, NativeSARSOP_alt.SARSOPSolver)
-    h_solver = NativeSARSOP_alt.EBIBSolver(max_iterations=250, precision=1e-5)
-    push!(solverargs, (name="EBIB-SARSOP", sargs=( precision=precision, max_time=timeout_sarsop, verbose=false, heuristic_solver=h_solver), pargs=()))
+    h_solver = NativeSARSOP_alt.ETIBSolver(max_iterations=250, precision=1e-5)
+    push!(solverargs, (name="ETIB-SARSOP", sargs=( precision=precision, max_time=timeout_sarsop, verbose=false, heuristic_solver=h_solver), pargs=()))
 end
+if "QMDP" in solver_names
+    push!(solvers, QMDPSolver_alt)
+    push!(solverargs, (name="QMDP", sargs=(max_iterations=heuristicsteps*10, precision=heuristicprecision),pargs=(), get_Q0=true))
+    push!(precomp_solverargs, ( sargs=(max_iterations=2,), pargs=()))
+end
+
+isempty(solvers) && println("Warning: no solver selected!")
 
 ##################################################################
 #                       Selecting env 
@@ -278,6 +289,8 @@ if env_name == "Tag"
     push!(envargs, (name="Tag",))
 end
 
+isempty(envs) && println("Warning: no envs selected!")
+
 ##################################################################
 #                           Run 
 ##################################################################
@@ -298,20 +311,21 @@ for (m_idx,(model, modelargs)) in enumerate(zip(envs, envargs))
     for (s_idx,(solver, solverarg)) in enumerate(zip(solvers, solverargs))
         # Calculate & print model size
         # model = SparseTabularPOMDP(model) #breaks RockSample...
-        constants = BIB.get_constants(model)
-        SAO_probs, SAOs = BIB.get_all_obs_probs(model; constants)
-        B, B_idx = BIB.get_belief_set(model, SAOs; constants)
-	Br = BIB.get_Br(model, B, constants)
-	Data = BIB.BIB_Data(zeros(2,2), B, B_idx,Br, SAO_probs, SAOs, Dict(zip(constants.S, 1:constants.ns)), constants)
-        BBao_data = BIB.get_Bbao(model, Data, constants)
-        env_data = Dict(
-            "ns" => constants.ns,
-            "na" => constants.na,
-            "no" => constants.no,
-            "nb" => length(B),
-            "nbao"=> length(BBao_data.Bbao) + length(B),
-            "discount"=> discount
-	    )
+    #     constants = TIB.get_constants(model)
+    #     SAO_probs, SAOs = TIB.get_all_obs_probs(model; constants)
+    #     B, B_idx = TIB.get_belief_set(model, SAOs; constants)
+	# Br = TIB.get_Br(model, B, constants)
+	# Data = TIB.TIB_Data(zeros(2,2), B, B_idx,Br, SAO_probs, SAOs, Dict(zip(constants.S, 1:constants.ns)), constants)
+    #     BBao_data = TIB.get_Bbao(model, Data, constants)
+    #     env_data = Dict(
+    #         "ns" => constants.ns,
+    #         "na" => constants.na,
+    #         "no" => constants.no,
+    #         "nb" => length(B),
+    #         "nbao"=> length(BBao_data.Bbao) + length(B),
+    #         "discount"=> discount
+	#     )
+    env_data = Dict()
 
         # Precompile
         if precompile

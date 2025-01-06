@@ -1,4 +1,4 @@
-module BIB
+module TIB
     using POMDPs, POMDPTools, Random, Distributions, SparseArrays, Optimization, JuMP, Gurobi, HiGHS, Tulip, Cbc, Clp, Memoization, LRUCache
 
     # Surpressing Gurobis printing...
@@ -29,9 +29,9 @@ module BIB
     DiscreteHashedBelief, DiscreteHashedBeliefUpdater, 
 
     #Solver:
-    # BIBPolicy,
-    SBIBSolver, WBIBSolver, EBIBSolver, 
-    SBIBPolicy, WBIBPolicy, EBIBPolicy, action_value,
+    # TIBPolicy,
+    STIBSolver, OTIBSolver, ETIBSolver, 
+    STIBPolicy, OTIBPolicy, ETIBPolicy, action_value,
 
     # QS_table_policy,
     QMDPSolver_alt, FIBSolver_alt,

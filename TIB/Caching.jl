@@ -7,10 +7,10 @@ get_constants(model) = C( states(model), actions(model), observations(model),
 
 
 #########################################
-#             BIB_Data:
+#             TIB_Data:
 #########################################
 
-struct BIB_Data
+struct TIB_Data
     Q::Union{Array{Float64,2}, Nothing}
     B::Vector
     B_idx::Array{Int,3}
@@ -20,7 +20,15 @@ struct BIB_Data
     S_dict::Dict{Any, Int}
     constants::C
 end
-BIB_Data(Q::Array{Float64,2}, D::BIB_Data) = BIB_Data(Q,D.B, D.B_idx, D.Br, D.SAO_probs, D.SAOs, D.S_dict, D.constants)
+TIB_Data(Q::Array{Float64,2}, D::TIB_Data) = TIB_Data(Q,D.B, D.B_idx, D.Br, D.SAO_probs, D.SAOs, D.S_dict, D.constants)
+
+struct Simple_Data
+    Q::Union{Array{Float64,2}, Nothing}
+    V::Union{Array{Float64,1}, Nothing}
+    S_dict::Dict{Any, Int}
+    constants::C
+end
+
 
 """
 Computes the probabilities of each observation for each state-action pair. \n 

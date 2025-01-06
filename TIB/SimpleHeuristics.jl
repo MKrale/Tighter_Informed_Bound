@@ -10,10 +10,11 @@ abstract type QS_table_policy <: Policy end
     max_iterations::Int         = 5_000
 end
 
+Simple_Data 
+
 struct QMDPPlanner_alt <: QS_table_policy
-    Model::POMDP
-    Q::Matrix{AbstractFloat}
-    V::Vector{AbstractFloat}
+    model::POMDP
+    Data::Simple_Data
 end
 
 get_max_r(m::POMDP) = get_max_r(m,states(m), actions(m))
@@ -27,6 +28,7 @@ function get_max_r(m,S, A)
     return maxr 
 end
 
+POMDPs.solve(sol::QMDPSolver_alt, m::POMDP) = solve(sol,m)
 
 """Computes the QMDP table using value iteration"""
 function solve(sol::QMDPSolver_alt, m::POMDP; C=nothing, S_dict=nothing)
@@ -65,7 +67,8 @@ function solve(sol::QMDPSolver_alt, m::POMDP; C=nothing, S_dict=nothing)
         time()-t0 > sol.max_time && break
     end
     
-    return QMDPPlanner_alt(m,Q,Qmax)
+    Data = Simple_Data(Q,Qmax,S_dict,C)
+    return QMDPPlanner_alt(m,Data)
 end
 
 #########################################
@@ -79,11 +82,8 @@ end
 end
 
 struct FIBPlanner_alt <: QS_table_policy
-    Model::POMDP 
-    Q::Matrix{Float64}
-    V::Vector{Float64}
-    constants::C
-    S_dict
+    model::POMDP 
+    Data::Simple_Data
 end
 
 
@@ -99,11 +99,11 @@ function solve(sol::FIBSolver_alt, m::POMDP; Data = nothing)
         SAO_probs, SAOs = get_all_obs_probs(m; constants=C)
 
         B, B_idx = get_belief_set(m, SAOs; constants=C)
-        Q = solve(QMDPSolver_alt(precision=sol.precision, max_iterations=sol.max_iterations*10), m; C=C, S_dict=S_dict).Q
+        Q = solve(QMDPSolver_alt(precision=sol.precision, max_iterations=sol.max_iterations*10), m; C=C, S_dict=S_dict).Data.Q
     else
         C, S_dict, SAO_probs, SAOs = Data.constants, Data.S_dict, Data.SAO_probs, Data.SAOs
         B, B_idx, Q = Data.B, Data.B_idx,  Data.Q
-        Q isa Nothing && (Q = solve(QMDPSolver_alt(precision=sol.precision, max_iterations=sol.max_iterations*10), m; C=C, S_dict=S_dict).Q)
+        Q isa Nothing && (Q = solve(QMDPSolver_alt(precision=sol.precision, max_iterations=sol.max_iterations*10), m; C=C, S_dict=S_dict).Data.Q)
     end
 
     γ = discount(m)
@@ -134,7 +134,8 @@ function solve(sol::FIBSolver_alt, m::POMDP; Data = nothing)
             break
         end
     end
-    return FIBPlanner_alt(m,Q, vec(maximum(Q, dims=2)),C,S_dict) ### dim?
+    Data = Simple_Data(Q,vec(maximum(Q, dims=2)),S_dict,C)
+    return FIBPlanner_alt(m,Data) ### dim?
     # return FIBPlanner_alt(m,Q,C,S_dict) ### dim?
 end
 
@@ -143,16 +144,16 @@ end
 #########################################
 
 function action_value(π::X,b) where X<: QS_table_policy
-    M = π.Model
-    thisQ = zeros(π.constants.na)
-    for ai in 1:π.constants.na
+    M = π.model
+    thisQ = zeros(π.Data.constants.na)
+    for ai in 1:π.Data.constants.na
         for s in support(b)
-            si = π.S_dict[s]
-            thisQ[ai] += pdf(b,s) * π.Q[si,ai]
+            si = π.Data.S_dict[s]
+            thisQ[ai] += pdf(b,s) * π.Data.Q[si,ai]
         end
     end 
     aimax = argmax(thisQ)
-    return (π.constants.A[aimax], thisQ[aimax])
+    return (π.Data.constants.A[aimax], thisQ[aimax])
 end
 
 POMDPs.action(π::X,b) where X<: QS_table_policy = first(action_value(π,b))
