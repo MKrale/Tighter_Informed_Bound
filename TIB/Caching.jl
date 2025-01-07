@@ -11,21 +11,23 @@ get_constants(model) = C( states(model), actions(model), observations(model),
 #########################################
 
 struct TIB_Data
-    Q::Union{Array{Float64,2}, Nothing}
-    B::Vector
-    B_idx::Array{Int,3}
-    Br::Array{Float64,2}
-    SAO_probs::Array{Float64,3}
-    SAOs::Array{Vector{Int},2}
-    S_dict::Dict{Any, Int}
-    constants::C
+    """General precomputed data used by TIB solvers & policies"""
+    Q::Union{Array{Float64,2}, Nothing}     # bi, ai -> Q
+    B::Vector                               # bi -> b
+    B_idx::Array{Int,3}                     # si,ai,oi -> bi
+    Br::Array{Float64,2}                    # bi -> reward
+    SAO_probs::Array{Float64,3}             # si,ai,oi -> p
+    SAOs::Array{Vector{Int},2}              # si,ai -> oi
+    S_dict::Dict{Any, Int}                  # s -> si
+    constants::C                     
 end
 TIB_Data(Q::Array{Float64,2}, D::TIB_Data) = TIB_Data(Q,D.B, D.B_idx, D.Br, D.SAO_probs, D.SAOs, D.S_dict, D.constants)
 
 struct Simple_Data
-    Q::Union{Array{Float64,2}, Nothing}
-    V::Union{Array{Float64,1}, Nothing}
-    S_dict::Dict{Any, Int}
+    """General pre-computed data used by FIB & QMDP"""
+    Q::Union{Array{Float64,2}, Nothing}     # si, ai -> Q
+    V::Union{Array{Float64,1}, Nothing}     # si -> V
+    S_dict::Dict{Any, Int}                  # s -> si
     constants::C
 end
 
@@ -202,16 +204,6 @@ function get_Bbao(model, Data, constants)
 
     Bs_found = Dict(zip(B, map( idx -> (true, idx), 1:length(B))))
 
-    Bs_lowest_support_state = Dict()
-    for (bi, b) in enumerate(B)
-        s_lowest = minimum(s -> stateindex(model, s), support(b))
-        if haskey(Bs_lowest_support_state, s_lowest)
-            push!(Bs_lowest_support_state[s_lowest], bi)
-        else
-            Bs_lowest_support_state[s_lowest] = [bi]
-        end
-    end
-
     # Record bao: reference B if it's already in there, otherwise add to Bbao
     for (bi,b) in enumerate(B)
         for (ai, a) in enumerate(constants.A)
@@ -244,6 +236,17 @@ function get_Bbao(model, Data, constants)
     nbao = length(Bbao)
     B_overlap = Array{Vector{Int}}(undef, nb)
     Bbao_overlap = Array{Vector{Int}}(undef, nbao)
+
+    # For each belief, determine the state with the lowest index with non-zero support (speeds up overlap computations)
+    Bs_lowest_support_state = Dict()
+    for (bi, b) in enumerate(B)
+        s_lowest = minimum(s -> stateindex(model, s), support(b))
+        if haskey(Bs_lowest_support_state, s_lowest)
+            push!(Bs_lowest_support_state[s_lowest], bi)
+        else
+            Bs_lowest_support_state[s_lowest] = [bi]
+        end
+    end
 
     # Record overlap for b
     for (bi,b) in enumerate(B)
@@ -309,38 +312,49 @@ end
 #########################################
 
 struct Weights_Data
-    B_weights::Vector{Vector{Tuple{Int,Float64}}}
-    Bbao_weights::Vector{Vector{Tuple{Int,Float64}}}
+    B_idxs::Vector{Vector{Int}}
+    B_weights::Vector{Vector{Float64}}
+    Bbao_idxs::Vector{Vector{Int}}
+    Bbao_weights::Vector{Vector{Float64}}
 end
-function get_weights(Bbao_data, weights_data, bi, ai, oi)
-    in_B, baoi = Bbao_data.Bbao_idx[bi,ai][oi]
-    in_B ? (return weights_data.B_weights[baoi]) : (return weights_data.Bbao_weights[baoi])
-end
-get_weights_indexfree(Bbao_data, weights_data,bi,ai,oi) = map(x -> last(x), get_weights(Bbao_data,weights_data,bi,ai,oi))
 
-function get_entropy_weights_all(B, Bbao_data::BBAO_Data)
+function get_weights(Bbao_data::BBAO_Data, weights_data::Weights_Data, bi, ai, oi)
+    in_B, baoi = Bbao_data.Bbao_idx[bi,ai][oi]
+    if in_B
+        return (weights_data.B_idxs[baoi], weights_data.B_weights[baoi])
+    else
+        return (weights_data.Bbao_idxs[baoi], weights_data.Bbao_weights[baoi])
+    end
+end
+get_weights_indexfree(Bbao_data, weights_data,bi,ai,oi) = first(get_weights(Bbao_data,weights_data,bi,ai,oi))
+
+function get_entropy_weights_all(B, Bbao_data::BBAO_Data) #TODO: this can probably be combined in some way with get_closeness_weights_all
     
     model = Model(Clp.Optimizer; add_bridges=false)
     # model = direct_generic_model(Float64, HiGHS.Optimizer())
     set_silent(model)
     set_string_names_on_creation(model, false)
 
-    B_weights = Array{Vector{Tuple{Int,Float64}}}(undef, length(B))
-    Bbao_weights = Array{Vector{Tuple{Int,Float64}}}(undef, length(Bbao_data.Bbao))
+    B_idxs = Array{Vector{Int}}(undef, length(B))
+    B_weights = Array{Vector{Float64}}(undef, length(B))
     for (bi, b) in enumerate(B)
         if Bbao_data.B_in_Bbao[bi]
             empty!(model)
-            B_weights[bi] = get_entropy_weights(b, B; bi=(true,bi), Bbao_data=Bbao_data, model=model)
+            (this_idxs, this_weights) = get_entropy_weights(b, B; bi=(true,bi), Bbao_data=Bbao_data, model=model)
+            B_idxs[bi] = this_idxs; B_weights[bi] = this_weights
         end
     end
+    Bbao_idxs = Array{Vector{Int}}(undef, length(Bbao_data.Bbao))
+    Bbao_weights = Array{Vector{Float64}}(undef, length(Bbao_data.Bbao))
     for (bi, b) in enumerate(Bbao_data.Bbao)        
         empty!(model)
-        Bbao_weights[bi] = get_entropy_weights(b, B; bi=(false,bi), Bbao_data=Bbao_data, model=model)
+        (this_idxs, this_weights) = get_entropy_weights(b, B; bi=(false,bi), Bbao_data=Bbao_data, model=model)
+        Bbao_idxs[bi] = this_idxs; Bbao_weights[bi] = this_weights
     end
-    return Weights_Data(B_weights, Bbao_weights)
+    return Weights_Data(B_idxs,B_weights, Bbao_idxs, Bbao_weights)
 end
    
-function get_entropy_weights(b, B; bi=nothing, Bbao_data=nothing, model=nothing )
+function get_entropy_weights(b, B; bi=nothing, Bbao_data=nothing, model=nothing)
     B_relevant = []
     B_start = []
     B_entropies = []
@@ -393,17 +407,74 @@ function get_entropy_weights(b, B; bi=nothing, Bbao_data=nothing, model=nothing 
         end
         length(Idx) > 0 && @constraint(model, sum(b_ps[Idx[i]] * Ps[i] for i in 1:length(Idx)) == pdf(b,s) )
     end
-    @objective(model, Max, sum(b_ps.*B_entropies))
+    @objective(model, Max, sum( b_ps.*B_entropies))
     optimize!(model)
 
     weights=[]
+    idxs = []
     cumprob = 0.0
     for (bpi,bp) in enumerate(B_relevant)
         prob = JuMP.value(b_ps[bpi])
-        cumprob += prob
-        real_bpi = B_idxs[bpi]
-        push!(weights, (real_bpi, prob))
+        if prob > 0.0
+            cumprob += prob
+            real_bpi = B_idxs[bpi]
+            push!(idxs, real_bpi)
+            push!(weights, prob)
+        end
     end
-    weights = map(x -> (first(x), last(x)/cumprob), weights)
-    return(weights)
+    return(idxs, weights)
+end
+
+#########################################
+#               Closest beliefs:
+#########################################
+
+function get_best_minratio(b, B, B_overlap::Vector)
+    best_bi, best_ratio = nothing, 0
+    for bpi in B_overlap
+        this_ratio = Inf
+        bp = B[bpi]
+        for sp in support(bp)
+            this_ratio = min(this_ratio, pdf(b,sp) / pdf(bp,sp))
+            this_ratio < best_ratio && break
+        end
+        this_ratio > best_ratio && (best_bi = bpi; best_ratio = this_ratio)
+    end
+    return best_bi, best_ratio
+end
+
+function get_closeness_weight(b, B; B_overlap=nothing, Data=nothing)
+    closest_bi, min_ratio = get_best_minratio(b,B,B_overlap)
+    closest_b = B[closest_bi]
+    weights, idxs = [min_ratio], [closest_bi]
+    for s in support(b)
+        si = Data.S_dict[s]
+        this_weight = pdf(b,s) - (min_ratio * pdf(closest_b,s))
+        if this_weight != 0
+            push!(weights, this_weight)
+            push!(idxs, si)
+        end
+    end
+    return idxs, weights
+end
+
+function get_closeness_weights_all(B, Bbao_data, Data)
+    B_idxs = Array{Vector{Int}}(undef, length(B))
+    B_weights = Array{Vector{Float64}}(undef, length(B))
+    for (bi, b) in enumerate(B)
+        # if Bbao_data.B_in_Bbao[bi]
+            B_overlap = Bbao_data.B_overlap[bi]
+            idxs, weights = get_closeness_weight(b, B; B_overlap=B_overlap, Data=Data)
+            B_idxs[bi] = idxs; B_weights[bi] = weights
+        # end
+    end 
+
+    Bbao_idxs = Array{Vector{Int}}(undef, length(Bbao_data.Bbao))
+    Bbao_weights = Array{Vector{Float64}}(undef, length(Bbao_data.Bbao))
+    for (bi, b) in enumerate(Bbao_data.Bbao)
+        B_overlap = Bbao_data.Bbao_overlap[bi]
+        idxs, weights = get_closeness_weight(b,B;  B_overlap=B_overlap, Data=Data)
+        Bbao_idxs[bi] = idxs; Bbao_weights[bi] = weights
+    end
+    return Weights_Data(B_idxs, B_weights,Bbao_idxs, Bbao_weights)
 end

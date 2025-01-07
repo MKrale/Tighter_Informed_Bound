@@ -50,7 +50,8 @@ timeout = parsed_args["timeout"]
 path = parsed_args["path"]
 filename = parsed_args["filename"]
 solver_names = [parsed_args["solvers"]]
-solver_names == ["All"] && (solver_names = ["TIB", "ETIB", "OTIB", "FIB", "SARSOP"])
+# solver_names == ["All"] && (solver_names = ["TIB", "ETIB", "OTIB", "FIB", "SARSOP"]) #TODO: FIX!
+solver_names == ["All"] && (solver_names = ["ETIB", "CTIB"])
 discount = parsed_args["discount"]
 discount_str = string(discount)[3:end]
 precompile = parsed_args["precompile"]
@@ -84,6 +85,11 @@ end
 if "ETIB" in solver_names
     push!(solvers, ETIBSolver)
     push!(solverargs, (name="TIBSolver (entropy)", sargs=(max_iterations=heuristicsteps, precision=heuristicprecision, max_time=timeout), pargs=(), get_Q0=true))
+    push!(precomp_solverargs, ( sargs=(max_iterations=2,), pargs=()))    
+end
+if "CTIB" in solver_names
+    push!(solvers, CTIBSolver)
+    push!(solverargs, (name="TIBSolver (closeness)", sargs=(max_iterations=heuristicsteps, precision=heuristicprecision, max_time=timeout), pargs=(), get_Q0=true))
     push!(precomp_solverargs, ( sargs=(max_iterations=2,), pargs=()))    
 end
 if "OTIB" in solver_names

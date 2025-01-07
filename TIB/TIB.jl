@@ -30,8 +30,8 @@ module TIB
 
     #Solver:
     # TIBPolicy,
-    STIBSolver, OTIBSolver, ETIBSolver, 
-    STIBPolicy, OTIBPolicy, ETIBPolicy, action_value,
+    STIBSolver, OTIBSolver, ETIBSolver, CTIBSolver, 
+    STIBPolicy, OTIBPolicy, ETIBPolicy, CTIBPolicy, action_value,
 
     # QS_table_policy,
     QMDPSolver_alt, FIBSolver_alt,

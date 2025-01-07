@@ -105,6 +105,14 @@ if solver_name in  ["ETIB", ""]
     precomp_h_solver = NativeSARSOP_alt.ETIBSolver(max_iterations=2)
     push!(precomp_solvers, (sargs=(max_its = 2, verbose=false, heuristic_solver=precomp_h_solver),pargs=()))
 end
+if solver_name in  ["CTIB", ""]
+    push!(solvers, NativeSARSOP_alt.SARSOPSolver)
+    h_solver = NativeSARSOP_alt.CTIBSolver(max_iterations=h_iterations, precision=h_precision)
+    push!(solverargs, (name="CTIB-SARSOP", sargs=( precision=precision, max_time=timeout, verbose=false, heuristic_solver=h_solver, use_only_Bs=onlyBs), pargs=()))
+
+    precomp_h_solver = NativeSARSOP_alt.ETIBSolver(max_iterations=2)
+    push!(precomp_solvers, (sargs=(max_its = 2, verbose=false, heuristic_solver=precomp_h_solver),pargs=()))
+end
 if solver_name in  ["OTIB"]
     push!(solvers, NativeSARSOP_alt.SARSOPSolver)
     h_solver = NativeSARSOP_alt.OTIBSolver(max_iterations=h_iterations, precision=h_precision)

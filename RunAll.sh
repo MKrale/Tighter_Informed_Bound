@@ -2,10 +2,10 @@
 
 # File to run all experiments used in the paper.
 
+##### Normal experiments #####
+
 processes=()
 discount="0.95"
-
-
 
 ## Small, UB
 for env in "ABC" "RockSample5" "FrozenLake4" "Tiger" # QUICK
@@ -40,19 +40,25 @@ do
  processes+=("julia --project=. run_sarsoptest.jl --env $env --discount $discount --onlyBs true --precompile false")
 done
 
+printf "%s\n" "${processes[@]}" | parallel -j1
+wait
+
+##### Discount experiments #####
 
 folder_path="Data/DiscountTest/"
-for env in "Tiger" "FrozenLake4" "K-out-of-N2"
+for env in "Tiger" "K-out-of-N2" "RockSample5"
 do
    for discount in $(seq 0.95 0.001 0.99);
    do
-      processes+=("julia --project=. run_sarsoptest.jl --env $env --path $folder_path --discount $discount")
+      start_time=$(date +%s)
+      julia --project=. run_sarsoptest.jl --env $env --precompile true --path $folder_path --discount $discount
+      end_time=$(date +%s)
+      elapsed_time=$((end_time - start_time))
+      if [ $elapsed_time -gt 3600 ]; then
+         echo "Process took more than 3600 seconds. Breaking the inner loop."
+         break
+      fi
    done
 done
-wait
-
-
-
-printf "%s\n" "${processes[@]}" | parallel -j3
 wait
 echo -e "\n\n============= RUNS COMPLETED =============\n\n"
