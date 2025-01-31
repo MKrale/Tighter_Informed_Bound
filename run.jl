@@ -259,9 +259,9 @@ for (m_idx,(model, modelargs)) in enumerate(zip(envs, envargs))
     
     # Calculate & print model size
     constants = TIB.get_constants(model)
-    SAO_probs, SAOs = TIB.get_all_obs_probs(model; constants)
+    SAO_probs, SAOs = TIB.get_all_obs_probs(model, constants)
     print(".")
-    B, B_idx = TIB.get_belief_set(model, SAOs; constants)
+    B, B_idx = TIB.get_belief_set(model, SAOs, constants)
     print(".")
     Br = TIB.get_Br(model, B, constants)
     print(".")

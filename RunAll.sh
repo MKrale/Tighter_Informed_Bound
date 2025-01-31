@@ -55,7 +55,7 @@ do
       end_time=$(date +%s)
       elapsed_time=$((end_time - start_time))
       if [ $elapsed_time -gt 3600 ]; then
-         echo "Process took more than 3600 seconds. Breaking the inner loop."
+         echo "Run took longer than 3600s: computations stopped."
          break
       fi
    done

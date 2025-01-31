@@ -8,23 +8,20 @@ abstract type TIBSolver <: Solver end
     max_iterations::Int64   = 250       # maximum iterations taken by solver
     max_time::Float64       = 3600      # maximum time spent solving
     precision::Float64      = 1e-4      # precision at which iterations is stopped
-    precomp_solver          = FIBSolver_alt(precision=1e-4, max_iterations=1000, max_time=3600)
+    precomp_solver          = FIBSolver_alt(precision=1e-4, max_iterations=1000, max_time=3600) # Solver used for precomputing Q
 end
 
 @kwdef struct ETIBSolver <: TIBSolver
     max_iterations::Int64   = 250
     max_time::Float64       = 3600
     precision::Float64      = 1e-4
-    precomp_solver          = STIBSolver(precision=1e-4, max_iterations=250, max_time=3600, precomp_solver=FIBSolver_alt(precision=1e-4, max_iterations=1000, max_time=3600))
-    # precomp_solver          = FIBSolver_alt(precision=1e-4, max_iterations=1000, max_time=3600)
- end
+    precomp_solver          = STIBSolver(precision=1e-4, max_iterations=250, max_time=3600, precomp_solver=FIBSolver_alt(precision=1e-4, max_iterations=1000, max_time=3600)) end
 
  @kwdef struct OTIBSolver <: TIBSolver
     max_iterations::Int64   = 250
     max_time::Float64       = 3600
     precision::Float64      = 1e-4
-    precomp_solver          = STIBSolver(precision=1e-4, max_iterations=250, max_time=3600, precomp_solver=FIBSolver_alt(precision=1e-4, max_iterations=1000, max_time=3600))
-    # precomp_solver          = FIBSolver_alt(precision=1e-4, max_iterations=1000, max_time=3600)
+    precomp_solver          = ETIBSolver(precision=1e-4, max_iterations=250, max_time=3600, precomp_solver=FIBSolver_alt(precision=1e-4, max_iterations=1000, max_time=3600))
  end
 
  @kwdef struct CTIBSolver <: TIBSolver
@@ -32,37 +29,23 @@ end
     max_time::Float64       = 3600
     precision::Float64      = 1e-4
     precomp_solver          = STIBSolver(precision=1e-4, max_iterations=250, max_time=3600, precomp_solver=FIBSolver_alt(precision=1e-4, max_iterations=1000, max_time=3600))
-    # precomp_solver          = FIBSolver_alt(precision=1e-4, max_iterations=1000, max_time=3600)
  end
 
 verbose = false
-POMDPs.solve(solver::X, model::POMDP) where X<: TIBSolver = solve(solver, model; Data=nothing)
-function solve(solver::X, model::POMDP; Data::Union{TIB_Data,Nothing}=nothing) where X<:TIBSolver
+POMDPs.solve(solver::X, model::POMDP) where X<: TIBSolver = solve_TIB(solver, model; Data=nothing)
+"""..."""
+function solve_TIB(solver::X, model::POMDP; Data::Union{TIB_Data,Nothing}=nothing) where X<:TIBSolver
     t0 = time()
 
-    if isnothing(Data) # This is the default case: 
-        constants = get_constants(model)
-
-        # 1: Precompute observation probabilities
-        # SAO_probs = []                                  # ∀ s,a,o, gives probability of o given (s,a)
-        # SAOs = []                                       # ∀ s,a, gives os with p>0
-        SAO_probs, SAOs = get_all_obs_probs(model; constants)
-        S_dict = Dict( zip(constants.S, 1:constants.ns))
-
-        # 2 : Pre-compute all beliefs after 1 step
-        # B = []                                          # Our set of beliefs
-        # B_idx = []                                      # ∀ s,a,o, gives index of b_sao in B
-        # Br = []                                         # ∀ b∈B,a, gives expected reward                                      
-        B, B_idx = get_belief_set(model, SAOs; constants)
-        Br = get_Br(model, B, constants)
-
-        Data = TIB_Data(nothing, B,B_idx, Br, SAO_probs,SAOs, S_dict, constants)
+    # 1 : Cash all relevant model data
+    if isnothing(Data) # This is the default case:
+        Data = get_TIB_Data(model)
     end
 
-    # 3 : Compute Q-values bsoa beliefs
+    # 2 : Compute Q-values bsoa beliefs
     Qs = precompute_Qs(model, Data, solver.precomp_solver)    # ∀ b ∈ B, contains QTIB value (initialized using QMDP)
 
-    # 4 : If OTIB or ETIB, precompute all beliefs after 2 steps
+    # 3 : If OTIB or ETIB, precompute all beliefs after 2 steps
     Bbao_data = []
     if solver isa OTIBSolver || solver isa ETIBSolver || solver isa CTIBSolver
         Bbao_data = get_Bbao(model, Data, Data.constants)
@@ -70,7 +53,7 @@ function solve(solver::X, model::POMDP; Data::Union{TIB_Data,Nothing}=nothing) w
     t_init = time() - t0
     verbose && printdb("general init time:", t_init)
 
-    # 5 : If using ETIB, pre-compute entropy weights
+    # 4 : If using ETIB, pre-compute entropy weights
     
     Weights = []
     if solver isa ETIBSolver
@@ -96,7 +79,7 @@ function solve(solver::X, model::POMDP; Data::Union{TIB_Data,Nothing}=nothing) w
         throw("Solver type not recognized!")
     end
     
-    # Now iterate:
+    # 5 : Now iterate:
     it = 0
     factor = discount(model) / (1-discount(model))
     for i=1:solver.max_iterations
@@ -117,24 +100,7 @@ end
 #            Value Computations:
 #########################################
 
-############ FIB & QMDP ###################
-
-function get_QMDP_Beliefset(model::POMDP, B::Vector; constants::Union{C,Nothing}=nothing)
-    isnothing(constants) && throw("Not implemented error! (get_obs_probs)")
-
-    π_QMDP = solve(QMDPSolver_alt(), model)
-    Qs = zeros(Float64, length(B), constants.na)
-    for (b_idx, b) in enumerate(B)
-        for (ai, a) in enumerate(constants.A)
-            for (si, s) in enumerate(constants.S)
-                if pdf(b,s) > 0
-                    Qs[b_idx, ai] += pdf(b,s) * π_QMDP.Data.Q[si,ai]
-                end
-            end
-        end
-    end
-    return Qs
-end
+############ Q-value Precomputations ###################
 
 function precompute_Qs(model::POMDP, Data::TIB_Data, solver::X ; getdata=false) where X<: Solver
 
@@ -286,7 +252,7 @@ end
 function get_QETIB_ba(model::POMDP,bi, ai, Qs, Data::TIB_Data, Bbao_data::BBAO_Data, Weights_data::Weights_Data)
     # SAOs, constants, S_dict = Data.SAOs, Data.constants, Data.S_dict
     Q = Data.Br[bi,ai]
-    Os = get_possible_obs( (true,bi) ,ai,Data.SAOs,Bbao_data)
+    Os = get_possible_obs( (true,bi) ,ai,Data,Bbao_data)
     for oi in Os
         o = Data.constants.O[oi]
         bao = get_bao(Bbao_data, bi, ai, oi, Data.B)
@@ -354,6 +320,9 @@ end
 POMDPs.action(π::X, b) where X<: TIBPolicy = first(action_value(π, b))
 POMDPs.value(π::X, b) where X<: TIBPolicy = last(action_value(π,b))
 
+"""Computes the optimal action and the corresponding expected value for a policy"""
+function action_value end
+
 function action_value(π::STIBPolicy, b)
     b = DiscreteHashedBelief(b)
     model = π.model
@@ -376,7 +345,7 @@ function action_value(π::OTIBPolicy, b)
     return (bestA, bestQ)
 end
 
-
+# ETIB and CTIB essentially do the same, except with different ways of finding weights. Thus, we generalize as follows:
 action_value(π::ETIBPolicy, b) = action_value_preweights(π, b; weightfunction=get_entropy_weights)
 action_value(π::CTIBPolicy, b) = action_value_preweights(π, b; weightfunction=get_closeness_weights)
 function action_value_preweights(π::X, b; weightfunction = get_entropy_weights) where X <: Union{ETIBPolicy, CTIBPolicy}
@@ -384,16 +353,26 @@ function action_value_preweights(π::X, b; weightfunction = get_entropy_weights)
     model = π.model
     bestQ, bestA = -Inf, nothing
     for (ai,a) in enumerate(π.Data.constants.A)
-        # if π.evaluate_full
+        # If we want to use this policy only, computing weights might be too expensive. 
+        # Instead, we could use the TIB approach online, but use the Q-table computed using our weights
+        # However, we currently just use the more expansive variant
+        if true
             Qa = get_QETIB_ba(model::POMDP, b, a, π.Data)
-        # else
-            # Qa = get_QTIB_ba(model, b, a, π.Data; ai=ai)
-        # end
+        else
+            Qa = get_QTIB_ba(model, b, a, π.Data; ai=ai)
+        end
         Qa > bestQ && ((bestQ, bestA) = (Qa, a))
     end
     return (bestA, bestQ)
 end
 
+"""
+Returns:
+
+* A vector with the values of the exerior beliefs (ordered via POMDP.stateindex);
+* A vector of additional beliefs for which a value is known;
+* A vector with these corresponding values.
+"""
 function get_heuristic_pointset(policy::X; get_only_Bs=false) where X<:TIBPolicy
     B_heuristic, V_heuristic = Vector{Float64}[], Float64[]
     ns = policy.Data.constants.ns

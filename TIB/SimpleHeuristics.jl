@@ -96,9 +96,9 @@ function solve(sol::FIBSolver_alt, m::POMDP; Data = nothing)
         C = get_constants(m)
         S_dict = Dict( zip(C.S, 1:C.ns))
 
-        SAO_probs, SAOs = get_all_obs_probs(m; constants=C)
+        SAO_probs, SAOs = get_all_obs_probs(m, C)
 
-        B, B_idx = get_belief_set(m, SAOs; constants=C)
+        B, B_idx = get_belief_set(m, SAOs, C)
         Q = solve(QMDPSolver_alt(precision=sol.precision, max_iterations=sol.max_iterations*10), m; C=C, S_dict=S_dict).Data.Q
     else
         C, S_dict, SAO_probs, SAOs = Data.constants, Data.S_dict, Data.SAO_probs, Data.SAOs
