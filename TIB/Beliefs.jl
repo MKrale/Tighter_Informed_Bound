@@ -2,6 +2,7 @@
 #          Belief Definitions
 #########################################
 
+"""A custom belief implementation that includes a pre-computed hash value"""
 struct DiscreteHashedBelief{S}
     state_list::Vector{S}       # assumed sorted!
     probs::Vector{Float64}
@@ -18,7 +19,7 @@ function DiscreteHashedBelief(state_list::Vector, probs::Vector{<:Float64})
 end
 
 
-#TODO: this is bad: we never check if our variable is indeed a belief. 
+#TODO: This method should only be used when b is a belief, but currently this is not checked.
 # I don't see any way to do this though: the beliefs used throughout the POMDP framework do not have a consistent supertype (even though they should all be distributions...)
 # Maybe checking for the existance of a support/pdf function would be enough, but the way of doing this in Julia (method_exists()) seems to be removed and is the only thing I can find.
 function DiscreteHashedBelief(b) 
@@ -49,37 +50,14 @@ function POMDPs.pdf(d::DiscreteHashedBelief, s)
     k=findfirst( ==(s), d.state_list)               # This could use the fact that states are sorted...
     isnothing(k) ? (return 0) : (return d.probs[k])
 end
-# pdf_real(d::DiscretizedBelief,s) = haskey(d.b, s) ? last(d.b[s]) : 0
 POMDPs.support(d::DiscreteHashedBelief) = d.state_list
 
-# Base.iterate(d::DiscretizedBelief) = map( (x,s) -> iterate(d.b)
-# Base.iterate(d::DiscretizedBelief, state) = iterate(d.b, state)
 Base.length(d::DiscreteHashedBelief) = length(d.state_list)
-# Base.eltype(d::DiscretizedBelief{Dict{V,Float64},Float64}) =  Pair{V, Float64, Float64}
-
 mean(d::DiscreteHashedBelief) = throw("Function not implemented")
 mode(d::DiscreteHashedBelief) = throw("Function not implemented")
 
-
-# function POMDPTools.beliefvec(m::POMDP, b)
-# function beliefvec(S,b::DiscreteHashedBelief)
-#     bv = zeros(length(S))
-#     for (s, ps) in weighted_iterator(b)
-#         bv[s] = ps
-#     end
-#     return bv
-# end
-
-# function to_sparse_vector(model::POMDP, b::DiscreteHashedBelief)
-#     spv = spzeros(length(states(model)))
-#     for (si, s) in enumerate(b.state_list)
-#         spv[POMDPs.stateindex(model, s)] = b.probs[si]
-#     end
-#     return spv
-# end
-
 #########################################
-#          Hashing & stuff
+#          Hashing & Equality
 #########################################
 
 Base.:(==)(x::DiscreteHashedBelief, y::DiscreteHashedBelief) = (x.hash == y.hash) && all( map( s -> isapprox( pdf(x,s), pdf(y,s); atol=10^-3 ),  collect(support(x))))
@@ -104,10 +82,12 @@ Base.hash(x::DiscreteHashedBelief) = hash(x,UInt(0))
 #          Belief Updater
 #########################################
 
+"""Struct for updating DiscreteHashedBelief"""
 struct DiscreteHashedBeliefUpdater <: Updater
     model::POMDP
 end
 
+"""Given a distribution d, create a DiscreteHashedBelief"""
 function initialize_belief(bu::DiscreteHashedBeliefUpdater, d)
     S,P = [], []
     for (s,p) in weighted_iterator(d)
@@ -133,5 +113,5 @@ function POMDPs.update(bu::DiscreteHashedBeliefUpdater, b::DiscreteHashedBelief,
     return DiscreteHashedBelief(states,probs)
 end
 
-#TODO: again, this is really bad, we never type-check b...
+#TODO: again, we never type-check b, but I don't know how to do this...
 POMDPs.update(bu::DiscreteHashedBeliefUpdater, b, a, o) = update(bu, DiscreteHashedBelief(b),a,o) 

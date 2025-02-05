@@ -1,3 +1,5 @@
+# Contains code for all the caching required to make (E/O)TIB run efficiently
+
 """Struct containing parameter vectors & sizes, to prevent calling (possibly expensive) POMDP functions"""
 struct C
     S; A; O 
@@ -101,6 +103,7 @@ function get_possible_obs_probs(b::DiscreteHashedBelief, ai, SAOs,SAO_probs, S_d
     return possible_os
 end
 
+"""Constructs TIB_DATA from the given model"""
 function get_TIB_Data(model)
     constants = get_constants(model)
     SAO_probs, SAOs = get_all_obs_probs(model, constants)
@@ -109,8 +112,6 @@ function get_TIB_Data(model)
     Br = get_Br(model, B, constants)
     return TIB_Data(nothing,B,B_idx,Br,SAO_probs,SAOs,S_dict,constants)
 end
-
-
 
 """
 Computes all (unique) one-step beliefs
@@ -198,6 +199,7 @@ function get_overlap(Bbao_data::BBAO_Data, bi::Int, ai::Int, oi::Int)
     in_B ? (return Bbao_data.B_overlap[baoi]) : (return Bbao_data.Bbao_overlap[baoi])
 end
 
+"""Computes all possible observations after the given belief-action pair"""
 function get_possible_obs(bi::Tuple{Bool, Int}, ai, Data::TIB_Data, Bbao_data::BBAO_Data)
     if !first(bi)
         b = Data.B[last(bi)]
@@ -376,7 +378,8 @@ function get_entropy_weights_all(B, Bbao_data::BBAO_Data) #TODO: this can probab
         if Bbao_data.B_in_Bbao[bi]
             empty!(model)
             B_overlap, valid_weights = Bbao_data.B_overlap[bi], Dict(bi => 1.0)
-            (this_idxs, this_weights) = get_entropy_weights(b, B, model, B_overlap; initial_weights=valid_weights)
+            B_entropies = map(bi -> Bbao_data.B_entropies[bi], B_overlap)
+            (this_idxs, this_weights) = get_entropy_weights(b, B, B_overlap, B_entropies; model=model, initial_weights=valid_weights) 
             B_idxs[bi] = this_idxs; B_weights[bi] = this_weights
         end
     end
@@ -387,16 +390,21 @@ function get_entropy_weights_all(B, Bbao_data::BBAO_Data) #TODO: this can probab
     for (bi, b) in enumerate(Bbao_data.Bbao)        
         empty!(model)
         B_overlap, valid_weights = Bbao_data.Bbao_overlap[bi], Bbao_data.Valid_weights[bi]
-        (this_idxs, this_weights) = get_entropy_weights(b, B, model, B_overlap; initial_weights=valid_weights)
+        B_entropies = map(bi -> Bbao_data.B_entropies[bi], B_overlap)
+        (this_idxs, this_weights) = get_entropy_weights(b, B, B_overlap, B_entropies;model=model, initial_weights=valid_weights) 
         Bbao_idxs[bi] = this_idxs; Bbao_weights[bi] = this_weights
     end
     return Weights_Data(B_idxs,B_weights, Bbao_idxs, Bbao_weights) 
 end 
 
 """Computes all max-entropy weights for Bbao"""
-function get_entropy_weights(b, B, model, Bi_overlap; initial_weights=nothing)
+function get_entropy_weights(b, B, Bi_overlap, B_entropies; model=nothing, initial_weights=nothing)
     B_overlap = map(bi -> B[bi], Bi_overlap)
-    B_entropies = map(bi -> Bbao_data.B_entropies[bpi], Bi_overlap)
+    if model isa Nothing
+        model = Model(Clp.Optimizer; add_bridges=false)
+        set_silent(model)
+        set_string_names_on_creation(model, false)
+    end
 
     @variable(model, 0.0 <= b_ps[1:length(B_overlap)] <= 1.0)
     # Build the constraint that probabilities for each state match that of b
@@ -420,10 +428,10 @@ function get_entropy_weights(b, B, model, Bi_overlap; initial_weights=nothing)
     idxs = []
     cumprob = 0.0
     for (bpi,bp) in enumerate(B_overlap)
-        prob = JuMP.value(b_ps[bpi])
+        prob = Float64(JuMP.value(b_ps[bpi]))
         if prob > 0.0
             cumprob += prob
-            real_bpi = B_idxs[bpi]
+            real_bpi = Bi_overlap[bpi]
             push!(idxs, real_bpi)
             push!(weights, prob)
         end
@@ -433,7 +441,7 @@ end
 
 ########## Closest belief weights ##########
 
-"""Returns the belief that has the lowest minratio with b (as well as the ratio)"""
+"""Returns the belief that has the lowest minratio with b (as well as that ratio)"""
 function get_best_minratio(b, B, B_overlap::Vector)
     best_bi, best_ratio = nothing, 0
     for bpi in B_overlap

@@ -1,3 +1,5 @@
+# File used to find the upper bounds as computed by different algorithms on different environments.
+
 import POMDPs, POMDPTools
 using POMDPs
 using POMDPTools, POMDPFiles, ArgParse, JSON
@@ -50,8 +52,7 @@ timeout = parsed_args["timeout"]
 path = parsed_args["path"]
 filename = parsed_args["filename"]
 solver_names = [parsed_args["solvers"]]
-# solver_names == ["All"] && (solver_names = ["TIB", "ETIB", "OTIB", "FIB", "SARSOP"]) #TODO: FIX!
-solver_names == ["All"] && (solver_names = ["ETIB", "CTIB"])
+solver_names == ["All"] && (solver_names = ["TIB", "ETIB", "OTIB", "FIB", "SARSOP"])
 discount = parsed_args["discount"]
 discount_str = string(discount)[3:end]
 precompile = parsed_args["precompile"]
@@ -66,10 +67,13 @@ end
 #                       Defining Solvers 
 ##################################################################
 
+# We define both a vector with the solvers to run, as well as their arguments.
+# Moreover, we add a vector with the arguments to use in the precomp run (i.e., using only one iteration)
 solvers, solverargs, precomp_solverargs = [], [], []
-SARSOPprecision = 1e-2
+SARSOPprecision = 1e-3 # Hardcoded
 heuristicsteps = 1_000
-if heuristicprecision == 0.0
+if heuristicprecision == 0.0 # i.e. precision is not set
+    # Precision & #steps picked based on discount
     heuristicprecision = 1e-4
     discount == 0.95 && (heuristicprecision = 1e-3;  heuristicsteps = 250)
     discount == 0.99 && (heuristicprecision = 1e-4;  heuristicsteps = 1_000)
@@ -132,7 +136,7 @@ isempty(solvers) && println("Warning: no solver selected!")
 ##################################################################
 
 import RockSample
-# This env is very difficult to work with for some reason...
+# This env is very difficult to work with for some reason, so we need to add the following:
 POMDPs.states(M::RockSample.RockSamplePOMDP) = map(si -> RockSample.state_from_index(M,si), 1:length(M))
 POMDPs.discount(M::RockSample.RockSamplePOMDP) = discount
 include("Environments/K-out-of-N.jl"); using .K_out_of_Ns
@@ -160,6 +164,7 @@ if env_name == "RockSample5"
     push!(envargs, (name="RockSample ()",))
     push!(envs, rocksamplesmall)
 end
+### UNUSED (cause non-standard)
 # if env_name == "RockSample10"
 #     map_size, rock_pos = (10,10), [(2,3), (4,6), (7,4), (8,9) ] # Big Boy!
 #     rocksample10 = RockSample.RockSamplePOMDP(map_size, rock_pos)
@@ -179,7 +184,6 @@ if env_name == "RockSample7"
     push!(envs, rocksamplelarge)
 end
 if env_name == "K-out-of-N2"
-    # ### K-out-of-N
     k_model2 = K_out_of_N(N=2, K=2, discount=discount)
     push!(envs, SparseTabularPOMDP(k_model2))
     push!(envargs, (name="K-out-of-N (2)",))
@@ -189,7 +193,7 @@ if env_name == "K-out-of-N3"
     push!(envs, SparseTabularPOMDP(k_model3))
     push!(envargs, (name="K-out-of-N (3)",))
 end
-# UNUSED:
+# UNUSED (cause non-standard for planning):
 # if env_name == "FrozenLake4"
 #     # Frozen Lake esque
 #     lakesmall = FrozenLakeSmall
@@ -313,25 +317,27 @@ return_means = zeros( nr_envs, nr_pols)
 time_solve = zeros( nr_envs, nr_pols)
 time_online = zeros( nr_envs, nr_pols)
 
+verbose = true
+
 for (m_idx,(model, modelargs)) in enumerate(zip(envs, envargs))
     for (s_idx,(solver, solverarg)) in enumerate(zip(solvers, solverargs))
-        # Calculate & print model size
-        # model = SparseTabularPOMDP(model) #breaks RockSample...
-    #     constants = TIB.get_constants(model)
-    #     SAO_probs, SAOs = TIB.get_all_obs_probs(model; constants)
-    #     B, B_idx = TIB.get_belief_set(model, SAOs; constants)
-	# Br = TIB.get_Br(model, B, constants)
-	# Data = TIB.TIB_Data(zeros(2,2), B, B_idx,Br, SAO_probs, SAOs, Dict(zip(constants.S, 1:constants.ns)), constants)
-    #     BBao_data = TIB.get_Bbao(model, Data, constants)
-    #     env_data = Dict(
-    #         "ns" => constants.ns,
-    #         "na" => constants.na,
-    #         "no" => constants.no,
-    #         "nb" => length(B),
-    #         "nbao"=> length(BBao_data.Bbao) + length(B),
-    #         "discount"=> discount
-	#     )
-    env_data = Dict()
+        
+        ### Get Environment data (commented out for efficiency)
+        # constants = TIB.get_constants(model)
+        # SAO_probs, SAOs = TIB.get_all_obs_probs(model; constants)
+        # B, B_idx = TIB.get_belief_set(model, SAOs; constants)
+        # Br = TIB.get_Br(model, B, constants)
+        # Data = TIB.TIB_Data(zeros(2,2), B, B_idx,Br, SAO_probs, SAOs, Dict(zip(constants.S, 1:constants.ns)), constants)
+        # BBao_data = TIB.get_Bbao(model, Data, constants)
+        # env_data = Dict(
+        #     "ns" => constants.ns,
+        #     "na" => constants.na,
+        #     "no" => constants.no,
+        #     "nb" => length(B),
+        #     "nbao"=> length(BBao_data.Bbao) + length(B),
+        #     "discount"=> discount
+	    # )
+        env_data = Dict() # Comment out when you wan to get env info
 
         # Precompile
         if precompile
@@ -354,7 +360,7 @@ for (m_idx,(model, modelargs)) in enumerate(zip(envs, envargs))
             lb =  info.lb
         end       
 
-        # Simulate policy & get avg returns
+        ### Policy simulation (very slow, so not used)
         #rs = []
         #t0_sims = time()
         #for i=1:sims
@@ -366,9 +372,10 @@ for (m_idx,(model, modelargs)) in enumerate(zip(envs, envargs))
         #end
         #t_sims = time() - t0_sims
         #rs_avg, rs_min, rs_max = mean(rs), minimum(rs), maximum(rs)
-	rs_avg, rs_min, rs_max = -1.0, -1.0, -1.0
-        t_sims = -1.0
-	# Writing data to files
+	    rs_avg, rs_min, rs_max = -1.0, -1.0, -1.0   # Comment out when doing simulations
+        t_sims = -1.0                               # Comment out when doing simulations
+
+	    ### Writing data to files
         data_dict = Dict(
             "env" => env_name,
             "env_full" => modelargs.name,
@@ -383,7 +390,7 @@ for (m_idx,(model, modelargs)) in enumerate(zip(envs, envargs))
             "ravg" => rs_avg
         )
         json_str = JSON.json(data_dict)
-        println(env_name, " ", t, " ", ub)
+        verbose && println("In $(env_name), $(solver_names[s_idx]) found bound $ub in $(t)s.")
         if filename == ""
 		thisfilename =  path * "UpperBoundTest_$(env_name)_$(solver_names[s_idx])_d$(discount_str).json"
         else

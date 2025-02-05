@@ -131,10 +131,9 @@ import RockSample
 # This env is very difficult to work with for some reason...
 POMDPs.states(M::RockSample.RockSamplePOMDP) = map(si -> RockSample.state_from_index(M,si), 1:length(M))
 POMDPs.discount(M::RockSample.RockSamplePOMDP) = discount
+
 include("Environments/K-out-of-N.jl"); using .K_out_of_Ns
 include("Environments/Sparse_models/SparseModels.jl"); using .SparseModels
-
-
 
 envs, envargs = [], []
 

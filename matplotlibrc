@@ -1,3 +1,5 @@
+# File to make plotting more convenient
+
 # figure.figsize         : 3.32, 2.49
 # figure.figsize         : 4, 2.5       # behaviour subplot size
 # figure.figsize         : 7, 2.75     # other figures size

@@ -1,5 +1,4 @@
-
-
+# Some random convenience functions used in other code:
 
 function breward(model::POMDP, b::DiscreteHashedBelief,a)
     r = 0.0

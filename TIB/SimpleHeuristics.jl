@@ -1,22 +1,26 @@
+# Code for computing QMDP and FIB policies.
+
+"""Abstract type for policies that use Q-tables (of size |S|) to choose actions"""
 abstract type QS_table_policy <: Policy end
 
 #########################################
 #               QMDP:
 #########################################
 
+"""QMDP Solver, reimplemented for efficiency"""
 @kwdef struct QMDPSolver_alt <: Solver
-    precision::AbstractFloat    = 1e-3
-    max_time::Float64           = 600
-    max_iterations::Int         = 5_000
+    precision::AbstractFloat    = 1e-3      # (Approximate) precision at which the algorithm terminates
+    max_time::Float64           = 600       # Timeout time for computations 
+    max_iterations::Int         = 5_000     # Timeout nmbr. of iterations
 end
 
-Simple_Data 
-
+"""QMDP Policy, reimplemented for efficiency"""
 struct QMDPPlanner_alt <: QS_table_policy
     model::POMDP
     Data::Simple_Data
 end
 
+"""Returns max_{s,a} R(s,a)"""
 get_max_r(m::POMDP) = get_max_r(m,states(m), actions(m))
 function get_max_r(m,S, A)
     maxr = 0
@@ -30,8 +34,9 @@ end
 
 POMDPs.solve(sol::QMDPSolver_alt, m::POMDP) = solve(sol,m)
 
-"""Computes the QMDP table using value iteration"""
+"""Computes a QMDP policy using value iteration"""
 function solve(sol::QMDPSolver_alt, m::POMDP; C=nothing, S_dict=nothing)
+    # Intialization
     t0 = time()
     C isa Nothing && (C = get_constants(m))
     S_dict isa Nothing && (S_dict = Dict( zip(C.S, 1:C.ns)))
@@ -42,12 +47,11 @@ function solve(sol::QMDPSolver_alt, m::POMDP; C=nothing, S_dict=nothing)
     maxQ = max_r / (1-discount(m))
     Q[:,:] .= maxQ
     Qmax[:] .= maxQ
-
-    i=0
-    # Lets iterate!
     factor = discount(m) / (1-discount(m))
-    largest_change = Inf
+
+    # Lets iterate!
     i=0
+    largest_change = Inf
 
     while (factor * largest_change > sol.precision) && (i < sol.max_iterations)
         i+=1
@@ -75,12 +79,14 @@ end
 #               FIB:
 #########################################
 
+"""FIB Solver, reimplemented for efficiency"""
 @kwdef struct FIBSolver_alt <: Solver
     precision::AbstractFloat    = 1e-4
     max_time::Float64           = 600
     max_iterations::Int         = 250
 end
 
+"""FIB Policy, reimplemented for efficiency"""
 struct FIBPlanner_alt <: QS_table_policy
     model::POMDP 
     Data::Simple_Data
@@ -90,7 +96,7 @@ end
 POMDPs.solve(sol::FIBSolver_alt, m::POMDP) = solve(sol,m;Data=nothing)
 
 function solve(sol::FIBSolver_alt, m::POMDP; Data = nothing)
-    # Pre-computations
+    # Initialization & cachin
     t0 = time()
     if Data isa Nothing
         C = get_constants(m)
@@ -105,12 +111,12 @@ function solve(sol::FIBSolver_alt, m::POMDP; Data = nothing)
         B, B_idx, Q = Data.B, Data.B_idx,  Data.Q
         Q isa Nothing && (Q = solve(QMDPSolver_alt(precision=sol.precision, max_iterations=sol.max_iterations*10), m; C=C, S_dict=S_dict).Data.Q)
     end
-
     γ = discount(m)
+    factor = discount(m) / (1-discount(m))
 
+    # Lets iterate!
     largest_change = Inf
     i=0
-    factor = discount(m) / (1-discount(m))
     while true
         i+=1
         largest_change = 0
@@ -135,14 +141,14 @@ function solve(sol::FIBSolver_alt, m::POMDP; Data = nothing)
         end
     end
     Data = Simple_Data(Q,vec(maximum(Q, dims=2)),S_dict,C)
-    return FIBPlanner_alt(m,Data) ### dim?
-    # return FIBPlanner_alt(m,Q,C,S_dict) ### dim?
+    return FIBPlanner_alt(m,Data)
 end
 
 #########################################
 #            Values & actions:
 #########################################
 
+"""Computes the optimal action and the corresponding expected value for a policy"""
 function action_value(π::X,b) where X<: QS_table_policy
     M = π.model
     thisQ = zeros(π.Data.constants.na)
@@ -160,5 +166,5 @@ POMDPs.action(π::X,b) where X<: QS_table_policy = first(action_value(π,b))
 POMDPs.value(π::X,b) where X<: QS_table_policy = last(action_value(π,b))
 
 function get_heuristic_pointset(policy::X) where X<:QS_table_policy
-    return policy.V, [], [] # hopefully the order is correct...
+    return policy.Data.V, [], []
 end

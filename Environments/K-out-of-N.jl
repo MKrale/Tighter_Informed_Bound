@@ -1,9 +1,7 @@
-# Imports
+# A POMDPs.jl implementation of the custom K-out-of-N model, as defined in the paper.
 
 module K_out_of_Ns
-
 using Base.Iterators, POMDPs, QuickPOMDPs, POMDPTools, Distributions
-
 export K_out_of_N
 
 ################################
@@ -26,30 +24,11 @@ export K_out_of_N
     discount::Float64           = 0.95
 end
 
-# default_args = Dict{Symbol, Any}(
-#     :N=>3, :K=>3, :smax=>3,
-#     :spread=>2, :p0=>0.2, :p1=>0.5, :p2=>0.9,
-#     :break_cost=>0.5, :repair_cost=>0.25, :inspect_cost=>0.05, :deterministic_obs=>true )
-
-# function K_out_of_N(D::Dict{Symbol,Any})
-#     for key in keys(default_args)
-#         haskey(D,key) || (D[key] = default_args[key])
-#     end
-#     return K_out_of_N(D[:N], D[:K], D[:smax], 
-#             D[:spread], D[:p0], D[:p1], D[:p2], 
-#             D[:break_cost], D[:repair_cost], D[:inspect_cost], 
-#             D[:deterministic_obs])
-# end
-
-# K_out_of_N() = K_out_of_N(default_args...)
-# K_out_of_N(N::Int, K::Int; deterministic_obs=true) = K_out_of_N(Dict{Symbol, Any}(:N=>N, :K=>K, :deterministic_obs=>deterministic_obs))
-
-
 ################################
 #       Helper Functions:
 ################################
 
-# Listing all possible combinations of factorized states (defunct)
+"""Returns all possible combinations of factorized states"""
 function allCombs(A, n)
     """Return all possible tuples of lenght n with elements from A"""
     list = []
@@ -59,10 +38,10 @@ function allCombs(A, n)
     return list
 end
 
+"""Creates a Sparse Univariate distribution over factorized states.
+Input: A vector with, for each Factor, a vector with tuples of their possible value and a probability.
+"""
 function custom_discrete_product(A::Vector{Vector{Tuple{Integer, AbstractFloat}}})
-    """Creates a Sparse Univariate distribution over factorized states.
-    Input: A vector with, for each Factor, a vector with tuples of their possible value and a probability.
-    """
     # Initialize: place all elements from the first factor in the new list
     outcomes, probs = Vector{Vector{Integer}}(), Vector{AbstractFloat}()
     for (ind,p) in A[1]
