@@ -335,6 +335,8 @@ env, env_arg = envs[1], envargs[1]
 ubs, lbs = Tuple{Vector{Float64}, Vector{Float64}}[], Tuple{Vector{Float64}, Vector{Float64}}[]
 # env = SparseTabularPOMDP(env) #breaks RockSample...
 
+verbose = true
+
 for (i, (solver, solverarg)) in enumerate(zip(solvers, solverargs))
     
     # Precomputation:
@@ -374,7 +376,7 @@ for (i, (solver, solverarg)) in enumerate(zip(solvers, solverargs))
         "sim_r" => rs_avg,
         "sim_rsigma" => rs_sigma
     )
-    println(env_name, " ", solverarg.name, " ", last(info.lbs), " ", last(info.ubs), " ", last(info.times))
+    verbose && println("In $(env_name), $(solverarg.name) found bounds ($(last(info.lbs)), $(last(info.ubs))) in $(last(info.times))s.")
 
     json_str = JSON.json(data_dict)
     if filename == ""
