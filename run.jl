@@ -20,21 +20,21 @@ iters, tol = 1_000, 10^-4
 
 
 ## FIB
-using FIB
-push!(solvers, FIBSolver_alt)
-push!(solverargs, (name="FIB", sargs=(max_iterations=iters,precision=tol), pargs=(), get_Q0=true))
+# using FIB
+# push!(solvers, FIBSolver_alt)
+# push!(solverargs, (name="FIB", sargs=(max_iterations=iters,precision=tol), pargs=(), get_Q0=true))
 
-### TIB
- push!(solvers, STIBSolver)
- push!(solverargs, (name="TIBSolver (standard)", sargs=(max_iterations=iters, precision=tol), pargs=(), get_Q0=true))
+# ### TIB
+#  push!(solvers, STIBSolver)
+#  push!(solverargs, (name="TIBSolver (standard)", sargs=(max_iterations=iters, precision=tol), pargs=(), get_Q0=true))
 
-### ETIB
-push!(solvers, ETIBSolver)
-push!(solverargs, (name="TIBSolver (entropy)", sargs=(max_iterations=iters, precision=tol), pargs=(), get_Q0=true))
+# ### ETIB
+# push!(solvers, ETIBSolver)
+# push!(solverargs, (name="TIBSolver (entropy)", sargs=(max_iterations=iters, precision=tol), pargs=(), get_Q0=true))
 
-### CTIB (unused)
-push!(solvers, CTIBSolver)
-push!(solverargs, (name="TIBSolver (closeness)", sargs=(max_iterations=iters, precision=tol), pargs=(), get_Q0=true)) 
+# ### CTIB (unused)
+# push!(solvers, CTIBSolver)
+# push!(solverargs, (name="TIBSolver (closeness)", sargs=(max_iterations=iters, precision=tol), pargs=(), get_Q0=true)) 
 
 ### OTIBs
 push!(solvers, OTIBSolver)
@@ -90,12 +90,12 @@ envs, envargs = [], []
 discount = 0.95
 
 # ### ABC
-include("Environments/ABCModel.jl"); using .ABCModel
-abcmodel = SparseTabularPOMDP(ABC(discount=discount))
-push!(envs, abcmodel)
-push!(envargs, (name="ABCModel",))
+# include("Environments/ABCModel.jl"); using .ABCModel
+# abcmodel = SparseTabularPOMDP(ABC(discount=discount))
+# push!(envs, abcmodel)
+# push!(envargs, (name="ABCModel",))
 
-#  # ### Tiger
+ # ### Tiger
 #  tiger = POMDPModels.TigerPOMDP()
 #  tiger.discount_factor = discount
 #  push!(envs, tiger)
@@ -103,19 +103,19 @@ push!(envargs, (name="ABCModel",))
 
 # # ### RockSample
 import RockSample
-# This env is very difficult to work with for some reason...
-# POMDPs.states(M::RockSample.RockSamplePOMDP) = map(si -> RockSample.state_from_index(M,si), 1:length(M))
-# POMDPs.discount(M::RockSample.RockSamplePOMDP) = discount
+### This env is very difficult to work with for some reason...
+POMDPs.states(M::RockSample.RockSamplePOMDP) = map(si -> RockSample.state_from_index(M,si), 1:length(M))
+POMDPs.discount(M::RockSample.RockSamplePOMDP) = discount
 
 # map_size, rock_pos = (7,7), [(1,2), (2,6), (3,3), (3,4), (4,7),(6,1),(6,4),(7,3)] # HSVI setting!
 # rocksamplelarge = SparseTabularPOMDP(RockSample.RockSamplePOMDP(map_size, rock_pos))
 # push!(envargs, (name="RockSample (7,8)",))
 # push!(envs, rocksamplelarge)
 
-# map_size, rock_pos = (5,5), [(1,1), (3,3), (4,4)] # Default
-# rocksamplesmall = RockSample.RockSamplePOMDP(map_size, rock_pos)
-# push!(envargs, (name="RockSample (5x5)",))
-# push!(envs, rocksamplesmall)
+map_size, rock_pos = (5,5), [(1,1), (3,3), (4,4)] # Default
+rocksamplesmall = RockSample.RockSamplePOMDP(map_size, rock_pos)
+push!(envargs, (name="RockSample (5x5)",))
+push!(envs, rocksamplesmall)
 
 # map_size, rock_pos = (10,10), [(2,3), (4,6), (7,4), (8,9) ] # Big Boy!
 # rocksamplelarge = RockSample.RockSamplePOMDP(map_size, rock_pos)

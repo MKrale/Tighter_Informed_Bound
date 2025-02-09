@@ -95,6 +95,7 @@ function solve(solver::X, model::POMDP; Data::Union{TIB_Data,Nothing}=nothing) w
     end
     t_it = time()- t0 - t_init - t_w
     verbose && printdb("iteration time $t_it (avg over $it iterations: $(t_it/it))")
+
     return pol(model, TIB_Data(Qs,Data))
 end
 
@@ -189,24 +190,29 @@ function get_QOTIB_ba(model::POMDP,b,a,Qs,B,Br, SAOs, SAO_probs, constants::C; a
     set_string_names_on_creation(opt_model, false)
     
     isnothing(bi) ? (Q = breward(model,b,a)) : (Q = Br[bi,ai])
+
     for oi in get_possible_obs(b,ai,SAOs, S_dict)
         Qo = -Inf
-        for (api, ap) in enumerate(constants.A) #TODO: would it be quicker to let the solver also find the best action?
-            thisQo = 0
-            if !(Bbao_data isa Nothing) && !(bi isa Nothing)
-                bao = get_bao(Bbao_data, bi, ai, oi, B)
-                overlap_idxs = get_overlap(Bbao_data, bi, ai, oi)
-                thisBs, thisQs = B[overlap_idxs], Qs[overlap_idxs, api]
-                empty!(opt_model)
-                thisQo = get_QLP(bao, thisQs, thisBs, opt_model)
+        if !(Bbao_data isa Nothing) && !(bi isa Nothing)
+            bao = get_bao(Bbao_data, bi, ai, oi, B)
+            overlap_idxs = get_overlap(Bbao_data, bi, ai, oi)
+            if length(overlap_idxs) == 1
+                Qo = maximum(Qs[overlap_idxs,:])
             else
-                o = constants.O[oi]
-                bao = update(DiscreteHashedBeliefUpdater(model),b,a,o)
-                B_rel, Bidx_rel = get_overlapping_beliefs(bao,B)
+                thisBs, thisQs = B[overlap_idxs], Qs[overlap_idxs,:]
                 empty!(opt_model)
-                thisQo = get_QLP(bao, Qs[Bidx_rel,api],B_rel, opt_model)
+                Qo = get_QLP(bao, thisQs, thisBs, opt_model)
             end
-            Qo = max(Qo, thisQo)
+        else
+            o = constants.O[oi]
+            bao = update(DiscreteHashedBeliefUpdater(model),b,a,o)
+            B_rel, Bidx_rel = get_overlapping_beliefs(bao,B)
+            if length(Bidx_rel) == 1
+                thisQo = maximum(Qs[Bidx_rel,:])
+            else
+                empty!(opt_model)
+                Qo = get_QLP(bao, Qs[Bidx_rel,:], B_rel, opt_model)
+            end
         end
         p = 0
         for s in support(b)
@@ -219,25 +225,37 @@ end
 
 """ Uses a point-set B with value estimates Qs to estimate the value of a belief b."""
 function get_QLP(b,Qs,B, model)
+    na = length(Qs[1,:])
     if model isa Nothing
         # model = Model(HiGHS.Optimizer)
         model = Model(Clp.Optimizer; add_bridges=false)
         set_silent(model)
         set_string_names_on_creation(opt_model, false)
     end
-    @variable(model, -1.0 <= b_ps[1:length(B)] <= 1.0)
+
+    
+    @variable(model, 0.0 <= b_ps[1:length(B)] <= 1.0)
+    @variable(model, Qmax)
+
+    # Constraint 1: set must represent b
     for s in support(b)
         Idx, Ps = [], []
         for (bpi, bp) in enumerate(B)
             p = pdf(bp,s)
             if p > 0
                 push!(Idx, bpi)
-                push!(Ps,p)
+                push!(Ps, p)
             end
         end
-        length(Idx) > 0 && @constraint(model, sum(b_ps[Idx[i]] * Ps[i] for i in 1:length(Idx)) == pdf(b,s) )
+        length(Idx) > 0 && @constraint(model, sum(b_ps[Idx] .* Ps) == pdf(b,s) )
     end
-    @objective(model, Min, sum(Qs .* b_ps))
+
+    # Constraint 2: Qmax is Q of best action
+    for ai in 1:na
+        @constraint(model, Qmax >= sum(Qs[:,ai] .* b_ps))
+    end
+
+    @objective(model, Min, 1.0 * Qmax)
     optimize!(model)
     return(objective_value(model))
 end
@@ -365,7 +383,7 @@ function action_value_preweights(π::X, b; weightfunction = get_entropy_weights)
     for (ai,a) in enumerate(π.Data.constants.A)
         # If we want to use this policy only, computing weights might be too expensive. 
         # Instead, we could use the TIB approach online, but use the Q-table computed using our weights
-        # However, we currently just use the more expansive variant
+        # However, we currently just use the more expensive variant
         if true
             Qa = get_QETIB_ba(model::POMDP, b, a, π.Data)
         else
