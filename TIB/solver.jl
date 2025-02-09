@@ -208,7 +208,7 @@ function get_QOTIB_ba(model::POMDP,b,a,Qs,B,Br, SAOs, SAO_probs, constants::C; a
             bao = update(DiscreteHashedBeliefUpdater(model),b,a,o)
             B_rel, Bidx_rel = get_overlapping_beliefs(bao,B)
             if length(Bidx_rel) == 1
-                thisQo = maximum(Qs[Bidx_rel,:])
+                Qo = maximum(Qs[Bidx_rel,:])
             else
                 empty!(opt_model)
                 Qo = get_QLP(bao, Qs[Bidx_rel,:], B_rel, opt_model)

@@ -1,1 +1,1 @@
-{"env_full":"SparseHallway1","env_data":{},"solvetime":1201.594772273,"lb":-1,"ub":1.1858169876540978,"solver":"TIBSolver (worst-case)","simtime":-1.0,"ravg":-1.0,"env":"SparseHallway1"}
+{"env_full":"SparseHallway1","env_data":{},"solvetime":1202.986991129,"lb":-1,"ub":null,"solver":"TIBSolver (worst-case)","simtime":-1.0,"ravg":-1.0,"env":"SparseHallway1"}

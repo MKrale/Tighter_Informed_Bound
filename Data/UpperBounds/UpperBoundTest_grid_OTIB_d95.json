@@ -1,1 +1,1 @@
-{"env_full":"Grid","env_data":{},"solvetime":461.769223131,"lb":-1,"ub":2.538140290924199e-5,"solver":"TIBSolver (worst-case)","simtime":-1.0,"ravg":-1.0,"env":"grid"}
+{"env_full":"Grid","env_data":{},"solvetime":64.132136969,"lb":-1,"ub":7.197009088668714,"solver":"TIBSolver (worst-case)","simtime":-1.0,"ravg":-1.0,"env":"grid"}
