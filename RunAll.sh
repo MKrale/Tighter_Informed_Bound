@@ -40,24 +40,24 @@ do
  processes+=("julia --project=. run_sarsoptest.jl --env $env --discount $discount --onlyBs true --precompile false")
 done
 
-printf "%s\n" "${processes[@]}" | parallel -j1
-wait
+#printf "%s\n" "${processes[@]}" | parallel -j1
+#wait
 
 ##### Discount experiments #####
 
 folder_path="Data/DiscountTest/"
-for env in "Tiger" "K-out-of-N2" "RockSample5"
+for env in "K-out-of-N2" "RockSample5" # "Tiger"
 do
-  for heuristic in "standard" #"TIB" "ETIB"
+  for heuristic in "standard" "TIB" "ETIB"
   do
-    for discount in $(seq 0.95 0.001 0.99);
+    for discount in $(seq 0.95 0.001 0.999);
     do
         start_time=$(date +%s)
         julia --project=. run_sarsoptest.jl --env $env --precompile true --path $folder_path --solvers $heuristic --discount $discount
         end_time=$(date +%s)
         elapsed_time=$((end_time - start_time))
-        if [ $elapsed_time -gt 3630 ]; then # Adding 30s for loading file/precomp/etc. (in testing, this took <20s)
-          echo "Run took $elapsed_time longer than 3600s: computations stopped."
+        if [ $elapsed_time -gt 3600 ]; then # Adding 30s for loading file/precomp/etc. (in testing, this took <20s)
+          echo "Run took $elapsed_time longer than 3800s: computations stopped."
           break
         fi
     done

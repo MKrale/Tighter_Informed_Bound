@@ -134,12 +134,12 @@ include("Environments/K-out-of-N.jl"); using .K_out_of_Ns
 # push!(envargs, (name="K-out-of-N (3)",))
 
 # # # Frozen Lake variants
-include("Environments/CustomGridworld.jl"); using .CustomGridWorlds
+# include("Environments/CustomGridworld.jl"); using .CustomGridWorlds
 
-lakesmall = FrozenLakeSmall
-lakesmall.discount = discount
-push!(envs, lakesmall)
-push!(envargs, (name="Frozen Lake (4x4)",))
+#lakesmall = FrozenLakeSmall
+#lakesmall.discount = discount
+#push!(envs, lakesmall)
+#push!(envargs, (name="Frozen Lake (4x4)",))
 
 # lakelarge = FrozenLakeLarge
 # lakelarge.discount = discount
