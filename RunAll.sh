@@ -10,18 +10,18 @@ discount="0.95"
 ## Small, UB
 for env in "ABC" "RockSample5" "Tiger" # QUICK
 do
-  thisrun="julia --project=. run_upperbound.jl --env $env --discount $discount --precompile true --solver OTIB"
+  thisrun="julia --project=. run_upperbound.jl --env $env --discount $discount --precompile true --solver CTIB"
   processes+=("$thisrun")
 done
 ## Small, Sarsop
-# for env in "ABC" "RockSample5" "Tiger" # QUICK
+# for env in "K-out-of-N2" #"ABC" "RockSample5" "Tiger" # QUICK
 # do
 #    processes+=("julia --project=. run_sarsoptest.jl --env $env --discount $discount --onlyBs true --precompile true")
 # done
 ###Large, UB
 for env in "RockSample7" "SparseHallway1" "SparseHallway2" "K-out-of-N2" "K-out-of-N3" "Tag"  "SparseTigerGrid" # LONG
 do
- processes+=("julia --project=. run_upperbound.jl --env $env --discount $discount --precompile false --solver OTIB")
+ processes+=("julia --project=. run_upperbound.jl --env $env --discount $discount --precompile false --solver CTIB")
 done
 ## Large, Sarsop
 # for env in "SparseHallway1" "SparseHallway2"  "RockSample7" "K-out-of-N2" "K-out-of-N3" "Tag" "SparseTigerGrid" # LONG
@@ -33,7 +33,7 @@ done
 
 for env in "pentagon" "grid" "aloha30" "fourth" 
 do
- processes+=("julia --project=. run_upperbound.jl --env $env --discount $discount --precompile false --solver OTIB")
+ processes+=("julia --project=. run_upperbound.jl --env $env --discount $discount --precompile false --solver CTIB")
 done
 # for env in "pentagon" "grid" "aloha30" "fourth" 
 # do

@@ -23,7 +23,7 @@ end
     max_iterations::Int64   = 250
     max_time::Float64       = 3600
     precision::Float64      = 1e-4
-    precomp_solver          = ETIBSolver(precision=1e-4, max_iterations=250, max_time=3600, precomp_solver=FIBSolver_alt(precision=1e-4, max_iterations=1000, max_time=3600))
+    precomp_solver          = ETIBSolver(precision=1e-3, max_iterations=250, max_time=3600, precomp_solver=STIBSolver(precision=1e-4, max_iterations=250, max_time=3600, precomp_solver=FIBSolver_alt(precision=1e-4, max_iterations=1000, max_time=3600)))
  end
 
  @kwdef struct CTIBSolver <: TIBSolver
