@@ -6,8 +6,6 @@ Repository containing code, as well as gathered data, as used for the following 
 > Merlijn Krale, Wietze Koops, Sebastian Junges, Thiago D. Simão, Nils Jansen \
 > AAMAS 2025, Detroit
 
-This branch contains all code to reproduce the results from this paper. For 
-
 ## Contents
 
 This repository contains the following files:

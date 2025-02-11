@@ -52,7 +52,7 @@ timeout = parsed_args["timeout"]
 path = parsed_args["path"]
 filename = parsed_args["filename"]
 solver_names = [parsed_args["solvers"]]
-solver_names == ["All"] && (solver_names = ["TIB", "ETIB", "OTIB", "FIB", "SARSOP"])
+solver_names == ["All"] && (solver_names = ["TIB", "ETIB", "CTIB", "OTIB", "FIB", "SARSOP"])
 discount = parsed_args["discount"]
 discount_str = string(discount)[3:end]
 precompile = parsed_args["precompile"]
