@@ -56,6 +56,8 @@ precision = parsed_args["precision"]
 path = parsed_args["path"]
 filename = parsed_args["filename"]
 solver_name = parsed_args["solvers"]
+# solver_name == "" && solver_name = ["standard","TIB","ETIB"]
+solver_name == "" && solver_name = ["ETIB"]
 discount = parsed_args["discount"]
 discount_str = string(discount)[3:end]
 sims = parsed_args["sims"]
@@ -81,7 +83,7 @@ h_iterations, h_precision = 10_000, 1e-3
 discount == 0.95 && (h_iterations = 250; h_precision = 1e-3; h_timeout = 1200.0)
 discount == 0.99 && (h_iterations = 1000; h_precision = 1e-3; h_timeout = 1200.0)
 
-if solver_name in  ["standard"]#, ""]
+if "standard" in solver_name
     push!(solvers, NativeSARSOP_alt.SARSOPSolver)
     h_solver = NativeSARSOP_alt.FIBSolver_alt(max_iterations=(h_iterations*4), precision=h_precision)
     push!(solverargs, (name="SARSOP", sargs=(precision=precision, max_time=timeout, verbose=false, heuristic_solver=h_solver), pargs=()))
@@ -89,7 +91,7 @@ if solver_name in  ["standard"]#, ""]
     precomp_h_solver = NativeSARSOP_alt.FIBSolver_alt(max_iterations=2)
     push!(precomp_solvers, (sargs=(max_its = 2, verbose=false, heuristic_solver=precomp_h_solver),pargs=()))
 end
-if solver_name in  ["TIB"]#, ""]
+if "TIB" in solver_name
     push!(solvers, NativeSARSOP_alt.SARSOPSolver)
     h_solver = NativeSARSOP_alt.STIBSolver(max_iterations=h_iterations, precision=h_precision)
     push!(solverargs, (name="TIB-SARSOP", sargs=( precision=precision, max_time=timeout, verbose=false, heuristic_solver=h_solver, use_only_Bs=onlyBs), pargs=()))
@@ -97,7 +99,7 @@ if solver_name in  ["TIB"]#, ""]
     precomp_h_solver = NativeSARSOP_alt.STIBSolver(max_iterations=2)
     push!(precomp_solvers, (sargs=(max_its = 2, verbose=false, heuristic_solver=precomp_h_solver),pargs=()))
 end
-if solver_name in  ["ETIB", ""]
+if "ETIB" in solver_name
     push!(solvers, NativeSARSOP_alt.SARSOPSolver)
     h_solver = NativeSARSOP_alt.ETIBSolver(max_iterations=h_iterations, precision=h_precision)
     push!(solverargs, (name="ETIB-SARSOP", sargs=( precision=precision, max_time=timeout, verbose=false, heuristic_solver=h_solver, use_only_Bs=onlyBs), pargs=()))
@@ -105,7 +107,7 @@ if solver_name in  ["ETIB", ""]
     precomp_h_solver = NativeSARSOP_alt.ETIBSolver(max_iterations=2)
     push!(precomp_solvers, (sargs=(max_its = 2, verbose=false, heuristic_solver=precomp_h_solver),pargs=()))
 end
-if solver_name in  ["CTIB"]
+if "CTIB" in solver_name
     push!(solvers, NativeSARSOP_alt.SARSOPSolver)
     h_solver = NativeSARSOP_alt.CTIBSolver(max_iterations=h_iterations, precision=h_precision)
     push!(solverargs, (name="CTIB-SARSOP", sargs=( precision=precision, max_time=timeout, verbose=false, heuristic_solver=h_solver, use_only_Bs=onlyBs), pargs=()))
@@ -113,7 +115,7 @@ if solver_name in  ["CTIB"]
     precomp_h_solver = NativeSARSOP_alt.ETIBSolver(max_iterations=2)
     push!(precomp_solvers, (sargs=(max_its = 2, verbose=false, heuristic_solver=precomp_h_solver),pargs=()))
 end
-if solver_name in  ["OTIB"]
+if "OTIB" in solver_name
     push!(solvers, NativeSARSOP_alt.SARSOPSolver)
     h_solver = NativeSARSOP_alt.OTIBSolver(max_iterations=h_iterations, precision=h_precision)
     push!(solverargs, (name="OTIB-SARSOP", sargs=( precision=precision, max_time=timeout, verbose=false, heuristic_solver=h_solver, use_only_Bs=onlyBs), pargs=()))
