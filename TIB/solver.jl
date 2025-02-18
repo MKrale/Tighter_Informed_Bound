@@ -23,7 +23,7 @@ end
     max_iterations::Int64   = 250
     max_time::Float64       = 3600
     precision::Float64      = 1e-4
-    precomp_solver          = ETIBSolver(precision=1e-3, max_iterations=250, max_time=3600, precomp_solver=STIBSolver(precision=1e-4, max_iterations=250, max_time=3600, precomp_solver=FIBSolver_alt(precision=1e-4, max_iterations=1000, max_time=3600)))
+    precomp_solver          = ETIBSolver(precision=1e-4, max_iterations=250, max_time=3600, precomp_solver=STIBSolver(precision=1e-4, max_iterations=250, max_time=3600, precomp_solver=FIBSolver_alt(precision=1e-4, max_iterations=1000, max_time=3600)))
  end
 
  @kwdef struct CTIBSolver <: TIBSolver
@@ -106,7 +106,7 @@ end
 ############ Q-value Precomputations ###################
 
 """Initializes Q-values for all belies in Data.B using solver."""
-function precompute_Qs(model::POMDP, Data::TIB_Data, solver::X ; getdata=false) where X<: Solver
+function precompute_Qs(model::POMDP, Data::TIB_Data, solver::X ; getdata=false) where X<:Union{QMDPSolver_alt, FIBSolver_alt}
 	π = solve(solver, model; Data=Data)
     B, constants = Data.B, Data.constants
     Qs = zeros(Float64, length(B), constants.na)
@@ -117,6 +117,19 @@ function precompute_Qs(model::POMDP, Data::TIB_Data, solver::X ; getdata=false) 
                     Qs[b_idx, ai] += pdf(b,s) * π.Data.Q[si,ai]
                 end
             end
+        end
+    end
+    getdata ? (return TIB_Data(Qs, Data)) : (return Qs)
+end
+
+"""Initializes Q-values for all belies in Data.B using solver."""
+function precompute_Qs(model::POMDP, Data::TIB_Data, solver::X ; getdata=false) where X<: TIBSolver
+	π = solve(solver, model; Data=Data)
+    B, constants = Data.B, Data.constants
+    Qs = zeros(Float64, length(B), constants.na)
+    for (b_idx, b) in enumerate(B)
+        for (ai, a) in enumerate(constants.A)
+            Qs[b_idx, ai] = π.Data.Q[b_idx,ai]
         end
     end
     getdata ? (return TIB_Data(Qs, Data)) : (return Qs)

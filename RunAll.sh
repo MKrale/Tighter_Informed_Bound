@@ -8,7 +8,7 @@ processes=()
 discount="0.95"
 
 ## Small, UB
-for env in "ABC" "RockSample5" "Tiger" "K-out-of-N2" # QUICK, using precompile to minimize variance
+for env in "ABC" "RockSample5" "Tiger" "K-out-of-N2" "grid" # QUICK, using precompile to minimize variance
 do
   thisrun="julia --project=. run_upperbound.jl --env $env --discount $discount --precompile true"
   processes+=("$thisrun")
@@ -20,7 +20,7 @@ do
 done
 
 ###Large, UB
-for env in "RockSample7" "SparseHallway1" "SparseHallway2" "K-out-of-N3" "Tag"  "SparseTigerGrid" # LONG, not using precompile to save on computational cost
+for env in "RockSample7" "SparseHallway1" "SparseHallway2" "K-out-of-N3" "Tag" "SparseTigerGrid" # LONG, not using precompile to save on computational cost
 do
  processes+=("julia --project=. run_upperbound.jl --env $env --discount $discount --precompile false")
 done
@@ -32,7 +32,7 @@ done
 
 ### Extra Large:
 
-for env in "pentagon" "grid" "aloha30" "fourth" # LONGER
+for env in "pentagon" "aloha30" "fourth" # LONGER
 do
  processes+=("julia --project=. run_upperbound.jl --env $env --discount $discount --precompile false")
 done
