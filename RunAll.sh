@@ -22,23 +22,23 @@ done
 ###Large, UB
 for env in "RockSample7" "SparseHallway1" "SparseHallway2" "K-out-of-N3" "Tag" "SparseTigerGrid" # LONG, not using precompile to save on computational cost
 do
- processes+=("julia --project=. run_upperbound.jl --env $env --discount $discount --precompile false")
+ processes+=("julia --project=. run_upperbound.jl --env $env --discount $discount --precompile true")
 done
 # Large, Sarsop
 for env in "SparseHallway1" "SparseHallway2"  "RockSample7" "K-out-of-N3" "Tag" "SparseTigerGrid" # LONG
 do
- processes+=("julia --project=. run_sarsoptest.jl --env $env --discount $discount --onlyBs true --precompile false")
+ processes+=("julia --project=. run_sarsoptest.jl --env $env --discount $discount --onlyBs true --precompile true")
 done
 
 ### Extra Large:
 
 for env in "pentagon" "aloha30" "fourth" # LONGER
 do
- processes+=("julia --project=. run_upperbound.jl --env $env --discount $discount --precompile false")
+ processes+=("julia --project=. run_upperbound.jl --env $env --discount $discount --precompile true")
 done
 for env in "pentagon" "grid" "aloha30" "fourth" # LONGER
 do
- processes+=("julia --project=. run_sarsoptest.jl --env $env --discount $discount --onlyBs true --precompile false")
+ processes+=("julia --project=. run_sarsoptest.jl --env $env --discount $discount --onlyBs true --precompile true")
 done
 
 printf "%s\n" "${processes[@]}" | parallel -j1
