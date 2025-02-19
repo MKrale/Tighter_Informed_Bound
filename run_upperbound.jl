@@ -53,7 +53,7 @@ path = parsed_args["path"]
 filename = parsed_args["filename"]
 solver_names = [parsed_args["solvers"]]
 # solver_names == ["All"] && (solver_names = ["TIB", "ETIB", "CTIB", "OTIB", "FIB", "SARSOP"])
-solver_names == ["All"] && (solver_names = ["TIB", "ETIB", "OTIB", "FIB"])
+solver_names == ["All"] && (solver_names = ["FIB","TIB", "ETIB", "OTIB"])
 
 discount = parsed_args["discount"]
 discount_str = string(discount)[3:end]
@@ -345,7 +345,7 @@ for (m_idx,(model, modelargs)) in enumerate(zip(envs, envargs))
         if precompile
             thissolver = solver(;precomp_solverargs[s_idx].sargs...)
             _t = @elapsed begin
-                _p, _i = POMDPTools.solve_info(thissolver, model; precomp_solverargs[s_idx].pargs...) 
+                policy, info = POMDPTools.solve_info(thissolver, model; precomp_solverargs[s_idx].pargs...) 
             end
         end
 
