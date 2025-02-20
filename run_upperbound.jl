@@ -91,7 +91,7 @@ end
 if "TIB" in solver_names
     push!(solvers, STIBSolver)
     push!(solverargs, (name="TIBSolver (standard)", sargs=(max_iterations=heuristicsteps, precision=heuristicprecision, max_time=timeout), pargs=(), get_Q0=true))
-    push!(precomp_solverargs, ( sargs=(max_iterations=2,), pargs=()))
+    push!(precomp_solverargs, ( sargs=(max_iterations=3, precomp_solver=FIBSolver_alt(max_iterations=3)), pargs=()))
 end
 if "ETIB" in solver_names
     push!(solvers, ETIBSolver)
@@ -351,6 +351,7 @@ for (m_idx,(model, modelargs)) in enumerate(zip(envs, envargs))
 
         # Compute policy & get upper bound
         thissolver = solver(;solverarg.sargs...)
+	GC.gc()
         t = @elapsed begin
             policy, info = POMDPTools.solve_info(thissolver, model; solverarg.pargs...) 
         end

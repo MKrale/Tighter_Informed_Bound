@@ -8,11 +8,11 @@ processes=()
 discount="0.95"
 
 ## Small, UB
-#for env in "ABC" "RockSample5" "Tiger" "K-out-of-N2" "grid" # QUICK, using precompile to minimize variance
-#do
-#  thisrun="julia --project=. run_upperbound.jl --env $env --discount $discount"
-#  processes+=("$thisrun")
-#done
+for env in "ABC" "RockSample5" "Tiger" "K-out-of-N2" "grid" # QUICK, using precompile to minimize variance
+do
+  thisrun="julia --project=. run_upperbound.jl --env $env --discount $discount --solvers CTIB"
+  processes+=("$thisrun")
+done
 # Small, Sarsop
 #for env in "ABC" "RockSample5" "Tiger" "K-out-of-N2" "grid" # QUICK
 #do
@@ -20,10 +20,10 @@ discount="0.95"
 #done
 
 ###Large, UB
-#for env in "RockSample7" "SparseHallway1" "SparseHallway2" "K-out-of-N3" "Tag" "SparseTigerGrid" # LONG, not using precompile to save on computational cost
-#do
-# processes+=("julia --project=. run_upperbound.jl --env $env --discount $discount")
-#done
+for env in "RockSample7" "SparseHallway1" "SparseHallway2" "K-out-of-N3" "Tag" "SparseTigerGrid" # LONG, not using precompile to save on computational cost
+do
+ processes+=("julia --project=. run_upperbound.jl --env $env --discount $discount --solvers CTIB")
+done
 # Large, Sarsop
 #for env in "SparseHallway1" "SparseHallway2"  "RockSample7" "K-out-of-N3" "Tag" "SparseTigerGrid" # LONG
 #do
@@ -32,14 +32,14 @@ discount="0.95"
 
 ### Extra Large:
 
-#for env in "pentagon" "aloha30" "fourth" # LONGER
-#do
-# processes+=("julia --project=. run_upperbound.jl --env $env --discount $discount")
-#done
 for env in "pentagon" "aloha30" "fourth" # LONGER
 do
- processes+=("julia --project=. run_sarsoptest.jl --env $env --discount $discount --onlyBs true")
+ processes+=("julia --project=. run_upperbound.jl --env $env --discount $discount --solvers CTIB")
 done
+#for env in "pentagon" "aloha30" "fourth" # LONGER
+#do
+# processes+=("julia --project=. run_sarsoptest.jl --env $env --discount $discount --onlyBs true")
+#done
 
 printf "%s\n" "${processes[@]}" | parallel -j1
 wait
