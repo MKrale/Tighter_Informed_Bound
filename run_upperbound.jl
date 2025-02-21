@@ -52,8 +52,7 @@ timeout = parsed_args["timeout"]
 path = parsed_args["path"]
 filename = parsed_args["filename"]
 solver_names = [parsed_args["solvers"]]
-# solver_names == ["All"] && (solver_names = ["TIB", "ETIB", "CTIB", "OTIB", "FIB", "SARSOP"])
-solver_names == ["All"] && (solver_names = ["FIB","TIB", "ETIB", "OTIB"])
+solver_names == ["All"] && (solver_names = ["TIB", "ETIB", "CTIB", "OTIB", "FIB", "SARSOP"])
 
 discount = parsed_args["discount"]
 discount_str = string(discount)[3:end]
@@ -209,6 +208,7 @@ end
 #     push!(envs, SparseTabularPOMDP(lakelarge))
 #     push!(envargs, (name="Frozen Lake (10)",))
 # end
+# UNUSED (cause other implementation):
 # if env_name == "Hallway1"
 #     hallway1 = Hallway1
 #     hallway.discount = discount
