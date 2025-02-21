@@ -56,8 +56,7 @@ precision = parsed_args["precision"]
 path = parsed_args["path"]
 filename = parsed_args["filename"]
 solver_name = parsed_args["solvers"]
-# solver_name == "" && (solver_name = ["standard","TIB","ETIB"])
-solver_name == "" && (solver_name = ["ETIB"])
+solver_name == "" && (solver_name = ["standard","TIB","ETIB"])
 discount = parsed_args["discount"]
 discount_str = string(discount)[3:end]
 sims = parsed_args["sims"]
